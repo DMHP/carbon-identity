@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.application.authentication.framework.handler.se
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.FederatedApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
@@ -272,7 +273,6 @@ public class DefaultStepBasedSequenceHandler implements StepBasedSequenceHandler
                     // now we know the value of the subject - from the external identity provider.
 
                     if (sequenceConfig.getApplicationConfig().isAlwaysSendMappedLocalSubjectId()) {
-
                         // okay - now we need to find out the corresponding mapped local subject
                         // identifier.
 
@@ -281,7 +281,7 @@ public class DefaultStepBasedSequenceHandler implements StepBasedSequenceHandler
                             // start tenant flow
                             FrameworkUtils.startTenantFlow(context.getTenantDomain());
                             associatedID = userProfileAdmin.getNameAssociatedWith(stepConfig.getAuthenticatedIdP(),
-                                                                                  originalExternalIdpSubjectValueForThisStep);
+                                    originalExternalIdpSubjectValueForThisStep);
                         } catch (UserProfileException e) {
                             throw new FrameworkException("Error while getting associated ID", e);
                         } finally {

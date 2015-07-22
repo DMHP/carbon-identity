@@ -505,7 +505,7 @@ public class DefaultClaimHandler implements ClaimHandler {
 
     private AuthenticatedUser getAuthenticatedUser(StepConfig stepConfig, AuthenticationContext context) {
         AuthenticatedUser authenticatedUser;
-        if (stepConfig != null) {
+        if (stepConfig.getAuthenticatedUser().getUserName() != null) {
             //calling from StepBasedSequenceHandler
             authenticatedUser = stepConfig.getAuthenticatedUser();
         } else {
