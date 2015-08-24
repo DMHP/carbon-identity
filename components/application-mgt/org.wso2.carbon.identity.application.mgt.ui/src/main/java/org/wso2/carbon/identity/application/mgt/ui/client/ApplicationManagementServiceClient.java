@@ -36,6 +36,7 @@ import org.wso2.carbon.user.mgt.stub.types.carbon.UserStoreInfo;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ApplicationManagementServiceClient {
@@ -209,7 +210,9 @@ public class ApplicationManagementServiceClient {
      * @throws Exception
      */
     public String[] getAllClaimUris() throws Exception {
-        return stub.getAllLocalClaimUris();
+        String[] allLocalClaimUris = stub.getAllLocalClaimUris();
+        Arrays.sort(allLocalClaimUris);
+        return allLocalClaimUris;
     }
 
     /**

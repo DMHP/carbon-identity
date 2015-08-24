@@ -277,9 +277,10 @@ public class IdentityProviderMgtServiceClient {
      * @throws Exception
      */
     public String[] getAllLocalClaimUris() throws Exception {
-
         try {
-            return idPMgtStub.getAllLocalClaimUris();
+            String[] allLocalClaimUris = idPMgtStub.getAllLocalClaimUris();
+            Arrays.sort(allLocalClaimUris);
+            return allLocalClaimUris;
         } catch (Exception e) {
             log.error("Error in retrieving localClaim Uris", e);
             throw new Exception("Error occurred while retrieving all local claim URIs");
