@@ -317,19 +317,11 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
 
                         }
 
-                        String authenticatedUser = null;
-                        String isSubjectInClaimsProp = context.getAuthenticatorProperties().get(
-                                IdentityApplicationConstants.Authenticator.SAML2SSO.IS_USER_ID_IN_CLAIMS);
+                        String subjectFromClaims = FrameworkUtils.getFederatedSubjectFromClaims(
+                                context.getExternalIdP().getIdentityProvider(), claims);
 
-                        if ("true".equalsIgnoreCase(isSubjectInClaimsProp)) {
-                            authenticatedUser = getSubjectFromUserIDClaimURI(context);
-                            if (authenticatedUser == null) {
-                                if (log.isDebugEnabled()) {
-                                    log.debug("Subject claim could not be found amongst subject attributes. " +
-                                            "Defaulting to sub attribute in IDToken.");
-                                }
-                            }
-                        }
+                        String authenticatedUser = null;
+
                         if (authenticatedUser == null) {
                             authenticatedUser = (String) jsonObject.get("sub");
                         }
@@ -338,7 +330,7 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
                         }
 
                         AuthenticatedUser authenticatedUserObj = AuthenticatedUser
-                                .createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUser);
+                                .createFederateAuthenticatedUserFromSubjectIdentifier(subjectFromClaims);
                         authenticatedUserObj.setUserAttributes(claims);
                         context.setSubject(authenticatedUserObj);
 
@@ -433,22 +425,8 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
 
     @Override
     public String getClaimDialectURI() {
+        //return "http://wso2.org/claims";
         return "http://wso2.org/oidc/claim";
     }
 
-
-    /**
-     * @subject
-     */
-    protected String getSubjectFromUserIDClaimURI(AuthenticationContext context) {
-        String subject = null;
-        try {
-            subject = FrameworkUtils.getFederatedSubjectFromClaims(context, getClaimDialectURI());
-        } catch (Exception e) {
-            if(log.isDebugEnabled()) {
-                log.debug("Couldn't find the subject claim from claim mappings ", e);
-            }
-        }
-        return subject;
-    }
 }
