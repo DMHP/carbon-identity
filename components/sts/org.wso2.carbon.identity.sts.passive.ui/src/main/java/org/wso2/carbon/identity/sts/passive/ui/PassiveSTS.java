@@ -288,7 +288,8 @@ public class PassiveSTS extends HttpServlet {
                                                String sessionDataKey, SessionDTO sessionDTO) throws IOException {
 
         String commonAuthURL = IdentityUtil.getServerURL(FrameworkConstants.COMMONAUTH, true);
-        String selfPath = request.getRequestURI();
+
+        String selfPath = request.getContextPath();
         //Authentication context keeps data which should be sent to commonAuth endpoint
         AuthenticationRequest authenticationRequest = new AuthenticationRequest();
         authenticationRequest.setRelyingParty(sessionDTO.getRealm());
