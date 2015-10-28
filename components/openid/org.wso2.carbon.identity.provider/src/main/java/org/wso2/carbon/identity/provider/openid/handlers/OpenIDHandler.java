@@ -448,7 +448,7 @@ public class OpenIDHandler {
         request.getSession().setAttribute(OpenIDConstants.SessionAttribute.OPENID, claimedID);
 
         String commonAuthURL = IdentityUtil.getServerURL(FrameworkConstants.COMMONAUTH, true);
-        String selfPath = request.getContextPath();
+        String selfPath = request.getRequestURI();
         String sessionDataKey = UUIDGenerator.generateUUID();
 
         //Authentication context keeps data which should be sent to commonAuth endpoint
