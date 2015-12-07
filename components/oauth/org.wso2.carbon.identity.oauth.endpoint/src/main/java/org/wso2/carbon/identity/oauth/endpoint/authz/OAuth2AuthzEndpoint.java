@@ -236,6 +236,8 @@ public class OAuth2AuthzEndpoint {
                 if (consent != null) {
 
                     if (OAuthConstants.Consent.DENY.equals(consent)) {
+                        OpenIDConnectUserRPStore.getInstance().putUserRPToStore(resultFromConsent.getLoggedInUser().toString(),
+                                resultFromConsent.getoAuth2Parameters().getApplicationName(), false);
                         // return an error if user denied
                         String denyResponse = OAuthASResponse.errorResponse(HttpServletResponse.SC_FOUND)
                                 .setError(OAuth2ErrorCodes.ACCESS_DENIED)
@@ -352,9 +354,9 @@ public class OAuth2AuthzEndpoint {
         if (!skipConsent) {
             boolean approvedAlways =
                     OAuthConstants.Consent.APPROVE_ALWAYS.equals(consent) ? true : false;
-            if (approvedAlways) {
+          //  if (approvedAlways || consent.equals(OAuthConstants.Consent.DENY)) {
                 OpenIDConnectUserRPStore.getInstance().putUserRPToStore(loggedInUser, applicationName, approvedAlways);
-            }
+           // }
         }
 
         OAuthResponse oauthResponse = null;
@@ -631,6 +633,7 @@ public class OAuth2AuthzEndpoint {
 
         OAuth2Parameters oauth2Params = sessionDataCacheEntry.getoAuth2Parameters();
         String loggedInUser = sessionDataCacheEntry.getLoggedInUser().getAuthenticatedSubjectIdentifier();
+        String consent = request.getParameter("consent");
 
         boolean skipConsent = EndpointUtil.getOAuthServerConfiguration().getOpenIDConnectSkipeUserConsentConfig();
 
@@ -657,7 +660,7 @@ public class OAuth2AuthzEndpoint {
                 return errorResponse;
             } else {
                 if (skipConsent || hasUserApproved) {
-                    return handleUserConsent(request, APPROVE, oauth2Params, sessionDataCacheEntry);
+                    return handleUserConsent(request, consent, oauth2Params, sessionDataCacheEntry);
                 } else {
                     return errorResponse;
                 }
@@ -665,7 +668,7 @@ public class OAuth2AuthzEndpoint {
 
         } else if (((OAuthConstants.Prompt.LOGIN).equals(oauth2Params.getPrompt()) || StringUtils.isBlank(oauth2Params.getPrompt()))) {
             if (skipConsent || hasUserApproved) {
-                return handleUserConsent(request, APPROVE, oauth2Params, sessionDataCacheEntry);
+                return handleUserConsent(request, consent, oauth2Params, sessionDataCacheEntry);
             } else {
                 return consentUrl;
             }
