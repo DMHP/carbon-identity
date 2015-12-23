@@ -30,13 +30,6 @@
         <version>1</version>
     </parent>
 
-    <scm>
-        <url>https://github.com/wso2/carbon-identity.git</url>
-        <developerConnection>scm:git:https://github.com/wso2/carbon-identity.git</developerConnection>
-        <connection>scm:git:https://github.com/wso2/carbon-identity.git</connection>
-        <tag>v5.0.7</tag>
-    </scm>
-
     <modules>
         <module>service-stubs/identity</module>
         <module>components/agents</module>
@@ -2072,8 +2065,6 @@
         <encoder.wso2.version>1.2.0.wso2v1</encoder.wso2.version>
         <javax.xml.parsers.import.pkg.version>[0.0.0, 1.0.0)</javax.xml.parsers.import.pkg.version>
         <ehcache.version>1.5.0.wso2v3</ehcache.version>
-
-        <project.scm.id>my-scm-server</project.scm.id>
     </properties>
 
     <build>
@@ -2105,18 +2096,6 @@
         </pluginManagement>
 
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <preparationGoals>clean install</preparationGoals>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-            </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.3.1</version>
