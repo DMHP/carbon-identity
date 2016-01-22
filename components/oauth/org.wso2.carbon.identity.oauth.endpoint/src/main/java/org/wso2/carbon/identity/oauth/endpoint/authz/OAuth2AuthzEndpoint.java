@@ -412,6 +412,7 @@ public class OAuth2AuthzEndpoint {
 
         // authorizing the request
         OAuth2AuthorizeRespDTO authzRespDTO = authorize(oauth2Params, sessionDataCacheEntry);
+        String responseType = oauth2Params.getResponseType();
 
         if (authzRespDTO != null && authzRespDTO.getErrorCode() == null) {
             OAuthASResponse.OAuthAuthorizationResponseBuilder builder = OAuthASResponse
@@ -421,7 +422,8 @@ public class OAuth2AuthzEndpoint {
                 builder.setCode(authzRespDTO.getAuthorizationCode());
                 addUserAttributesToCache(sessionDataCacheEntry, authzRespDTO.getAuthorizationCode(), authzRespDTO.getCodeId());
             }
-            if (StringUtils.isNotBlank(authzRespDTO.getAccessToken())){
+            if (StringUtils.isNotBlank(authzRespDTO.getAccessToken()) &&
+                    (OAuthConstants.ID_TOKEN_TOKEN.equals(responseType) || OAuthConstants.CODE.equalsIgnoreCase(responseType))){
                 builder.setAccessToken(authzRespDTO.getAccessToken());
                 builder.setExpiresIn(authzRespDTO.getValidityPeriod());
                 builder.setParam(OAuth.OAUTH_TOKEN_TYPE, "Bearer");
