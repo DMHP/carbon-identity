@@ -253,11 +253,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
         long accessTokenIssuedTime = getAccessTokenIssuedTime(tokenRespDTO.getAccessToken(), request) / 1000;
 
         String atHash = null;
-        String responseType = request.getAuthorizationReqDTO().getResponseType();
-        //at_hash is generated on access token. Hence the check on response type to be id_token token or code
-        if (!JWSAlgorithm.NONE.getName().equals(signatureAlgorithm.getName()) &&
-                (OAuthConstants.ID_TOKEN_TOKEN.equalsIgnoreCase(responseType) ||
-                        OAuthConstants.CODE.equalsIgnoreCase(responseType))) {
+        if (!JWSAlgorithm.NONE.getName().equals(signatureAlgorithm.getName())) {
             String digAlg = mapDigestAlgorithm(signatureAlgorithm);
             MessageDigest md;
             try {
