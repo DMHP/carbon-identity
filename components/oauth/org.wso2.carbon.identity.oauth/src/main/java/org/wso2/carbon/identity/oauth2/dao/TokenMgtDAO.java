@@ -278,7 +278,7 @@ public class TokenMgtDAO {
             return false;
         }
 
-        getSanitizedUserStoreDomain(userStoreDomain);
+        userStoreDomain = getSanitizedUserStoreDomain(userStoreDomain);
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         try {
