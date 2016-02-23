@@ -839,7 +839,7 @@ public class OAuth2AuthzEndpoint {
                 if (responseWrapper.isRedirect()) {
                     response.sendRedirect(responseWrapper.getRedirectURL());
                 } else {
-                    return Response.status(HttpServletResponse.SC_OK).entity(response).build();
+                    return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody()).build();
                 }
             } else {
                 return authorize(request, response);
@@ -883,7 +883,7 @@ public class OAuth2AuthzEndpoint {
                 if (responseWrapper.isRedirect()) {
                     response.sendRedirect(responseWrapper.getRedirectURL());
                 } else {
-                    return Response.status(HttpServletResponse.SC_OK).entity(response).build();
+                    return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody()).build();
                 }
             } else {
                 return authorize(requestWrapper, responseWrapper);

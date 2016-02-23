@@ -17,10 +17,16 @@
  */
 package org.wso2.carbon.identity.application.authentication.framework.model;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,11 +36,12 @@ public class CommonAuthResponseWrapper extends HttpServletResponseWrapper {
     private HttpServletRequest request;
     private boolean isRedirect = false;
     private String redirectURL;
+    private CommonAuthServletPrintWriter printWriter;
 
-    public CommonAuthResponseWrapper(HttpServletResponse response) {
-
+    public CommonAuthResponseWrapper(HttpServletResponse response) throws IOException {
         super(response);
         extraParameters = new HashMap();
+        printWriter = new CommonAuthServletPrintWriter(new ByteArrayOutputStream());
     }
 
     public CommonAuthResponseWrapper(HttpServletResponse response, HttpServletRequest request) {
@@ -51,11 +58,43 @@ public class CommonAuthResponseWrapper extends HttpServletResponseWrapper {
         isRedirect = true;
     }
 
+
+    @Override
+    public PrintWriter getWriter() throws IOException {
+        return this.printWriter;
+    }
+
+    public String getResponseBody() {
+        return this.printWriter.getBufferedString();
+    }
+
     public boolean isRedirect() {
         return isRedirect;
     }
 
     public String getRedirectURL() {
         return redirectURL;
+    }
+
+    private final class CommonAuthServletPrintWriter extends PrintWriter {
+        StringBuffer buffer = new StringBuffer();
+
+        public CommonAuthServletPrintWriter(OutputStream stream) {
+            super(stream);
+        }
+
+        @Override
+        public void print(String s) {
+            buffer.append(s);
+        }
+
+        @Override
+        public void println(String s) {
+            buffer.append(s + "\n");
+        }
+
+        public String getBufferedString() {
+            return this.buffer.toString();
+        }
     }
 }
