@@ -74,6 +74,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -839,7 +840,14 @@ public class OAuth2AuthzEndpoint {
                 if (responseWrapper.isRedirect()) {
                     response.sendRedirect(responseWrapper.getRedirectURL());
                 } else {
-                    return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody()).build();
+                    try {
+                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new
+                                Class[]{});
+                        return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
+                                .build();
+                    } catch (NoSuchMethodException e) {
+                        response.sendRedirect(responseWrapper.getRedirectURL());
+                    }
                 }
             } else {
                 return authorize(request, response);
@@ -883,7 +891,15 @@ public class OAuth2AuthzEndpoint {
                 if (responseWrapper.isRedirect()) {
                     response.sendRedirect(responseWrapper.getRedirectURL());
                 } else {
-                    return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody()).build();
+
+                    try {
+                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new
+                                Class[]{});
+                        return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
+                                .build();
+                    } catch (NoSuchMethodException e) {
+                        response.sendRedirect(responseWrapper.getRedirectURL());
+                    }
                 }
             } else {
                 return authorize(requestWrapper, responseWrapper);
