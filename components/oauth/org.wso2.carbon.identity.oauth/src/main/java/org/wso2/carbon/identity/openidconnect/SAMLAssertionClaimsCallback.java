@@ -71,6 +71,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
     private final static Log log = LogFactory.getLog(SAMLAssertionClaimsCallback.class);
     private final static String INBOUND_AUTH2_TYPE = "oauth2";
     private final static String SP_DIALECT = "http://wso2.org/oidc/claim";
+    private static final String AUTHZ_CODE = "AuthorizationCode";
 
     private String userAttributeSeparator = IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR_DEFAULT;
 
@@ -187,6 +188,11 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
         Map<ClaimMapping, String> userAttributes =
                 getUserAttributesFromCache(requestMsgCtx.getProperty(OAuthConstants.ACCESS_TOKEN).toString());
         Map<String, Object> claims = Collections.emptyMap();
+
+        if (userAttributes.isEmpty() && requestMsgCtx.getProperty(AUTHZ_CODE) != null) {
+            userAttributes =
+                    getUserAttributesFromCache(requestMsgCtx.getProperty(AUTHZ_CODE).toString());
+        }
 
         // If subject claim uri is null, we get the actual user name of the logged in user.
         if (MapUtils.isEmpty(userAttributes) && (getSubjectClaimUri(requestMsgCtx) == null)) {

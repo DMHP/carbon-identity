@@ -74,6 +74,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -836,11 +837,18 @@ public class OAuth2AuthzEndpoint {
         Object attribute = request.getAttribute(FrameworkConstants.RequestParams.FLOW_STATUS);
         if (attribute != null) {
             if (attribute == AuthenticatorFlowStatus.INCOMPLETE) {
-                if (responseWrapper.getRedirectURL()
-                        .contains(ConfigurationFacade.getInstance().getAuthenticationEndpointURL())) {
+                if (responseWrapper.isRedirect()) {
                     response.sendRedirect(responseWrapper.getRedirectURL());
                 } else {
-                    response.sendRedirect(responseWrapper.getRedirectURL());
+                    try {
+                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new Class[]{});
+                        return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
+                                .build();
+                    } catch (NoSuchMethodException e) {
+                        log.error("Post-binding request is not supported for federated authenticators. Please switch " +
+                                "to redirect-binding request.");
+                        return Response.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR).build();
+                    }
                 }
             } else {
                 return authorize(request, response);
@@ -881,11 +889,21 @@ public class OAuth2AuthzEndpoint {
         if (attribute != null) {
             if (attribute == AuthenticatorFlowStatus.INCOMPLETE) {
 
-                if (responseWrapper.getRedirectURL()
-                        .contains(ConfigurationFacade.getInstance().getAuthenticationEndpointURL())) {
+                if (responseWrapper.isRedirect()) {
                     response.sendRedirect(responseWrapper.getRedirectURL());
                 } else {
-                    response.sendRedirect(responseWrapper.getRedirectURL());
+
+                    try {
+                        //This code will not run if the org.wso2.carbon.identity.application.authentication.framework
+                        //is not patched. This is here to avoid problems caused by API change.
+                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new Class[]{});
+                        return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
+                                .build();
+                    } catch (NoSuchMethodException e) {
+                        log.error("Post-binding request is not supported for federated authenticators. Please switch " +
+                                "to redirect-binding request.");
+                        return Response.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR).build();
+                    }
                 }
             } else {
                 return authorize(requestWrapper, responseWrapper);
