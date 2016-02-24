@@ -841,8 +841,7 @@ public class OAuth2AuthzEndpoint {
                     response.sendRedirect(responseWrapper.getRedirectURL());
                 } else {
                     try {
-                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new
-                                Class[]{});
+                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new Class[]{});
                         return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
                                 .build();
                     } catch (NoSuchMethodException e) {
@@ -897,8 +896,7 @@ public class OAuth2AuthzEndpoint {
                     try {
                         //This code will not run if the org.wso2.carbon.identity.application.authentication.framework
                         //is not patched. This is here to avoid problems caused by API change.
-                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new
-                                Class[]{});
+                        responseWrapper.getClass().getDeclaredMethod("getResponseBody", new Class[]{});
                         return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
                                 .build();
                     } catch (NoSuchMethodException e) {
