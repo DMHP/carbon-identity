@@ -845,9 +845,9 @@ public class OAuth2AuthzEndpoint {
                                 Class[]{});
                         return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
                                 .build();
-                    }  catch (NoSuchMethodException e) {
+                    } catch (NoSuchMethodException e) {
                         log.error("Post-binding request is not supported for federated authenticators. Please switch " +
-                                "to redirect-binding request.");
+                                "to redirect-binding request.", e);
                         return Response.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR).build();
                     }
                 }
@@ -902,7 +902,8 @@ public class OAuth2AuthzEndpoint {
                         return Response.status(HttpServletResponse.SC_OK).entity(responseWrapper.getResponseBody())
                                 .build();
                     } catch (NoSuchMethodException e) {
-                        log.error("Post-binding request is not supported for federated authenticators. Please switch to redirect-binding request.");
+                        log.error("Post-binding request is not supported for federated authenticators. Please switch " +
+                                "to redirect-binding request.", e);
                         return Response.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR).build();
                     }
                 }
