@@ -86,6 +86,10 @@ public class AccessTokenDO extends CacheEntry {
         this.authorizationCode = authorizationCode;
     }
 
+    public AccessTokenDO(){
+
+    }
+
     public int getTenantID() {
         return tenantID;
     }
