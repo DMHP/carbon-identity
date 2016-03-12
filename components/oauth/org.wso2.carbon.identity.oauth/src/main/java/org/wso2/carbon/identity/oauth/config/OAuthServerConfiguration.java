@@ -46,6 +46,7 @@ import org.wso2.carbon.identity.oauth.tokenprocessor.PlainTextPersistenceProcess
 import org.wso2.carbon.identity.oauth.tokenprocessor.TokenPersistenceProcessor;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.authz.handlers.ResponseTypeHandler;
+import org.wso2.carbon.identity.oauth2.token.AbstractOauthTokenIssuer;
 import org.wso2.carbon.identity.oauth2.token.handlers.clientauth.ClientAuthenticationHandler;
 import org.wso2.carbon.identity.oauth2.token.handlers.grant.AuthorizationGrantHandler;
 import org.wso2.carbon.identity.oauth2.token.handlers.grant.saml.SAML2TokenCallbackHandler;
@@ -107,6 +108,8 @@ public class OAuthServerConfiguration {
     private String tokenPersistenceProcessorClassName = "org.wso2.carbon.identity.oauth.tokenprocessor.PlainTextPersistenceProcessor";
     private String oauthTokenGeneratorClassName;
     private OAuthIssuer oauthTokenGenerator;
+    private String oauthIdentityTokenGeneratorClassName;
+    private AbstractOauthTokenIssuer oauthIdentityTokenGenerator;
     private boolean cacheEnabled = true;
     private boolean isRefreshTokenRenewalEnabled = true;
     private boolean assertionsUserNameEnabled = false;
@@ -297,6 +300,34 @@ public class OAuthServerConfiguration {
             }
         }
         return oauthTokenGenerator;
+    }
+
+    public AbstractOauthTokenIssuer getIdentityOauthTokenIssuer() {
+
+        if (oauthIdentityTokenGenerator == null) {
+            synchronized (this) {
+                if (oauthTokenGenerator == null) {
+                    try {
+                        if (oauthIdentityTokenGeneratorClassName != null) {
+                            Class clazz = this.getClass().getClassLoader().loadClass(oauthIdentityTokenGeneratorClassName);
+                            oauthIdentityTokenGenerator = (AbstractOauthTokenIssuer) clazz.newInstance();
+                            log.info("An instance of " + oauthIdentityTokenGeneratorClassName
+                                    + " is created for Identity OAuth token generation.");
+                        } else {
+                            oauthIdentityTokenGenerator = new AbstractOauthTokenIssuer();
+                            log.info("The default Identity OAuth token issuer will be used. No custom token generator" +
+                                    " is set.");
+                        }
+                    } catch (Exception e) {
+                        String errorMsg = "Error when instantiating the OAuthIssuer : "
+                                + tokenPersistenceProcessorClassName + ". Defaulting to OAuthIssuerImpl";
+                        log.error(errorMsg, e);
+                        oauthIdentityTokenGenerator = new AbstractOauthTokenIssuer();
+                    }
+                }
+            }
+        }
+        return oauthIdentityTokenGenerator;
     }
 
     public String getOIDCConsentPageUrl() {

@@ -275,11 +275,11 @@ public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
             oauthAuthzMsgCtx.setRefreshTokenIssuedTime(refreshTokenIssuedTime.getTime());
 
 	    try {
-		accessToken = oauthIssuerImpl.accessToken();
+		accessToken = oauthIssuerImpl.accessToken(oauthAuthzMsgCtx);
 
 		// regenerate only if refresh token is null
 		if (refreshToken == null) {
-		    refreshToken = oauthIssuerImpl.refreshToken();
+		    refreshToken = oauthIssuerImpl.refreshToken(oauthAuthzMsgCtx);
 		}
 
 	    } catch (OAuthSystemException e) {

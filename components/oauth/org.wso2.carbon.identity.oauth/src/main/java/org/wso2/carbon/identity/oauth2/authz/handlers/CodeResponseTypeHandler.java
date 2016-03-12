@@ -72,7 +72,7 @@ public class CodeResponseTypeHandler extends AbstractResponseTypeHandler {
         oauthAuthzMsgCtx.setCodeIssuedTime(timestamp.getTime());
         
         try {
-            authorizationCode = oauthIssuerImpl.authorizationCode();
+            authorizationCode = oauthIssuerImpl.authorizationCode(oauthAuthzMsgCtx);
             codeId = UUID.randomUUID().toString();
         } catch (OAuthSystemException e) {
             throw new IdentityOAuth2Exception(e.getMessage(), e);

@@ -146,8 +146,8 @@ public class RefreshGrantHandler extends AbstractAuthorizationGrantHandler {
 	tokenId = UUID.randomUUID().toString();
 	grantType = oauth2AccessTokenReqDTO.getGrantType();
         try {
-            accessToken = oauthIssuerImpl.accessToken();
-            refreshToken = oauthIssuerImpl.refreshToken();
+            accessToken = oauthIssuerImpl.accessToken(tokReqMsgCtx);
+            refreshToken = oauthIssuerImpl.refreshToken(tokReqMsgCtx);
         } catch (OAuthSystemException e) {
             throw new IdentityOAuth2Exception("Error when generating the tokens.", e);
         }
