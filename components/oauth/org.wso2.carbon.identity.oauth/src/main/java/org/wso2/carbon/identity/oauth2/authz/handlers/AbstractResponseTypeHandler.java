@@ -21,7 +21,6 @@ package org.wso2.carbon.identity.oauth2.authz.handlers;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.oltu.oauth2.as.issuer.OAuthIssuer;
 import org.apache.oltu.oauth2.common.error.OAuthError;
 import org.apache.oltu.oauth2.common.message.types.ResponseType;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
@@ -33,13 +32,14 @@ import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 import org.wso2.carbon.identity.oauth2.dao.TokenMgtDAO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2AuthorizeReqDTO;
+import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuer;
 
 public abstract class AbstractResponseTypeHandler implements ResponseTypeHandler {
 
     private static Log log = LogFactory.getLog(AbstractResponseTypeHandler.class);
 
     public static final String IMPLICIT = "implicit";
-    protected OAuthIssuer oauthIssuerImpl;
+    protected OauthTokenIssuer oauthIssuerImpl;
     protected TokenMgtDAO tokenMgtDAO;
     protected boolean cacheEnabled;
     protected OAuthCache oauthCache;
@@ -48,7 +48,7 @@ public abstract class AbstractResponseTypeHandler implements ResponseTypeHandler
     @Override
     public void init() throws IdentityOAuth2Exception {
         callbackManager = new OAuthCallbackManager();
-        oauthIssuerImpl = OAuthServerConfiguration.getInstance().getOAuthTokenGenerator();
+        oauthIssuerImpl = OAuthServerConfiguration.getInstance().getIdentityOauthTokenIssuer();
         tokenMgtDAO = new TokenMgtDAO();
         if (OAuthServerConfiguration.getInstance().isCacheEnabled()) {
             cacheEnabled = true;
