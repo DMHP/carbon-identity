@@ -178,6 +178,23 @@ public class TokenMgtDAO {
         }
     }
 
+    public void deactivateAuthorizationCode(String authzCode, String tokenId) throws IdentityOAuth2Exception {
+
+        if (!enablePersist) {
+            return;
+        }
+
+        if (maxPoolSize > 0) {
+            authContextTokenQueue.push(new AuthContextTokenDO(authzCode, tokenId));
+        } else {
+            AuthzCodeDO authzCodeDO = new AuthzCodeDO();
+            authzCodeDO.setAuthorizationCode(authzCode);
+            authzCodeDO.setOauthTokenId(tokenId);
+            List<AuthzCodeDO> authzCodeDOList = new ArrayList<>(Arrays.asList(authzCodeDO));
+            deactivateAuthorizationCode(authzCodeDOList);
+        }
+    }
+
     public void storeAccessToken(String accessToken, String consumerKey,
                                  AccessTokenDO accessTokenDO, Connection connection,
                                  String userStoreDomain) throws IdentityOAuth2Exception {
@@ -540,36 +557,34 @@ public class TokenMgtDAO {
             resultSet = prepStmt.executeQuery();
 
             if (resultSet.next()) {
-                if (resultSet.getString(8).equals(OAuthConstants.AuthorizationCodeState.ACTIVE)) {
-                    String authorizedUser = resultSet.getString(1);
-                    String userstoreDomain = resultSet.getString(2);
-                    int tenantId = resultSet.getInt(3);
-                    String tenantDomain = OAuth2Util.getTenantDomain(tenantId);
-                    String scopeString = resultSet.getString(4);
-                    String callbackUrl = resultSet.getString(5);
-                    Timestamp issuedTime = resultSet.getTimestamp(6, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
-                    long validityPeriod = resultSet.getLong(7);
-                    String codeId = resultSet.getString(11);
-                    String subjectIdentifier = resultSet.getString(12);
+                String codeState = resultSet.getString(8);
+                String authorizedUser = resultSet.getString(1);
+                String userstoreDomain = resultSet.getString(2);
+                int tenantId = resultSet.getInt(3);
+                String tenantDomain = OAuth2Util.getTenantDomain(tenantId);
+                String scopeString = resultSet.getString(4);
+                String callbackUrl = resultSet.getString(5);
+                Timestamp issuedTime = resultSet.getTimestamp(6, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+                long validityPeriod = resultSet.getLong(7);
+                String codeId = resultSet.getString(11);
+                String subjectIdentifier = resultSet.getString(12);
 
-                    AuthenticatedUser user = new AuthenticatedUser();
-                    user.setUserName(authorizedUser);
-                    user.setTenantDomain(tenantDomain);
-                    user.setUserStoreDomain(userstoreDomain);
-                    user.setAuthenticatedSubjectIdentifier(subjectIdentifier);
+                AuthenticatedUser user = new AuthenticatedUser();
+                user.setUserName(authorizedUser);
+                user.setTenantDomain(tenantDomain);
+                user.setUserStoreDomain(userstoreDomain);
+                user.setAuthenticatedSubjectIdentifier(subjectIdentifier);
+                authorizedUser = UserCoreUtil.addDomainToName(authorizedUser, userstoreDomain);
+                authorizedUser = UserCoreUtil.addTenantDomainToEntry(authorizedUser, tenantDomain);
 
-                    return new AuthzCodeDO(user, OAuth2Util.buildScopeArray(scopeString), issuedTime, validityPeriod,
-                            callbackUrl, consumerKey, authorizationKey, codeId);
-                } else {
-                    String authorizedUser = resultSet.getString(1);
-                    String userStoreDomain = resultSet.getString(2);
-                    int tenantId = resultSet.getInt(3);
-                    String tenantDomain = OAuth2Util.getTenantDomain(tenantId);
-                    authorizedUser = UserCoreUtil.addDomainToName(authorizedUser, userStoreDomain);
-                    authorizedUser = UserCoreUtil.addTenantDomainToEntry(authorizedUser, tenantDomain);
+                if (!OAuthConstants.AuthorizationCodeState.ACTIVE.equals(codeState)){
+                    //revoking access token issued for authorization code as per RFC 6749 Section 4.1.2
                     String tokenId = resultSet.getString(9);
                     revokeToken(tokenId, authorizedUser);
                 }
+
+                return new AuthzCodeDO(user, OAuth2Util.buildScopeArray(scopeString), issuedTime, validityPeriod,
+                        callbackUrl, consumerKey, authorizationKey, codeId, codeState);
             }
             connection.commit();
         } catch (SQLException e) {
