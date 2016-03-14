@@ -79,7 +79,7 @@ public class OpenIDConnectUserRPStore {
      * @return
      * @throws OAuthSystemException
      */
-    public synchronized boolean hasUserApproved(AuthenticatedUser user, String appName, String clientId) throws
+    public boolean hasUserApproved(AuthenticatedUser user, String appName, String clientId) throws
             OAuthSystemException {
         OpenIDUserRPDAO dao = new OpenIDUserRPDAO();
         OpenIDUserRPDO rpDO;
