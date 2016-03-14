@@ -32,14 +32,14 @@ import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 import org.wso2.carbon.identity.oauth2.dao.TokenMgtDAO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2AuthorizeReqDTO;
-import org.wso2.carbon.identity.oauth2.token.AbstractOauthTokenIssuer;
+import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuer;
 
 public abstract class AbstractResponseTypeHandler implements ResponseTypeHandler {
 
     private static Log log = LogFactory.getLog(AbstractResponseTypeHandler.class);
 
     public static final String IMPLICIT = "implicit";
-    protected AbstractOauthTokenIssuer oauthIssuerImpl;
+    protected OauthTokenIssuer oauthIssuerImpl;
     protected TokenMgtDAO tokenMgtDAO;
     protected boolean cacheEnabled;
     protected OAuthCache oauthCache;

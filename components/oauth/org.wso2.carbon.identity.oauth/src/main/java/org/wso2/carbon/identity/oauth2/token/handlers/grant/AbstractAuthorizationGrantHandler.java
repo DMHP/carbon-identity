@@ -46,15 +46,14 @@ import org.wso2.carbon.identity.oauth2.dao.TokenMgtDAO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2AccessTokenReqDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2AccessTokenRespDTO;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
-import org.wso2.carbon.identity.oauth2.token.AbstractOauthTokenIssuer;
+import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuer;
 import org.wso2.carbon.identity.oauth2.token.OAuthTokenReqMessageContext;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 public abstract class AbstractAuthorizationGrantHandler implements AuthorizationGrantHandler {
 
     private static Log log = LogFactory.getLog(AbstractAuthorizationGrantHandler.class);
-    protected AbstractOauthTokenIssuer oauthIssuerImpl = OAuthServerConfiguration.getInstance()
-            .getIdentityOauthTokenIssuer();
+    protected OauthTokenIssuer oauthIssuerImpl = OAuthServerConfiguration.getInstance().getIdentityOauthTokenIssuer();
     protected TokenMgtDAO tokenMgtDAO;
     protected OAuthCallbackManager callbackManager;
     protected boolean cacheEnabled;

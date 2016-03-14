@@ -24,7 +24,7 @@ import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 
-public class AbstractOauthTokenIssuer {
+public class OauthTokenIssuer {
 
     private OAuthIssuer oAuthIssuerImpl = OAuthServerConfiguration.getInstance()
             .getOAuthTokenGenerator();
