@@ -58,7 +58,7 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
     protected OAuthCallbackManager callbackManager;
     protected boolean cacheEnabled;
     protected OAuthCache oauthCache;
-    
+    public static final String EXISTING_TOKEN_ISSUED = "existingTokenUsed";
 
     @Override
     public void init() throws IdentityOAuth2Exception {
@@ -164,6 +164,7 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
                             tokenRespDTO.setExpiresIn(Long.MAX_VALUE/1000);
                             tokenRespDTO.setExpiresInMillis(Long.MAX_VALUE);
                         }
+                        tokReqMsgCtx.addProperty(EXISTING_TOKEN_ISSUED, true);
                         return tokenRespDTO;
                     } else {
 
