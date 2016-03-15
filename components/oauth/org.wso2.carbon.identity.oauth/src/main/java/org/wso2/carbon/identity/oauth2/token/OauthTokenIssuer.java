@@ -19,34 +19,19 @@
 
 package org.wso2.carbon.identity.oauth2.token;
 
-import org.apache.oltu.oauth2.as.issuer.OAuthIssuer;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
-import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 
-public class OauthTokenIssuer {
+public interface OauthTokenIssuer {
 
-    private OAuthIssuer oAuthIssuerImpl = OAuthServerConfiguration.getInstance()
-            .getOAuthTokenGenerator();
+    String accessToken(OAuthTokenReqMessageContext tokReqMsgCtx) throws OAuthSystemException;
 
-    public String accessToken(OAuthTokenReqMessageContext tokReqMsgCtx) throws OAuthSystemException {
-        return oAuthIssuerImpl.accessToken();
-    }
+    String refreshToken(OAuthTokenReqMessageContext tokReqMsgCtx) throws OAuthSystemException;
 
-    public String refreshToken(OAuthTokenReqMessageContext tokReqMsgCtx) throws OAuthSystemException {
-        return oAuthIssuerImpl.refreshToken();
-    }
+    String authorizationCode(OAuthAuthzReqMessageContext oauthAuthzMsgCtx) throws OAuthSystemException;
 
-    public String authorizationCode(OAuthAuthzReqMessageContext oauthAuthzMsgCtx) throws OAuthSystemException {
-        return oAuthIssuerImpl.authorizationCode();
-    }
+    String accessToken(OAuthAuthzReqMessageContext oauthAuthzMsgCtx) throws OAuthSystemException;
 
-    public String accessToken(OAuthAuthzReqMessageContext oauthAuthzMsgCtx) throws OAuthSystemException {
-        return oAuthIssuerImpl.accessToken();
-    }
-
-    public String refreshToken(OAuthAuthzReqMessageContext oauthAuthzMsgCtx) throws OAuthSystemException {
-        return oAuthIssuerImpl.refreshToken();
-    }
+    String refreshToken(OAuthAuthzReqMessageContext oauthAuthzMsgCtx) throws OAuthSystemException;
 
 }
