@@ -47,6 +47,7 @@ import org.wso2.carbon.identity.oauth.tokenprocessor.TokenPersistenceProcessor;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.authz.handlers.ResponseTypeHandler;
 import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuer;
+import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuerImpl;
 import org.wso2.carbon.identity.oauth2.token.handlers.clientauth.ClientAuthenticationHandler;
 import org.wso2.carbon.identity.oauth2.token.handlers.grant.AuthorizationGrantHandler;
 import org.wso2.carbon.identity.oauth2.token.handlers.grant.saml.SAML2TokenCallbackHandler;
@@ -317,7 +318,7 @@ public class OAuthServerConfiguration {
                             log.info("An instance of " + oauthIdentityTokenGeneratorClassName
                                     + " is created for Identity OAuth token generation.");
                         } else {
-                            oauthIdentityTokenGenerator = new OauthTokenIssuer();
+                            oauthIdentityTokenGenerator = new OauthTokenIssuerImpl();
                             log.info("The default Identity OAuth token issuer will be used. No custom token generator" +
                                     " is set.");
                         }
@@ -325,7 +326,7 @@ public class OAuthServerConfiguration {
                         String errorMsg = "Error when instantiating the OAuthIssuer : "
                                 + tokenPersistenceProcessorClassName + ". Defaulting to OAuthIssuerImpl";
                         log.error(errorMsg, e);
-                        oauthIdentityTokenGenerator = new OauthTokenIssuer();
+                        oauthIdentityTokenGenerator = new OauthTokenIssuerImpl();
                     }
                 }
             }
