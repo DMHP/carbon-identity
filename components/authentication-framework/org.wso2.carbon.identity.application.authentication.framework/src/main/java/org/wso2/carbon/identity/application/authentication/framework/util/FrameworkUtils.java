@@ -47,7 +47,6 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.context.SessionContext;
 import org.wso2.carbon.identity.application.authentication.framework.cookie.CookieBuilder;
-import org.wso2.carbon.identity.application.authentication.framework.cookie.IdentityCookie;
 import org.wso2.carbon.identity.application.authentication.framework.exception.FrameworkException;
 import org.wso2.carbon.identity.application.authentication.framework.handler.claims.ClaimHandler;
 import org.wso2.carbon.identity.application.authentication.framework.handler.claims.impl.DefaultClaimHandler;
