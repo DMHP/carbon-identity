@@ -475,36 +475,44 @@ public class FrameworkUtils {
 
         CookieBuilder cookieBuilder = new CookieBuilder(FrameworkConstants.COMMONAUTH_COOKIE, id);
 
-        String commonAuthCookieElement = FrameworkConstants.Config.ELEM_COOKIES + "." + FrameworkConstants.COMMONAUTH_COOKIE;
+        String commonAuthCookieElement = FrameworkConstants.Config.ELEM_COOKIES + "."
+                                         + FrameworkConstants.COMMONAUTH_COOKIE;
 
         if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_DOMAIN) != null)   {
-            cookieBuilder.setDomain(IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_DOMAIN));
+            cookieBuilder.setDomain(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                             + FrameworkConstants.Config.ELEM_DOMAIN));
         }
 
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY) != null)   {
-            cookieBuilder.setHttpOnly(Boolean.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY)));
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY) != null){
+            cookieBuilder.setHttpOnly(Boolean.valueOf(IdentityUtil.getProperty(
+                    commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY)));
         }
 
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_MAX_AGE) != null)   {
-            cookieBuilder.setMaxAge(Integer.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_MAX_AGE)));
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_MAX_AGE) != null)  {
+            cookieBuilder.setMaxAge(Integer.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                                             + FrameworkConstants.Config.ELEM_MAX_AGE)));
         } else if (age != null) {
             cookieBuilder.setMaxAge(age * 60);
         }
 
         if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_PATH) != null)   {
-            cookieBuilder.setPath(IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_PATH));
+            cookieBuilder.setPath(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                           + FrameworkConstants.Config.ELEM_PATH));
         }
 
         if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_SECURE) != null)   {
-            cookieBuilder.setSecure(Boolean.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_SECURE)));
+            cookieBuilder.setSecure(Boolean.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                                             + FrameworkConstants.Config.ELEM_SECURE)));
         }
 
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_COMMENT) != null)   {
-            cookieBuilder.setComment(IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_COMMENT));
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_COMMENT) != null)  {
+            cookieBuilder.setComment(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                              + FrameworkConstants.Config.ELEM_COMMENT));
         }
 
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION) != null)   {
-            cookieBuilder.setVersion(Integer.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION)));
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION) != null)  {
+            cookieBuilder.setVersion(Integer.valueOf(IdentityUtil.getProperty(
+                    commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION)));
         }
 
         Cookie authCookie = cookieBuilder.build();
