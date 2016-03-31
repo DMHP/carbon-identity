@@ -28,7 +28,7 @@ public class CookieBuilder {
         String comment;
         String domain;
         int maxAge = -1;
-        String path;
+        String path = "/";
         boolean secure = true;
         int version = 0;
         boolean isHttpOnly = true;
