@@ -23,15 +23,15 @@ import javax.servlet.http.Cookie;
 
 public class CookieBuilder {
 
-    String name;
-    String value;
-    String comment;
-    String domain;
-    int maxAge = -1;
-    String path = "/";
-    boolean secure = true;
-    int version = 0;
-    boolean isHttpOnly = true;
+    private String name;
+    private String value;
+    private String comment;
+    private String domain;
+    private int maxAge = -1;
+    private String path = "/";
+    private boolean secure = true;
+    private int version = 0;
+    private boolean isHttpOnly = true;
 
     public CookieBuilder(String name, String value) {
         this.name = name;
