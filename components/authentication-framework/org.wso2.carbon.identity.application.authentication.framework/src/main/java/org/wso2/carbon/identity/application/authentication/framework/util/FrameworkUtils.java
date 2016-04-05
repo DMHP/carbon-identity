@@ -46,6 +46,7 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.context.SessionContext;
+import org.wso2.carbon.identity.application.authentication.framework.cookie.CookieBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.exception.FrameworkException;
 import org.wso2.carbon.identity.application.authentication.framework.handler.claims.ClaimHandler;
 import org.wso2.carbon.identity.application.authentication.framework.handler.claims.impl.DefaultClaimHandler;
@@ -472,16 +473,52 @@ public class FrameworkUtils {
      */
     public static void storeAuthCookie(HttpServletRequest req, HttpServletResponse resp, String id, Integer age) {
 
-        Cookie authCookie = new Cookie(FrameworkConstants.COMMONAUTH_COOKIE, id);
-        authCookie.setSecure(true);
-        authCookie.setHttpOnly(true);
-        authCookie.setPath("/");
+        CookieBuilder cookieBuilder = new CookieBuilder(FrameworkConstants.COMMONAUTH_COOKIE, id);
 
-        if (age != null) {
-            authCookie.setMaxAge(age.intValue() * 60);
+        String commonAuthCookieElement = FrameworkConstants.Config.ELEM_COOKIES + "."
+                                         + FrameworkConstants.COMMONAUTH_COOKIE;
+
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_DOMAIN) != null)   {
+            cookieBuilder.setDomain(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                             + FrameworkConstants.Config.ELEM_DOMAIN));
         }
 
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY) != null){
+            cookieBuilder.setHttpOnly(Boolean.valueOf(IdentityUtil.getProperty(
+                    commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY)));
+        }
+
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_MAX_AGE) != null)  {
+            cookieBuilder.setMaxAge(Integer.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                                             + FrameworkConstants.Config.ELEM_MAX_AGE)));
+        } else if (age != null) {
+            cookieBuilder.setMaxAge(age * 60);
+        }
+
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_PATH) != null)   {
+            cookieBuilder.setPath(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                           + FrameworkConstants.Config.ELEM_PATH));
+        }
+
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_SECURE) != null)   {
+            cookieBuilder.setSecure(Boolean.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                                             + FrameworkConstants.Config.ELEM_SECURE)));
+        }
+
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_COMMENT) != null)  {
+            cookieBuilder.setComment(IdentityUtil.getProperty(commonAuthCookieElement + "."
+                                                              + FrameworkConstants.Config.ELEM_COMMENT));
+        }
+
+        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION) != null)  {
+            cookieBuilder.setVersion(Integer.valueOf(IdentityUtil.getProperty(
+                    commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION)));
+        }
+
+        Cookie authCookie = cookieBuilder.build();
+
         resp.addCookie(authCookie);
+
     }
 
     /**
