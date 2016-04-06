@@ -555,6 +555,11 @@ public class OAuth2AuthzEndpoint {
         params.setDisplay(oauthRequest.getParam(OAuthConstants.OAuth20Params.DISPLAY));
         params.setIDTokenHint(oauthRequest.getParam(OAuthConstants.OAuth20Params.ID_TOKEN_HINT));
         params.setLoginHint(oauthRequest.getParam(OAuthConstants.OAuth20Params.LOGIN_HINT));
+        if(StringUtils.isNotEmpty(oauthRequest.getParam(OAuthConstants.OAuth20Params.TENANT_DOMAIN))) {
+            params.setTenantDomain(oauthRequest.getParam(OAuthConstants.OAuth20Params.TENANT_DOMAIN));
+        } else {
+            params.setTenantDomain(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME);
+        }
         if (StringUtils.isNotBlank(oauthRequest.getParam("acr_values")) && !"null".equals(oauthRequest.getParam
                 ("acr_values"))) {
             String[] acrValues = oauthRequest.getParam("acr_values").split(" ");
@@ -761,6 +766,7 @@ public class OAuth2AuthzEndpoint {
         authzReqDTO.setUser(sessionDataCacheEntry.getLoggedInUser());
         authzReqDTO.setACRValues(oauth2Params.getACRValues());
         authzReqDTO.setNonce(oauth2Params.getNonce());
+        authzReqDTO.setTenantDomain(oauth2Params.getTenantDomain());
         return EndpointUtil.getOAuth2Service().authorize(authzReqDTO);
     }
 
