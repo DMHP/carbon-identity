@@ -88,7 +88,7 @@ public class AuthorizationGrantCache extends BaseCache<AuthorizationGrantCacheKe
     public AuthorizationGrantCacheEntry getValueFromCacheByCode(AuthorizationGrantCacheKey key) {
         AuthorizationGrantCacheEntry cacheEntry = super.getValueFromCache(key);
         if (cacheEntry == null) {
-            getFromSessionStore(replaceFromCodeId(key.getUserAttributesId()));
+            cacheEntry = getFromSessionStore(replaceFromCodeId(key.getUserAttributesId()));
         }
         return cacheEntry;
     }
