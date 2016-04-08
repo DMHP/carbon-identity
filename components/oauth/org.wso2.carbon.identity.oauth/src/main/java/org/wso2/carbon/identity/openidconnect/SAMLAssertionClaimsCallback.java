@@ -360,7 +360,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             ClaimManagementException {
 
         AuthenticatedUser user = requestMsgCtx.getAuthorizationReqDTO().getUser();
-        String tenantDomain = (String) requestMsgCtx.getProperty(OAuthConstants.OAuth20Params.TENANT_DOMAIN);
+        String tenantDomain = requestMsgCtx.getAuthorizationReqDTO().getUser().getTenantDomain();
 
         UserRealm realm;
         List<String> claimURIList = new ArrayList<String>();
