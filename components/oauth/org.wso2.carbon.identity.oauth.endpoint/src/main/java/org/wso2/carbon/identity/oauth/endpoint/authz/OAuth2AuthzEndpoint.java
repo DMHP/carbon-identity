@@ -217,6 +217,8 @@ public class OAuth2AuthzEndpoint {
                         }
                         sessionDataCacheEntry.setLoggedInUser(authenticatedUser);
                         sessionDataCacheEntry.setAuthenticatedIdPs(authnResult.getAuthenticatedIdPs());
+                        sessionDataCacheEntry.getParamMap().put(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN,
+                                new String[]{(String) authnResult.getProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN)});
                         SessionDataCache.getInstance().addToCache(cacheKey, sessionDataCacheEntry);
                         redirectURL = doUserAuthz(request, sessionDataKeyFromLogin, sessionDataCacheEntry);
                         return Response.status(HttpServletResponse.SC_FOUND).location(new URI(redirectURL)).build();
@@ -761,6 +763,8 @@ public class OAuth2AuthzEndpoint {
         authzReqDTO.setUser(sessionDataCacheEntry.getLoggedInUser());
         authzReqDTO.setACRValues(oauth2Params.getACRValues());
         authzReqDTO.setNonce(oauth2Params.getNonce());
+        authzReqDTO.addProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN,
+                sessionDataCacheEntry.getParamMap().get(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN)[0]);
         return EndpointUtil.getOAuth2Service().authorize(authzReqDTO);
     }
 
