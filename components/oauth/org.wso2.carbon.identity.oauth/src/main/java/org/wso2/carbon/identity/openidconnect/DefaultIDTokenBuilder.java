@@ -228,7 +228,6 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
         }
 
         request.addProperty(OAuthConstants.ACCESS_TOKEN, tokenRespDTO.getAccessToken());
-        request.addProperty(OAuthConstants.OAuth20Params.TENANT_DOMAIN, request.getOauth2AccessTokenReqDTO().getTenantDomain());
         CustomClaimsCallbackHandler claimsCallBackHandler =
                 OAuthServerConfiguration.getInstance().getOpenIDConnectCustomClaimsCallbackHandler();
         claimsCallBackHandler.handleCustomClaims(jwtClaimsSet, request);
@@ -332,7 +331,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
             throws IdentityOAuth2Exception {
         try {
 
-            String tenantDomain = (String) request.getProperty(OAuthConstants.OAuth20Params.TENANT_DOMAIN);
+            String tenantDomain = request.getAuthorizedUser().getTenantDomain();
 
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 
@@ -376,7 +375,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
             throws IdentityOAuth2Exception {
         try {
 
-            String tenantDomain = (String) request.getProperty(OAuthConstants.OAuth20Params.TENANT_DOMAIN);
+            String tenantDomain = request.getAuthorizationReqDTO().getUser().getTenantDomain();
 
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 
