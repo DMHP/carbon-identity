@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.oltu.oauth2.common.message.types.GrantType;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.core.util.KeyStoreManager;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.application.mgt.ApplicationManagementService;
@@ -310,6 +311,8 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
         }
 
         request.addProperty(OAuthConstants.ACCESS_TOKEN, tokenRespDTO.getAccessToken());
+        request.addProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN,
+                request.getAuthorizationReqDTO().getProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN));
         CustomClaimsCallbackHandler claimsCallBackHandler =
                 OAuthServerConfiguration.getInstance().getOpenIDConnectCustomClaimsCallbackHandler();
         claimsCallBackHandler.handleCustomClaims(jwtClaimsSet, request);
@@ -375,7 +378,8 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
             throws IdentityOAuth2Exception {
         try {
 
-            String tenantDomain = request.getAuthorizationReqDTO().getUser().getTenantDomain();
+            String tenantDomain = (String) request.getProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN);
+
 
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 

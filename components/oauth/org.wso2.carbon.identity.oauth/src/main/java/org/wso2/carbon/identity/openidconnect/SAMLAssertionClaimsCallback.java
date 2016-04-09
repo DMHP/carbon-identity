@@ -32,6 +32,7 @@ import org.wso2.carbon.claim.mgt.ClaimManagementException;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
@@ -45,6 +46,8 @@ import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCache;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheEntry;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheKey;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDAO;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 import org.wso2.carbon.identity.oauth2.internal.OAuth2ServiceComponentHolder;
 import org.wso2.carbon.identity.oauth2.token.OAuthTokenReqMessageContext;
@@ -360,7 +363,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             ClaimManagementException {
 
         AuthenticatedUser user = requestMsgCtx.getAuthorizationReqDTO().getUser();
-        String tenantDomain = requestMsgCtx.getAuthorizationReqDTO().getUser().getTenantDomain();
+        String tenantDomain = (String) requestMsgCtx.getProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN);
 
         UserRealm realm;
         List<String> claimURIList = new ArrayList<String>();

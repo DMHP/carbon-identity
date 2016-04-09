@@ -230,6 +230,8 @@ public class DefaultAuthenticationRequestHandler implements AuthenticationReques
 
         authenticationResult.setSaaSApp(sequenceConfig.getApplicationConfig().isSaaSApp());
 
+        authenticationResult.addProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN, context.getTenantDomain());
+
         if (isAuthenticated) {
 
             if (!sequenceConfig.getApplicationConfig().isSaaSApp()) {
