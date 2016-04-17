@@ -42,7 +42,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class DefaultAuthenticationRequestHandler implements AuthenticationRequestHandler {
@@ -50,6 +49,7 @@ public class DefaultAuthenticationRequestHandler implements AuthenticationReques
     private static final Log log = LogFactory.getLog(DefaultAuthenticationRequestHandler.class);
     private static final Log AUDIT_LOG = CarbonConstants.AUDIT_LOG;
     private static volatile DefaultAuthenticationRequestHandler instance;
+    private static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
 
 
     public static DefaultAuthenticationRequestHandler getInstance() {
@@ -230,7 +230,7 @@ public class DefaultAuthenticationRequestHandler implements AuthenticationReques
 
         authenticationResult.setSaaSApp(sequenceConfig.getApplicationConfig().isSaaSApp());
 
-        authenticationResult.addProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN, context.getTenantDomain());
+        authenticationResult.addProperty(ATTR_SP_TENANT_DOMAIN, context.getTenantDomain());
 
         if (isAuthenticated) {
 

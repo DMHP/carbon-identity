@@ -102,7 +102,6 @@ public abstract class FrameworkConstants {
         public static final String ATTR_APPLICATION_ID = "appId";
         public static final String ATTR_AUTHENTICATOR_NAME_MAPPING_NAME = "name";
         public static final String ATTR_AUTHENTICATOR_NAME_MAPPING_ALIAS = "alias";
-        public static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
         // Constant definitions for other QNames
         public static final String QNAME_AUTHENTICATION_ENDPOINT_URL = "AuthenticationEndpointURL";
         public static final String QNAME_AUTHENTICATION_ENDPOINT_RETRY_URL = "AuthenticationEndpointRetryURL";

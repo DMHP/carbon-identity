@@ -28,7 +28,6 @@ import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AttributeStatement;
-import org.wso2.carbon.claim.mgt.ClaimManagementException;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
@@ -46,8 +45,6 @@ import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCache;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheEntry;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheKey;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
-import org.wso2.carbon.identity.oauth.dao.OAuthAppDAO;
-import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 import org.wso2.carbon.identity.oauth2.internal.OAuth2ServiceComponentHolder;
 import org.wso2.carbon.identity.oauth2.token.OAuthTokenReqMessageContext;
@@ -75,6 +72,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
     private final static String INBOUND_AUTH2_TYPE = "oauth2";
     private final static String SP_DIALECT = "http://wso2.org/oidc/claim";
     private static final String AUTHZ_CODE = "AuthorizationCode";
+    private static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
 
     private String userAttributeSeparator = IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR_DEFAULT;
 
@@ -359,11 +357,10 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
     }
 
     private static Map<String, Object> getClaimsFromUserStore(OAuthAuthzReqMessageContext requestMsgCtx)
-            throws IdentityApplicationManagementException, IdentityException, UserStoreException,
-            ClaimManagementException {
+            throws IdentityApplicationManagementException, IdentityException, UserStoreException {
 
         AuthenticatedUser user = requestMsgCtx.getAuthorizationReqDTO().getUser();
-        String tenantDomain = (String) requestMsgCtx.getProperty(FrameworkConstants.Config.ATTR_SP_TENANT_DOMAIN);
+        String tenantDomain = (String) requestMsgCtx.getProperty(ATTR_SP_TENANT_DOMAIN);
 
         UserRealm realm;
         List<String> claimURIList = new ArrayList<String>();
