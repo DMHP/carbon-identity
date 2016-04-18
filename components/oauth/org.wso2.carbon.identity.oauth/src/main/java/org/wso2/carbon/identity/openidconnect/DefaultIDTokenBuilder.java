@@ -230,6 +230,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
         }
 
         request.addProperty(OAuthConstants.ACCESS_TOKEN, tokenRespDTO.getAccessToken());
+        request.addProperty(ATTR_SP_TENANT_DOMAIN, request.getOauth2AccessTokenReqDTO().getTenantDomain());
         CustomClaimsCallbackHandler claimsCallBackHandler =
                 OAuthServerConfiguration.getInstance().getOpenIDConnectCustomClaimsCallbackHandler();
         claimsCallBackHandler.handleCustomClaims(jwtClaimsSet, request);

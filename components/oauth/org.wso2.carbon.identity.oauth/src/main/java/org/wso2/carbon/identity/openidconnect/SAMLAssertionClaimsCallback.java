@@ -31,7 +31,6 @@ import org.opensaml.saml2.core.AttributeStatement;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
@@ -266,6 +265,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
 
         String username = requestMsgCtx.getAuthorizedUser().toString();
         String tenantDomain = requestMsgCtx.getAuthorizedUser().getTenantDomain();
+        String spTenantDomain = requestMsgCtx.getOauth2AccessTokenReqDTO().getTenantDomain();
 
         UserRealm realm;
         List<String> claimURIList = new ArrayList<String>();
@@ -274,9 +274,9 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
         ApplicationManagementService applicationMgtService = OAuth2ServiceComponentHolder.getApplicationMgtService();
         String spName = applicationMgtService
                 .getServiceProviderNameByClientId(requestMsgCtx.getOauth2AccessTokenReqDTO().getClientId(),
-                                                  INBOUND_AUTH2_TYPE, tenantDomain);
+                                                  INBOUND_AUTH2_TYPE, spTenantDomain);
         ServiceProvider serviceProvider = applicationMgtService.getApplicationExcludingFileBasedSPs(spName,
-                                                                                                    tenantDomain);
+                                                                                                    spTenantDomain);
         if (serviceProvider == null) {
             return mappedAppClaims;
         }
@@ -305,7 +305,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             }
 
             spToLocalClaimMappings = ClaimManagerHandler.getInstance().getMappingsMapFromOtherDialectToCarbon(
-                    SP_DIALECT, null, tenantDomain, false);
+                    SP_DIALECT, null, spTenantDomain, false);
 
             Map<String, String> userClaims = null;
             try {
