@@ -337,7 +337,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
             boolean isJWTSignedWithSPKey = OAuthServerConfiguration.getInstance().isJWTSignedWithSPKey();
             String tenantDomain = null;
             if(isJWTSignedWithSPKey) {
-                tenantDomain = (String) request.getProperty(ATTR_SP_TENANT_DOMAIN);;
+                tenantDomain = (String) request.getOauth2AccessTokenReqDTO().getTenantDomain();
             } else {
                 tenantDomain = request.getAuthorizedUser().getTenantDomain();
             }
