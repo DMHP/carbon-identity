@@ -81,9 +81,6 @@ public final class OAuthConstants {
     public static final String ACCESS_TOKEN = "accessToken";
     public static final String ID_TOKEN = "id_token";
 
-    //Response types
-    public static final String NONE = "none";
-
 
     public static class GrantTypes {
         public static final String IMPLICIT = "implicit";

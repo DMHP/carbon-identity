@@ -152,6 +152,8 @@ public class OAuthServerConfiguration {
     private String openIDConnectUserInfoEndpointRequestValidator = "org.wso2.carbon.identity.oauth.endpoint.user.impl.UserInforRequestDefaultValidator";
     private String openIDConnectUserInfoEndpointAccessTokenValidator = "org.wso2.carbon.identity.oauth.endpoint.user.impl.UserInfoISAccessTokenValidator";
     private String openIDConnectUserInfoEndpointResponseBuilder = "org.wso2.carbon.identity.oauth.endpoint.user.impl.UserInfoJSONResponseBuilder";
+    // property added to fix IDENTITY-4492 in backward compatible manner
+    private boolean isJWTSignedWithSPKey = false;
     private OAuth2ScopeValidator oAuth2ScopeValidator;
 
     private OAuthServerConfiguration() {
@@ -763,6 +765,10 @@ public class OAuthServerConfiguration {
 
     public String getOpenIDConnectUserInfoEndpointResponseBuilder() {
         return openIDConnectUserInfoEndpointResponseBuilder;
+    }
+
+    public boolean isJWTSignedWithSPKey() {
+        return isJWTSignedWithSPKey;
     }
 
     private void parseOAuthCallbackHandlers(OMElement callbackHandlersElem) {
@@ -1428,6 +1434,12 @@ public class OAuthServerConfiguration {
                         openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.OPENID_CONNECT_USERINFO_ENDPOINT_RESPONSE_BUILDER))
                                 .getText().trim();
             }
+
+            if (openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements
+                    .OPENID_CONNECT_SIGN_JWT_WITH_SP_KEY)) != null) {
+                isJWTSignedWithSPKey = Boolean.parseBoolean(openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS
+                        (ConfigElements.OPENID_CONNECT_SIGN_JWT_WITH_SP_KEY)).getText().trim());
+            }
             if (openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.SUPPORTED_CLAIMS)) != null) {
                 String supportedClaimStr =
                         openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.SUPPORTED_CLAIMS))
@@ -1490,6 +1502,7 @@ public class OAuthServerConfiguration {
         public static final String OPENID_CONNECT_USERINFO_ENDPOINT_REQUEST_VALIDATOR = "UserInfoEndpointRequestValidator";
         public static final String OPENID_CONNECT_USERINFO_ENDPOINT_ACCESS_TOKEN_VALIDATOR = "UserInfoEndpointAccessTokenValidator";
         public static final String OPENID_CONNECT_USERINFO_ENDPOINT_RESPONSE_BUILDER = "UserInfoEndpointResponseBuilder";
+        public static final String OPENID_CONNECT_SIGN_JWT_WITH_SP_KEY = "SignJWTWithSPKey";
         public static final String OPENID_CONNECT_IDTOKEN_CUSTOM_CLAIM_CALLBACK_HANDLER = "IDTokenCustomClaimsCallBackHandler";
         public static final String SUPPORTED_CLAIMS = "OpenIDConnectClaims";
         // Callback handler related configuration elements
