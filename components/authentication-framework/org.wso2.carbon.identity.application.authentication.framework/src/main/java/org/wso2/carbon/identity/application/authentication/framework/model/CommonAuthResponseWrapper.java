@@ -17,16 +17,14 @@
  */
 package org.wso2.carbon.identity.application.authentication.framework.model;
 
-import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,16 +37,16 @@ public class CommonAuthResponseWrapper extends HttpServletResponseWrapper {
     private CommonAuthServletPrintWriter printWriter;
 
     public CommonAuthResponseWrapper(HttpServletResponse response) throws IOException {
+
         super(response);
-        extraParameters = new HashMap();
-        printWriter = new CommonAuthServletPrintWriter(new ByteArrayOutputStream());
+        reset();
     }
 
     public CommonAuthResponseWrapper(HttpServletResponse response, HttpServletRequest request) {
 
         super(response);
         this.request = request;
-        extraParameters = new HashMap();
+        reset();
     }
 
     @Override
@@ -61,11 +59,51 @@ public class CommonAuthResponseWrapper extends HttpServletResponseWrapper {
 
     @Override
     public PrintWriter getWriter() throws IOException {
+
         return this.printWriter;
+    }
+
+    @Override
+    public void reset() {
+
+        this.extraParameters = new HashMap();
+        this.printWriter = new CommonAuthServletPrintWriter(new ByteArrayOutputStream());
+        super.reset();
+    }
+
+    @Override
+    public void resetBuffer() {
+
+        reset();
+        super.resetBuffer();
+    }
+
+    @Override
+    public void flushBuffer() throws IOException {
+
+        writeContent();
+        super.flushBuffer();
+    }
+
+    @Override
+    public int getBufferSize() {
+
+        return this.printWriter.getBufferedString().length();
     }
 
     public String getResponseBody() {
         return this.printWriter.getBufferedString();
+    }
+
+    private void writeContent() throws IOException {
+
+        byte[] content = printWriter.getBufferedString().getBytes();
+        ServletResponse response = getResponse();
+        OutputStream outputStream = response.getOutputStream();
+
+        response.setContentLength(content.length);
+        outputStream.write(content);
+        outputStream.close();
     }
 
     public boolean isRedirect() {
