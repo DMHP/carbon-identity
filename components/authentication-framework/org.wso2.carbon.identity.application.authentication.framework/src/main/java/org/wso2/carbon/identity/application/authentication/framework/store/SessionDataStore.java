@@ -294,11 +294,10 @@ public class SessionDataStore {
         if (!enablePersist) {
             return;
         }
-        Timestamp timestamp = new Timestamp(new Date().getTime());
         if (maxPoolSize > 0) {
-            sessionContextQueue.push(new SessionContextDO(key, type, entry, timestamp));
+            sessionContextQueue.push(new SessionContextDO(key, type, entry));
         } else {
-            persistSessionData(key, type, entry, timestamp, tenantId);
+            persistSessionData(key, type, entry, tenantId);
         }
     }
 
@@ -306,15 +305,14 @@ public class SessionDataStore {
         if (!enablePersist) {
             return;
         }
-        Timestamp timestamp = new Timestamp(new Date().getTime());
         if (maxPoolSize > 0) {
-            sessionContextQueue.push(new SessionContextDO(key, type, null, timestamp));
+            sessionContextQueue.push(new SessionContextDO(key, type, null));
         } else {
-            removeSessionData(key, type, timestamp);
+            removeSessionData(key, type);
         }
     }
 
-    public void removeExpiredSessionData(Timestamp timestamp) {
+    public void removeExpiredSessionData() {
         Connection connection = null;
         PreparedStatement statement = null;
         try {
@@ -325,26 +323,26 @@ public class SessionDataStore {
         }
         try {
             statement = connection.prepareStatement(sqlDeleteExpiredDataTask);
-            long currentStandardNano = getCurrentStandardNano(timestamp);
-            statement.setLong(1, currentStandardNano);
+            long cleanupLimit = getCurrentStandardNano() - IdentityUtil.getCleanUpTimeout() * 60 * 10^9;
+            statement.setLong(1, cleanupLimit);
             statement.execute();
             if (!connection.getAutoCommit()) {
                 connection.commit();
             }
         } catch (SQLException e) {
-            log.error("Error while removing session data from the database for the timestamp " + timestamp.toString(), e);
+            log.error("Error while removing session data from the database", e);
         } finally {
             IdentityDatabaseUtil.closeAllConnections(connection, null, statement);
 
         }
     }
 
-    public void removeExpiredOperationData(Timestamp timestamp) {
-        deleteSTOREOperationsTask(timestamp);
-        deleteDELETEOperationsTask(timestamp);
+    public void removeExpiredOperationData() {
+        deleteSTOREOperationsTask();
+        deleteDELETEOperationsTask();
     }
 
-    public void persistSessionData(String key, String type, Object entry, Timestamp timestamp, int tenantId) {
+    public void persistSessionData(String key, String type, Object entry, int tenantId) {
         if (!enablePersist) {
             return;
         }
@@ -357,7 +355,7 @@ public class SessionDataStore {
         }
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
-        long currentStandardNano = getCurrentStandardNano(timestamp);
+        long currentStandardNano = getCurrentStandardNano();
         try {
             preparedStatement = connection.prepareStatement(sqlInsertSTORE);
             preparedStatement.setString(1, key);
@@ -377,7 +375,7 @@ public class SessionDataStore {
         }
     }
 
-    public void removeSessionData(String key, String type, Timestamp timestamp) {
+    public void removeSessionData(String key, String type) {
         if (!enablePersist) {
             return;
         }
@@ -389,7 +387,7 @@ public class SessionDataStore {
             return;
         }
         PreparedStatement preparedStatement = null;
-        long currentStandardNano = getCurrentStandardNano(timestamp);
+        long currentStandardNano = getCurrentStandardNano();
         try {
             preparedStatement = connection.prepareStatement(sqlInsertDELETE);
             preparedStatement.setString(1, key);
@@ -442,7 +440,7 @@ public class SessionDataStore {
         return null;
     }
 
-    private void deleteSTOREOperationsTask(Timestamp timestamp) {
+    private void deleteSTOREOperationsTask() {
         Connection connection = null;
         PreparedStatement statement = null;
         try {
@@ -460,15 +458,15 @@ public class SessionDataStore {
                 }
             }
             statement = connection.prepareStatement(sqlDeleteSTORETask);
-            long currentStandardNano = getCurrentStandardNano(timestamp);
-            statement.setLong(1, currentStandardNano);
+            long cleanupLimit = getCurrentStandardNano() - IdentityUtil.getCleanUpTimeout() * 60 * 10^6;
+            statement.setLong(1, cleanupLimit);
             statement.execute();
             if (!connection.getAutoCommit()) {
                 connection.commit();
             }
             return;
         } catch (SQLException e) {
-            log.error("Error while removing STORE operation data from the database for the timestamp " + timestamp.toString(), e);
+            log.error("Error while removing STORE operation data from the database", e);
         } finally {
             IdentityDatabaseUtil.closeAllConnections(connection, null, statement);
 
@@ -476,7 +474,7 @@ public class SessionDataStore {
 
     }
 
-    private void deleteDELETEOperationsTask(Timestamp timestamp) {
+    private void deleteDELETEOperationsTask() {
         Connection connection = null;
         PreparedStatement statement = null;
         try {
@@ -487,27 +485,27 @@ public class SessionDataStore {
         }
         try {
             statement = connection.prepareStatement(sqlDeleteDELETETask);
-            long currentStandardNano = getCurrentStandardNano(timestamp);
-            statement.setLong(1, currentStandardNano);
+            long cleanupLimit = getCurrentStandardNano() - IdentityUtil.getCleanUpTimeout() * 60 * 10^6;
+            statement.setLong(1, cleanupLimit);
             statement.execute();
             if (!connection.getAutoCommit()) {
                 connection.commit();
             }
             return;
         } catch (SQLException e) {
-            log.error("Error while removing DELETE operation data from the database for the timestamp " + timestamp.toString(), e);
+            log.error("Error while removing DELETE operation data from the database", e);
         } finally {
             IdentityDatabaseUtil.closeAllConnections(connection, null, statement);
 
         }
     }
 
-    private long getCurrentStandardNano(Timestamp timestamp) {
+    private long getCurrentStandardNano() {
 
         // create a nano time stamp relative to Unix Epoch
-        long currentStandardNano = timestamp.getTime() * 1000000;
+        long epochTimeReference = FrameworkServiceDataHolder.getInstance().getUnixTimeReference() * 10^6;
         long currentSystemNano = System.nanoTime();
-        currentStandardNano = currentStandardNano + (currentSystemNano - FrameworkServiceDataHolder.getInstance()
+        long currentStandardNano = epochTimeReference + (currentSystemNano - FrameworkServiceDataHolder.getInstance()
                 .getNanoTimeReference());
         return currentStandardNano;
     }
