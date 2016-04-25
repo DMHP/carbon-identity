@@ -1806,6 +1806,16 @@ jQuery(document).ready(function () {
         jQuery('#auth_context_comparison_level_dropdown').removeAttr('disabled');
     });
 
+    jQuery('#authentication_context_class_dropdown').change(function(){
+        var selectedClass = $("#authentication_context_class_dropdown" ).val();
+        if(selectedClass=='<%=IdentityApplicationConstants.Authenticator.SAML2SSO.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION%>'){
+            jQuery('#custom_authentication_context_class').removeAttr('disabled');
+        }else{
+            jQuery('#custom_authentication_context_class').val("");
+            jQuery('#custom_authentication_context_class').attr('disabled',true);
+        }
+    });
+
     jQuery('#includeAuthnCtxReq').click(function(){
     	jQuery('#authentication_context_class_dropdown').attr('disabled',true);
         jQuery('#auth_context_comparison_level_dropdown').attr('disabled',true);
@@ -4109,14 +4119,17 @@ function doValidation() {
 	<tr>
 	                   <td class="leftCol-med labelField"><fmt:message key='authentication.context.class'/>:</td>
 	          <td>
-
+                  <%
+                      boolean isNotCustom = false ;
+                  %>
 	              <select id="authentication_context_class_dropdown" name="AuthnContextClassRef" <%=authnContextClassRefDropdownDisabled%>>
 	                  <%
-	                  for(String authnContextClass : authenticationContextClasses){
+	                    for(String authnContextClass : authenticationContextClasses){
 	                      if( authnContextClass != null && authnContextClass.equalsIgnoreCase(authenticationContextClass)){
-	                    %>
-	                    <option selected="selected"><%=Encode.forHtmlContent(authenticationContextClass)%></option>
-	                    <%
+                              isNotCustom = true ;
+                      %>
+	                        <option selected="selected"><%=Encode.forHtmlContent(authenticationContextClass)%></option>
+                      <%
 	                  	} else {
 	                  %>
 	                  		<option><%=Encode.forHtmlContent(authnContextClass)%></option>
@@ -4124,11 +4137,36 @@ function doValidation() {
 	                      }
 	                  }
 	                  %>
-	              </select>
 
+                      <%
+                          if(isNotCustom){
+                      %>
+                        <option><%=IdentityApplicationConstants.Authenticator.SAML2SSO.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION %></option>
+                      <%
+                          }else{
+                      %>
+                        <option selected="selected"><%=IdentityApplicationConstants.Authenticator.SAML2SSO.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION %></option>
+                      <%
+                          }
+                      %>
+	              </select>
 	              <div class="sectionHelp" style="margin-top: 5px">
 	                  <fmt:message key='authentication.context.class.help'/>
 	              </div>
+                  <%
+                        if(isNotCustom){
+                  %>
+                            <input id="custom_authentication_context_class" name="CustomAuthnContextClassRef" type="text" value="" disabled="true">
+                  <%
+                        }else{
+                  %>
+                            <input id="custom_authentication_context_class" name="CustomAuthnContextClassRef" type="text" value="<%=Encode.forHtmlContent(authenticationContextClass)%>">
+                  <%
+                        }
+                  %>
+                  <div class="sectionHelp" style="margin-top: 5px">
+                      <fmt:message key='authentication.context.class.custom.help'/>
+                  </div>
 	          </td>
 	      </tr>
 

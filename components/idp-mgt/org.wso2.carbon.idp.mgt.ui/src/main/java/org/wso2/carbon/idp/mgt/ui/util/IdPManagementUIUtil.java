@@ -1297,7 +1297,7 @@ public class IdPManagementUIUtil {
 
                 if (CollectionUtils.isNotEmpty(customProps)) {
                     customConfig.setProvisioningProperties(customProps
-                            .toArray(new Property[customProps.size()]));
+                                                                   .toArray(new Property[customProps.size()]));
                 }
 
                 proConfigConnList[j++] = customConfig;
@@ -1309,7 +1309,7 @@ public class IdPManagementUIUtil {
                 fedIdp.setProvisioningConnectorConfigs(proConfigConnList);
             } else {
                 fedIdp.setProvisioningConnectorConfigs(concatArrays(proConfigConnList,
-                        provConnectors));
+                                                                    provConnectors));
             }
         }
 
@@ -1518,19 +1518,23 @@ public class IdPManagementUIUtil {
         property = new Property();
         property.setName(IdentityApplicationConstants.Authenticator.SAML2SSO.FORCE_AUTHENTICATION);
         property.setValue(paramMap
-                .get(IdentityApplicationConstants.Authenticator.SAML2SSO.FORCE_AUTHENTICATION));
+                                  .get(IdentityApplicationConstants.Authenticator.SAML2SSO.FORCE_AUTHENTICATION));
         properties[17] = property;
 
         property = new Property();
         property.setName(IdentityApplicationConstants.Authenticator.SAML2SSO.SIGNATURE_ALGORITHM_POST);
         property.setValue(paramMap
-                .get(IdentityApplicationConstants.Authenticator.SAML2SSO.SIGNATURE_ALGORITHM_POST));
+                                  .get(IdentityApplicationConstants.Authenticator.SAML2SSO.SIGNATURE_ALGORITHM_POST));
         properties[18] = property;
 
+
+        String authenticationContextClass = paramMap.get(IdentityApplicationConstants.Authenticator.SAML2SSO.AUTHENTICATION_CONTEXT_CLASS);
+        if(IdentityApplicationConstants.Authenticator.SAML2SSO.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION.equals(authenticationContextClass)){
+            authenticationContextClass = paramMap.get(IdentityApplicationConstants.Authenticator.SAML2SSO.ATTRIBUTE_CUSTOM_AUTHENTICATION_CONTEXT_CLASS);
+        }
         property = new Property();
         property.setName(IdentityApplicationConstants.Authenticator.SAML2SSO.AUTHENTICATION_CONTEXT_CLASS);
-        property.setValue(paramMap
-                .get(IdentityApplicationConstants.Authenticator.SAML2SSO.AUTHENTICATION_CONTEXT_CLASS));
+        property.setValue(authenticationContextClass);
         properties[19] = property;
         
         property = new Property();

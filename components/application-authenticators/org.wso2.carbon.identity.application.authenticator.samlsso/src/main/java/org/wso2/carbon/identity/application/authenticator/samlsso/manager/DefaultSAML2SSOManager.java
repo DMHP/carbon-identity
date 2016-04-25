@@ -116,7 +116,8 @@ import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
-public class DefaultSAML2SSOManager implements SAML2SSOManager {
+public class
+        DefaultSAML2SSOManager implements SAML2SSOManager {
 
     private static final String SECURITY_MANAGER_PROPERTY = Constants.XERCES_PROPERTY_PREFIX +
             Constants.SECURITY_MANAGER_PROPERTY;
@@ -658,12 +659,21 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
                             AuthnContextClassRef.DEFAULT_ELEMENT_LOCAL_NAME,
                             SAMLConstants.SAML20_PREFIX);
 
-            String authnContextClassProp = properties
+            String authnContextClass = properties
                     .get(IdentityApplicationConstants.Authenticator.SAML2SSO.AUTHENTICATION_CONTEXT_CLASS);
 
-            if (StringUtils.isNotEmpty(authnContextClassProp)) {
-                authnContextClassRef.setAuthnContextClassRef(IdentityApplicationManagementUtil
-                        .getSAMLAuthnContextClasses().get(authnContextClassProp));
+            if (StringUtils.isNotEmpty(authnContextClass)) {
+                String samlAuthnContextURN = IdentityApplicationManagementUtil
+                        .getSAMLAuthnContextClasses().get(authnContextClass);
+                if(!StringUtils.isBlank(samlAuthnContextURN)){
+                    //There was one matched URN for give authnContextClass.
+                    authnContextClassRef.setAuthnContextClassRef(samlAuthnContextURN);
+                }else{
+                    //There are no any matched URN for given authnContextClass, so added authnContextClass name to the
+                    // AuthnContextClassRef.
+                    authnContextClassRef.setAuthnContextClassRef(authnContextClass);
+                }
+
             } else {
                 authnContextClassRef.setAuthnContextClassRef(AuthnContext.PPT_AUTHN_CTX);
             }
