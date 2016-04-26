@@ -21,7 +21,11 @@ package org.wso2.carbon.identity.oauth2.dao;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
+import org.wso2.carbon.identity.oauth2.model.AuthzCodeDO;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.BlockingDeque;
 
 /**
@@ -45,12 +49,26 @@ public class AuthPersistenceTask implements Runnable {
             try {
                 AuthContextTokenDO authContextTokenDO = authContextTokenQueue.take();
                 if (authContextTokenDO != null) {
-                    if (authContextTokenDO.getAuthzCodeDO() == null) {
-                        log.debug("Auth Token Data removing Task is started to run");
+                    if (authContextTokenDO.getAuthzCodeDO() == null && authContextTokenDO.getTokenId() == null) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Auth Token Data removing Task is started to run");
+                        }
                         TokenMgtDAO tokenMgtDAO = new TokenMgtDAO();
                         tokenMgtDAO.doExpireAuthzCode(authContextTokenDO.getAuthzCode());
+                    } else if (authContextTokenDO.getAuthzCodeDO() == null && authContextTokenDO.getTokenId() != null) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Auth Token Deactivating Task is started to run");
+                        }
+                        AuthzCodeDO authzCodeDO = new AuthzCodeDO();
+                        authzCodeDO.setAuthorizationCode(authContextTokenDO.getAuthzCode());
+                        authzCodeDO.setOauthTokenId(authContextTokenDO.getTokenId());
+                        List<AuthzCodeDO> authzCodeDOList = new ArrayList<>(Arrays.asList(authzCodeDO));
+                        TokenMgtDAO tokenMgtDAO = new TokenMgtDAO();
+                        tokenMgtDAO.deactivateAuthorizationCode(authzCodeDOList);
                     } else {
-                        log.debug("Auth Token Data persisting Task is started to run");
+                        if (log.isDebugEnabled()) {
+                            log.debug("Auth Token Data persisting Task is started to run");
+                        }
                         TokenMgtDAO tokenMgtDAO = new TokenMgtDAO();
                         tokenMgtDAO.persistAuthorizationCode(authContextTokenDO.getAuthzCode(),
                                 authContextTokenDO.getConsumerKey(), authContextTokenDO.getCallbackUrl(),

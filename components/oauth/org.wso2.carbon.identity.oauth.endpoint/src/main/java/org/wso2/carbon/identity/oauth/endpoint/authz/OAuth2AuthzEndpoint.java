@@ -30,7 +30,6 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.CommonAuthenticationHandler;
 import org.wso2.carbon.identity.application.authentication.framework.cache.AuthenticationResultCacheEntry;
-import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticationResult;
 import org.wso2.carbon.identity.application.authentication.framework.model.CommonAuthRequestWrapper;
@@ -74,7 +73,6 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -89,6 +87,8 @@ public class OAuth2AuthzEndpoint {
     private static final Log log = LogFactory.getLog(OAuth2AuthzEndpoint.class);
     public static final String APPROVE = "approve";
     private boolean isCacheAvailable = false;
+    private static final String NONE = "none";
+    private static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
 
     @GET
     @Path("/")
@@ -217,6 +217,8 @@ public class OAuth2AuthzEndpoint {
                         }
                         sessionDataCacheEntry.setLoggedInUser(authenticatedUser);
                         sessionDataCacheEntry.setAuthenticatedIdPs(authnResult.getAuthenticatedIdPs());
+                        sessionDataCacheEntry.getParamMap().put(ATTR_SP_TENANT_DOMAIN, new String[]{(String) authnResult
+                                .getProperty(ATTR_SP_TENANT_DOMAIN)});
                         SessionDataCache.getInstance().addToCache(cacheKey, sessionDataCacheEntry);
                         redirectURL = doUserAuthz(request, sessionDataKeyFromLogin, sessionDataCacheEntry);
                         return Response.status(HttpServletResponse.SC_FOUND).location(new URI(redirectURL)).build();
@@ -424,8 +426,7 @@ public class OAuth2AuthzEndpoint {
                 addUserAttributesToCache(sessionDataCacheEntry, authzRespDTO.getAuthorizationCode(), authzRespDTO.getCodeId());
             }
             if (StringUtils.isNotBlank(authzRespDTO.getAccessToken()) &&
-                    !OAuthConstants.ID_TOKEN.equals(responseType) &&
-                    !OAuthConstants.NONE.equals(responseType)){
+                    !OAuthConstants.ID_TOKEN.equals(responseType) && !NONE.equals(responseType)){
                 builder.setAccessToken(authzRespDTO.getAccessToken());
                 builder.setExpiresIn(authzRespDTO.getValidityPeriod());
                 builder.setParam(OAuth.OAUTH_TOKEN_TYPE, "Bearer");
@@ -761,6 +762,7 @@ public class OAuth2AuthzEndpoint {
         authzReqDTO.setUser(sessionDataCacheEntry.getLoggedInUser());
         authzReqDTO.setACRValues(oauth2Params.getACRValues());
         authzReqDTO.setNonce(oauth2Params.getNonce());
+        authzReqDTO.addProperty(ATTR_SP_TENANT_DOMAIN, sessionDataCacheEntry.getParamMap().get(ATTR_SP_TENANT_DOMAIN)[0]);
         return EndpointUtil.getOAuth2Service().authorize(authzReqDTO);
     }
 

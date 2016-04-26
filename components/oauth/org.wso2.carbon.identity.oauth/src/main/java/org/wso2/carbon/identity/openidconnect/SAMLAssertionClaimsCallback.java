@@ -28,7 +28,6 @@ import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AttributeStatement;
-import org.wso2.carbon.claim.mgt.ClaimManagementException;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
@@ -72,6 +71,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
     private final static String INBOUND_AUTH2_TYPE = "oauth2";
     private final static String SP_DIALECT = "http://wso2.org/oidc/claim";
     private static final String AUTHZ_CODE = "AuthorizationCode";
+    private static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
 
     private String userAttributeSeparator = IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR_DEFAULT;
 
@@ -265,6 +265,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
 
         String username = requestMsgCtx.getAuthorizedUser().toString();
         String tenantDomain = requestMsgCtx.getAuthorizedUser().getTenantDomain();
+        String spTenantDomain = requestMsgCtx.getOauth2AccessTokenReqDTO().getTenantDomain();
 
         UserRealm realm;
         List<String> claimURIList = new ArrayList<String>();
@@ -273,9 +274,9 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
         ApplicationManagementService applicationMgtService = OAuth2ServiceComponentHolder.getApplicationMgtService();
         String spName = applicationMgtService
                 .getServiceProviderNameByClientId(requestMsgCtx.getOauth2AccessTokenReqDTO().getClientId(),
-                                                  INBOUND_AUTH2_TYPE, tenantDomain);
+                                                  INBOUND_AUTH2_TYPE, spTenantDomain);
         ServiceProvider serviceProvider = applicationMgtService.getApplicationExcludingFileBasedSPs(spName,
-                                                                                                    tenantDomain);
+                                                                                                    spTenantDomain);
         if (serviceProvider == null) {
             return mappedAppClaims;
         }
@@ -304,7 +305,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             }
 
             spToLocalClaimMappings = ClaimManagerHandler.getInstance().getMappingsMapFromOtherDialectToCarbon(
-                    SP_DIALECT, null, tenantDomain, false);
+                    SP_DIALECT, null, spTenantDomain, false);
 
             Map<String, String> userClaims = null;
             try {
@@ -356,11 +357,10 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
     }
 
     private static Map<String, Object> getClaimsFromUserStore(OAuthAuthzReqMessageContext requestMsgCtx)
-            throws IdentityApplicationManagementException, IdentityException, UserStoreException,
-            ClaimManagementException {
+            throws IdentityApplicationManagementException, IdentityException, UserStoreException {
 
         AuthenticatedUser user = requestMsgCtx.getAuthorizationReqDTO().getUser();
-        String tenantDomain = requestMsgCtx.getAuthorizationReqDTO().getUser().getTenantDomain();
+        String tenantDomain = (String) requestMsgCtx.getProperty(ATTR_SP_TENANT_DOMAIN);
 
         UserRealm realm;
         List<String> claimURIList = new ArrayList<String>();

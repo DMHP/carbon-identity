@@ -75,6 +75,15 @@ public abstract class FrameworkConstants {
         public static final String ELEM_REQ_PATH_AUTHENTICATOR = "RequestPathAuthenticators";
         public static final String ATTR_AUTH_ENDPOINT_QUERY_PARAM_NAME = "name";
         public static final String ATTR_AUTH_ENDPOINT_QUERY_PARAM_ACTION = "action";
+        public static final String ELEM_COOKIES = "Cookies";
+        public static final String ELEM_DOMAIN = "domain";
+        public static final String ELEM_HTTP_ONLY = "httpOnly";
+        public static final String ELEM_SECURE = "secure";
+        public static final String ELEM_PATH = "path";
+        public static final String ELEM_MAX_AGE = "maxAge";
+        public static final String ELEM_COMMENT = "comment";
+        public static final String ELEM_VERSION = "version";
+
         /**
          * Configuration name for setting the url for receiving tenant list upon any modification to a tenant
          */

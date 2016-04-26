@@ -89,6 +89,8 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
     private static final String SHA512 = "SHA-512";
     private static final String AUTHORIZATION_CODE = "AuthorizationCode";
     private static final String INBOUND_AUTH2_TYPE = "oauth2";
+    private static final String NONE_RESPONSE_TYPE = "none";
+    private static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
 
     private static final Log log = LogFactory.getLog(DefaultIDTokenBuilder.class);
     private static Map<Integer, Key> privateKeys = new ConcurrentHashMap<>();
@@ -257,7 +259,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
         //at_hash is generated on access token. Hence the check on response type to be id_token token or code
         if (!JWSAlgorithm.NONE.getName().equals(signatureAlgorithm.getName()) &&
                 !OAuthConstants.ID_TOKEN.equalsIgnoreCase(responseType) &&
-                !OAuthConstants.NONE.equalsIgnoreCase(responseType)) {
+                !NONE_RESPONSE_TYPE.equalsIgnoreCase(responseType)) {
             String digAlg = mapDigestAlgorithm(signatureAlgorithm);
             MessageDigest md;
             try {
@@ -310,6 +312,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
         }
 
         request.addProperty(OAuthConstants.ACCESS_TOKEN, tokenRespDTO.getAccessToken());
+        request.addProperty(ATTR_SP_TENANT_DOMAIN, request.getAuthorizationReqDTO().getProperty(ATTR_SP_TENANT_DOMAIN));
         CustomClaimsCallbackHandler claimsCallBackHandler =
                 OAuthServerConfiguration.getInstance().getOpenIDConnectCustomClaimsCallbackHandler();
         claimsCallBackHandler.handleCustomClaims(jwtClaimsSet, request);
@@ -331,7 +334,13 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
             throws IdentityOAuth2Exception {
         try {
 
-            String tenantDomain = request.getAuthorizedUser().getTenantDomain();
+            boolean isJWTSignedWithSPKey = OAuthServerConfiguration.getInstance().isJWTSignedWithSPKey();
+            String tenantDomain = null;
+            if(isJWTSignedWithSPKey) {
+                tenantDomain = (String) request.getOauth2AccessTokenReqDTO().getTenantDomain();
+            } else {
+                tenantDomain = request.getAuthorizedUser().getTenantDomain();
+            }
 
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 
@@ -373,9 +382,16 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
 
     protected String signJWTWithRSA(JWTClaimsSet jwtClaimsSet, OAuthAuthzReqMessageContext request)
             throws IdentityOAuth2Exception {
+
         try {
 
-            String tenantDomain = request.getAuthorizationReqDTO().getUser().getTenantDomain();
+            boolean isJWTSignedWithSPKey = OAuthServerConfiguration.getInstance().isJWTSignedWithSPKey();
+            String tenantDomain = null;
+            if(isJWTSignedWithSPKey) {
+                tenantDomain = (String) request.getProperty(ATTR_SP_TENANT_DOMAIN);;
+            } else {
+                tenantDomain = request.getAuthorizationReqDTO().getUser().getTenantDomain();
+            }
 
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 

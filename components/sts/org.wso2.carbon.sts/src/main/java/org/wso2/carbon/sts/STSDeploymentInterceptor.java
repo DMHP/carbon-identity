@@ -18,11 +18,7 @@
 package org.wso2.carbon.sts;
 
 import org.apache.axiom.om.OMElement;
-import org.apache.axiom.om.impl.builder.StAXOMBuilder;
-import org.apache.axiom.om.util.UUIDGenerator;
 import org.apache.axis2.AxisFault;
-import org.apache.axis2.description.AxisBinding;
-import org.apache.axis2.description.AxisEndpoint;
 import org.apache.axis2.description.AxisModule;
 import org.apache.axis2.description.AxisService;
 import org.apache.axis2.description.AxisServiceGroup;
@@ -34,53 +30,27 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.neethi.Policy;
-import org.apache.neethi.PolicyEngine;
 import org.apache.rahas.impl.AbstractIssuerConfig;
 import org.apache.rahas.impl.SAMLTokenIssuerConfig;
 import org.apache.rahas.impl.TokenIssuerUtil;
-import org.apache.ws.security.handler.WSHandlerConstants;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.CarbonContext;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.core.RegistryResources;
 import org.wso2.carbon.core.deployment.DeploymentInterceptor;
-import org.wso2.carbon.core.persistence.PersistenceUtils;
 import org.wso2.carbon.core.util.KeyStoreManager;
 import org.wso2.carbon.core.util.KeyStoreUtil;
-import org.wso2.carbon.registry.api.RegistryException;
-import org.wso2.carbon.registry.core.Collection;
+import org.wso2.carbon.identity.provider.AttributeCallbackHandler;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
-import org.wso2.carbon.registry.core.session.UserRegistry;
 import org.wso2.carbon.registry.core.utils.RegistryUtils;
-import org.wso2.carbon.security.SecurityConfigException;
-import org.wso2.carbon.security.SecurityConstants;
-import org.wso2.carbon.security.SecurityScenario;
-import org.wso2.carbon.security.SecurityScenarioDatabase;
-import org.wso2.carbon.security.config.SecurityServiceAdmin;
 import org.wso2.carbon.security.keystore.KeyStoreAdmin;
 import org.wso2.carbon.security.keystore.service.KeyStoreData;
-import org.wso2.carbon.security.pox.POXSecurityHandler;
 import org.wso2.carbon.security.util.RampartConfigUtil;
 import org.wso2.carbon.security.util.ServerCrypto;
-import org.wso2.carbon.security.util.ServicePasswordCallbackHandler;
 import org.wso2.carbon.sts.internal.STSServiceDataHolder;
-import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.utils.ServerConstants;
-import org.wso2.carbon.utils.ServerException;
-import org.wso2.carbon.utils.deployment.GhostDeployerUtils;
 
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.Caching;
-import javax.security.auth.callback.CallbackHandler;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,6 +70,7 @@ public class STSDeploymentInterceptor implements AxisObserver {
     private static final Log log = LogFactory.getLog(DeploymentInterceptor.class);
 
     public static final String HOST_NAME = "HostName";
+    public static final String STS_HOST_NAME = "STSHostName";
     public static final String STS_TIME_TO_LIVE = "STSTimeToLive";
     public static final String SECURITY_DISABLE_TOKEN_STORE = "Security.DisableTokenStore";
     public static final String SECURITY_KEY_STORE_KEY_PASSWORD = "Security.KeyStore.KeyPassword";
@@ -183,11 +154,11 @@ public class STSDeploymentInterceptor implements AxisObserver {
 
         }
 
-        issuerName = serverConfig.getFirstProperty(HOST_NAME);
+        issuerName = serverConfig.getFirstProperty(STS_HOST_NAME);
 
-        if (issuerName == null) {
+        if (StringUtils.isBlank(issuerName)) {
             // HostName not set :-( use wso2wsas-sts
-            issuerName = ServerConstants.STS_NAME;
+            issuerName = "https://" + serverConfig.getFirstProperty(HOST_NAME);
         }
 
         if (privateKeyAlias != null) {
@@ -199,12 +170,14 @@ public class STSDeploymentInterceptor implements AxisObserver {
                     new String[] { keyStoreName }, keyStoreName, privateKeyAlias);
 
             SAMLTokenIssuerConfig stsSamlConfig = new SAMLTokenIssuerConfig(issuerName, cryptoProvider, props);
+            stsSamlConfig.setIssuerName(issuerName);
             stsSamlConfig.setIssuerKeyAlias(privateKeyAlias);
             stsSamlConfig.setIssuerKeyPassword(keyPassword);
             stsSamlConfig.setAddRequestedAttachedRef(true);
             stsSamlConfig.setAddRequestedUnattachedRef(true);
             stsSamlConfig.setKeyComputation(2);
             stsSamlConfig.setProofKeyType(TokenIssuerUtil.BINARY_SECRET);
+            stsSamlConfig.setCallbackHandlerName(AttributeCallbackHandler.class.getName());
 
             String resourcePath = null;
             resourcePath = RegistryResources.SERVICE_GROUPS + ServerConstants.STS_NAME

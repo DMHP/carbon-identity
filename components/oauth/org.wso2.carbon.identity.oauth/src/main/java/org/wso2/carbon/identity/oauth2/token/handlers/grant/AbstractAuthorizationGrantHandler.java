@@ -26,7 +26,6 @@ import org.apache.axiom.util.base64.Base64Utils;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.oltu.oauth2.as.issuer.OAuthIssuer;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.apache.oltu.oauth2.common.message.types.GrantType;
 import org.wso2.carbon.identity.base.IdentityException;
@@ -47,18 +46,19 @@ import org.wso2.carbon.identity.oauth2.dao.TokenMgtDAO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2AccessTokenReqDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2AccessTokenRespDTO;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
+import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuer;
 import org.wso2.carbon.identity.oauth2.token.OAuthTokenReqMessageContext;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 public abstract class AbstractAuthorizationGrantHandler implements AuthorizationGrantHandler {
 
     private static Log log = LogFactory.getLog(AbstractAuthorizationGrantHandler.class);
-    protected OAuthIssuer oauthIssuerImpl = OAuthServerConfiguration.getInstance().getOAuthTokenGenerator(); 
+    protected OauthTokenIssuer oauthIssuerImpl = OAuthServerConfiguration.getInstance().getIdentityOauthTokenIssuer();
     protected TokenMgtDAO tokenMgtDAO;
     protected OAuthCallbackManager callbackManager;
     protected boolean cacheEnabled;
     protected OAuthCache oauthCache;
-    
+    public static final String EXISTING_TOKEN_ISSUED = "existingTokenUsed";
 
     @Override
     public void init() throws IdentityOAuth2Exception {
@@ -164,6 +164,7 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
                             tokenRespDTO.setExpiresIn(Long.MAX_VALUE/1000);
                             tokenRespDTO.setExpiresInMillis(Long.MAX_VALUE);
                         }
+                        tokReqMsgCtx.addProperty(EXISTING_TOKEN_ISSUED, true);
                         return tokenRespDTO;
                     } else {
 
@@ -333,7 +334,7 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
                 // set refresh token issued time.this is needed by downstream handlers.
                 tokReqMsgCtx.setRefreshTokenIssuedTime(refreshTokenIssuedTime.getTime());
                 
-                newAccessToken = oauthIssuerImpl.accessToken();
+                newAccessToken = oauthIssuerImpl.accessToken(tokReqMsgCtx);
                 if (OAuth2Util.checkUserNameAssertionEnabled()) {
                     //use ':' for token & userStoreDomain separation
                     String accessTokenStrToEncode = newAccessToken + ":" + userName;
@@ -342,7 +343,7 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
 
                 // regenerate only if refresh token is null
                 if (refreshToken == null) {
-                    refreshToken = oauthIssuerImpl.refreshToken();
+                    refreshToken = oauthIssuerImpl.refreshToken(tokReqMsgCtx);
                     if (OAuth2Util.checkUserNameAssertionEnabled()) {
                         //use ':' for token & userStoreDomain separation
                         String refreshTokenStrToEncode = refreshToken + ":" + userName;

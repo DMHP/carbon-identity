@@ -25,8 +25,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.apache.oltu.oauth2.common.message.types.ResponseType;
+import org.wso2.carbon.identity.application.common.model.Claim;
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCache;
+import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheEntry;
+import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheKey;
 import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
@@ -40,6 +45,7 @@ import org.wso2.carbon.identity.openidconnect.IDTokenBuilder;
 
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
@@ -275,11 +281,11 @@ public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
             oauthAuthzMsgCtx.setRefreshTokenIssuedTime(refreshTokenIssuedTime.getTime());
 
 	    try {
-		accessToken = oauthIssuerImpl.accessToken();
+		accessToken = oauthIssuerImpl.accessToken(oauthAuthzMsgCtx);
 
 		// regenerate only if refresh token is null
 		if (refreshToken == null) {
-		    refreshToken = oauthIssuerImpl.refreshToken();
+		    refreshToken = oauthIssuerImpl.refreshToken(oauthAuthzMsgCtx);
 		}
 
 	    } catch (OAuthSystemException e) {
@@ -355,12 +361,42 @@ public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
     }
 
     private void buildIdToken(OAuthAuthzReqMessageContext msgCtx, OAuth2AuthorizeRespDTO authzRespDTO)
-            throws IdentityOAuth2Exception{
+            throws IdentityOAuth2Exception {
+
+        if (StringUtils.isNotBlank(authzRespDTO.getAccessToken())) {
+            addUserAttributesToCache(authzRespDTO.getAccessToken(), msgCtx.getAuthorizationReqDTO());
+        }
 
         if (StringUtils.contains(msgCtx.getAuthorizationReqDTO().getResponseType(), "id_token") &&
                 msgCtx.getApprovedScope() != null && OAuth2Util.isOIDCAuthzRequest(msgCtx.getApprovedScope())) {
             IDTokenBuilder builder = OAuthServerConfiguration.getInstance().getOpenIDConnectIDTokenBuilder();
             authzRespDTO.setIdToken(builder.buildIDToken(msgCtx, authzRespDTO));
         }
+    }
+
+    private void addUserAttributesToCache(String accessToken, OAuth2AuthorizeReqDTO authorizeReqDTO) {
+
+        Map<ClaimMapping, String> userAttributes = authorizeReqDTO.getUser().getUserAttributes();
+        AuthorizationGrantCacheKey authorizationGrantCacheKey = new AuthorizationGrantCacheKey(accessToken);
+        AuthorizationGrantCacheEntry authorizationGrantCacheEntry = new AuthorizationGrantCacheEntry(userAttributes);
+
+        String sub = userAttributes.get(OAuth2Util.SUB);
+
+        if (StringUtils.isBlank(sub)) {
+
+            sub = authorizeReqDTO.getUser().getAuthenticatedSubjectIdentifier();
+        }
+
+        if (StringUtils.isNotBlank(sub)) {
+
+            ClaimMapping claimMapping = new ClaimMapping();
+            Claim claim = new Claim();
+            claim.setClaimUri(OAuth2Util.SUB);
+            claimMapping.setRemoteClaim(claim);
+            userAttributes.put(claimMapping, sub);
+        }
+
+        AuthorizationGrantCache.getInstance().addToCacheByToken(authorizationGrantCacheKey,
+                authorizationGrantCacheEntry);
     }
 }

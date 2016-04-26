@@ -46,6 +46,8 @@ import org.wso2.carbon.identity.oauth.tokenprocessor.PlainTextPersistenceProcess
 import org.wso2.carbon.identity.oauth.tokenprocessor.TokenPersistenceProcessor;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.authz.handlers.ResponseTypeHandler;
+import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuer;
+import org.wso2.carbon.identity.oauth2.token.OauthTokenIssuerImpl;
 import org.wso2.carbon.identity.oauth2.token.handlers.clientauth.ClientAuthenticationHandler;
 import org.wso2.carbon.identity.oauth2.token.handlers.grant.AuthorizationGrantHandler;
 import org.wso2.carbon.identity.oauth2.token.handlers.grant.saml.SAML2TokenCallbackHandler;
@@ -107,6 +109,8 @@ public class OAuthServerConfiguration {
     private String tokenPersistenceProcessorClassName = "org.wso2.carbon.identity.oauth.tokenprocessor.PlainTextPersistenceProcessor";
     private String oauthTokenGeneratorClassName;
     private OAuthIssuer oauthTokenGenerator;
+    private String oauthIdentityTokenGeneratorClassName;
+    private OauthTokenIssuer oauthIdentityTokenGenerator;
     private boolean cacheEnabled = true;
     private boolean isRefreshTokenRenewalEnabled = true;
     private boolean assertionsUserNameEnabled = false;
@@ -148,6 +152,8 @@ public class OAuthServerConfiguration {
     private String openIDConnectUserInfoEndpointRequestValidator = "org.wso2.carbon.identity.oauth.endpoint.user.impl.UserInforRequestDefaultValidator";
     private String openIDConnectUserInfoEndpointAccessTokenValidator = "org.wso2.carbon.identity.oauth.endpoint.user.impl.UserInfoISAccessTokenValidator";
     private String openIDConnectUserInfoEndpointResponseBuilder = "org.wso2.carbon.identity.oauth.endpoint.user.impl.UserInfoJSONResponseBuilder";
+    // property added to fix IDENTITY-4492 in backward compatible manner
+    private boolean isJWTSignedWithSPKey = false;
     private OAuth2ScopeValidator oAuth2ScopeValidator;
 
     private OAuthServerConfiguration() {
@@ -236,6 +242,9 @@ public class OAuthServerConfiguration {
         
         // parse OAuth 2.0 token generator
         parseOAuthTokenGeneratorConfig(oauthElem);
+
+        // parse identity OAuth 2.0 token generator
+        parseOAuthTokenIssuerConfig(oauthElem);
     }
 
     public Set<OAuthCallbackHandlerMetaData> getCallbackHandlerMetaData() {
@@ -297,6 +306,34 @@ public class OAuthServerConfiguration {
             }
         }
         return oauthTokenGenerator;
+    }
+
+    public OauthTokenIssuer getIdentityOauthTokenIssuer() {
+        if (oauthIdentityTokenGenerator == null) {
+            synchronized (this) {
+                if (oauthIdentityTokenGenerator == null) {
+                    try {
+                        if (oauthIdentityTokenGeneratorClassName != null) {
+                            Class clazz = this.getClass().getClassLoader().loadClass
+                                    (oauthIdentityTokenGeneratorClassName);
+                            oauthIdentityTokenGenerator = (OauthTokenIssuer) clazz.newInstance();
+                            log.info("An instance of " + oauthIdentityTokenGeneratorClassName
+                                    + " is created for Identity OAuth token generation.");
+                        } else {
+                            oauthIdentityTokenGenerator = new OauthTokenIssuerImpl();
+                            log.info("The default Identity OAuth token issuer will be used. No custom token generator" +
+                                    " is set.");
+                        }
+                    } catch (Exception e) {
+                        String errorMsg = "Error when instantiating the OAuthIssuer : "
+                                + tokenPersistenceProcessorClassName + ". Defaulting to OAuthIssuerImpl";
+                        log.error(errorMsg, e);
+                        oauthIdentityTokenGenerator = new OauthTokenIssuerImpl();
+                    }
+                }
+            }
+        }
+        return oauthIdentityTokenGenerator;
     }
 
     public String getOIDCConsentPageUrl() {
@@ -730,6 +767,10 @@ public class OAuthServerConfiguration {
         return openIDConnectUserInfoEndpointResponseBuilder;
     }
 
+    public boolean isJWTSignedWithSPKey() {
+        return isJWTSignedWithSPKey;
+    }
+
     private void parseOAuthCallbackHandlers(OMElement callbackHandlersElem) {
         if (callbackHandlersElem == null) {
             warnOnFaultyConfiguration("OAuthCallbackHandlers element is not available.");
@@ -1087,6 +1128,22 @@ public class OAuthServerConfiguration {
 	}
     }
 
+    private void parseOAuthTokenIssuerConfig(OMElement oauthConfigElem) {
+
+        OMElement tokenIssuerClassConfigElem = oauthConfigElem
+                .getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.IDENTITY_OAUTH_TOKEN_GENERATOR));
+        if (tokenIssuerClassConfigElem != null && !"".equals(tokenIssuerClassConfigElem.getText().trim())) {
+            oauthIdentityTokenGeneratorClassName = tokenIssuerClassConfigElem.getText().trim();
+            if (log.isDebugEnabled()) {
+                log.debug("Identity OAuth token generator is set to : " + oauthIdentityTokenGeneratorClassName);
+            }
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("The default Identity OAuth token issuer will be used. No custom token generator is set.");
+            }
+        }
+    }
+
     private void parseSupportedGrantTypesConfig(OMElement oauthConfigElem) {
 
         OMElement supportedGrantTypesElem =
@@ -1377,6 +1434,12 @@ public class OAuthServerConfiguration {
                         openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.OPENID_CONNECT_USERINFO_ENDPOINT_RESPONSE_BUILDER))
                                 .getText().trim();
             }
+
+            if (openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements
+                    .OPENID_CONNECT_SIGN_JWT_WITH_SP_KEY)) != null) {
+                isJWTSignedWithSPKey = Boolean.parseBoolean(openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS
+                        (ConfigElements.OPENID_CONNECT_SIGN_JWT_WITH_SP_KEY)).getText().trim());
+            }
             if (openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.SUPPORTED_CLAIMS)) != null) {
                 String supportedClaimStr =
                         openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.SUPPORTED_CLAIMS))
@@ -1439,6 +1502,7 @@ public class OAuthServerConfiguration {
         public static final String OPENID_CONNECT_USERINFO_ENDPOINT_REQUEST_VALIDATOR = "UserInfoEndpointRequestValidator";
         public static final String OPENID_CONNECT_USERINFO_ENDPOINT_ACCESS_TOKEN_VALIDATOR = "UserInfoEndpointAccessTokenValidator";
         public static final String OPENID_CONNECT_USERINFO_ENDPOINT_RESPONSE_BUILDER = "UserInfoEndpointResponseBuilder";
+        public static final String OPENID_CONNECT_SIGN_JWT_WITH_SP_KEY = "SignJWTWithSPKey";
         public static final String OPENID_CONNECT_IDTOKEN_CUSTOM_CLAIM_CALLBACK_HANDLER = "IDTokenCustomClaimsCallBackHandler";
         public static final String SUPPORTED_CLAIMS = "OpenIDConnectClaims";
         // Callback handler related configuration elements
@@ -1471,6 +1535,7 @@ public class OAuthServerConfiguration {
         private static final String TOKEN_PERSISTENCE_PROCESSOR = "TokenPersistenceProcessor";
         // Token issuer generator.
         private static final String OAUTH_TOKEN_GENERATOR = "OAuthTokenGenerator";
+        private static final String IDENTITY_OAUTH_TOKEN_GENERATOR = "IdentityOAuthTokenGenerator";
 
         // Supported Grant Types
         private static final String SUPPORTED_GRANT_TYPES = "SupportedGrantTypes";
