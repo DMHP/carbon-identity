@@ -28,6 +28,7 @@ import org.wso2.carbon.identity.application.common.IdentityApplicationManagement
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityDatabaseUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -294,10 +295,11 @@ public class SessionDataStore {
         if (!enablePersist) {
             return;
         }
+        Timestamp timestamp = new Timestamp(new Date().getTime());
         if (maxPoolSize > 0) {
-            sessionContextQueue.push(new SessionContextDO(key, type, entry));
+            sessionContextQueue.push(new SessionContextDO(key, type, entry, timestamp));
         } else {
-            persistSessionData(key, type, entry, tenantId);
+            persistSessionData(key, type, entry, timestamp, tenantId);
         }
     }
 
@@ -305,10 +307,11 @@ public class SessionDataStore {
         if (!enablePersist) {
             return;
         }
+        Timestamp timestamp = new Timestamp(new Date().getTime());
         if (maxPoolSize > 0) {
-            sessionContextQueue.push(new SessionContextDO(key, type, null));
+            sessionContextQueue.push(new SessionContextDO(key, type, null, timestamp));
         } else {
-            removeSessionData(key, type);
+            removeSessionData(key, type, timestamp);
         }
     }
 
@@ -342,7 +345,7 @@ public class SessionDataStore {
         deleteDELETEOperationsTask();
     }
 
-    public void persistSessionData(String key, String type, Object entry, int tenantId) {
+    public void persistSessionData(String key, String type, Object entry, Timestamp timestamp, int tenantId) {
         if (!enablePersist) {
             return;
         }
@@ -355,14 +358,13 @@ public class SessionDataStore {
         }
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
-        long currentStandardNano = getCurrentStandardNano();
         try {
             preparedStatement = connection.prepareStatement(sqlInsertSTORE);
             preparedStatement.setString(1, key);
             preparedStatement.setString(2, type);
             preparedStatement.setString(3, OPERATION_STORE);
             setBlobObject(preparedStatement, entry, 4);
-            preparedStatement.setLong(5, currentStandardNano);
+            preparedStatement.setLong(5, timestamp.getTime() * 10^6);
             preparedStatement.setInt(6, tenantId);
             preparedStatement.executeUpdate();
             if (!connection.getAutoCommit()) {
@@ -375,7 +377,7 @@ public class SessionDataStore {
         }
     }
 
-    public void removeSessionData(String key, String type) {
+    public void removeSessionData(String key, String type, Timestamp timestamp) {
         if (!enablePersist) {
             return;
         }
@@ -387,13 +389,12 @@ public class SessionDataStore {
             return;
         }
         PreparedStatement preparedStatement = null;
-        long currentStandardNano = getCurrentStandardNano();
         try {
             preparedStatement = connection.prepareStatement(sqlInsertDELETE);
             preparedStatement.setString(1, key);
             preparedStatement.setString(2, type);
             preparedStatement.setString(3, OPERATION_DELETE);
-            preparedStatement.setLong(4, currentStandardNano);
+            preparedStatement.setLong(4, timestamp.getTime() * 10^6);
             preparedStatement.executeUpdate();
             if (!connection.getAutoCommit()) {
                 connection.commit();
