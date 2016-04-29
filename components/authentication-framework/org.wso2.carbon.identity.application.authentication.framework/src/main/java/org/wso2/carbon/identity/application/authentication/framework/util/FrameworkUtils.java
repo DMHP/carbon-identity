@@ -98,6 +98,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 public class FrameworkUtils {
 
@@ -1133,10 +1134,13 @@ public class FrameworkUtils {
         PrivilegedCarbonContext.endTenantFlow();
     }
 
+    /**
+     * create a nano time stamp relative to Unix Epoch
+     */
     public static long getCurrentStandardNano() {
 
-        // create a nano time stamp relative to Unix Epoch
-        long epochTimeReference = FrameworkServiceDataHolder.getInstance().getUnixTimeReference() * 10^6;
+        long epochTimeReference = TimeUnit.MILLISECONDS.toNanos(
+                FrameworkServiceDataHolder.getInstance().getUnixTimeReference());
         long currentSystemNano = System.nanoTime();
         long currentStandardNano = epochTimeReference + (currentSystemNano - FrameworkServiceDataHolder.getInstance()
                 .getNanoTimeReference());
