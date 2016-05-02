@@ -116,8 +116,7 @@ import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
-public class
-        DefaultSAML2SSOManager implements SAML2SSOManager {
+public class DefaultSAML2SSOManager implements SAML2SSOManager {
 
     private static final String SECURITY_MANAGER_PROPERTY = Constants.XERCES_PROPERTY_PREFIX +
             Constants.SECURITY_MANAGER_PROPERTY;
