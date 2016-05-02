@@ -1808,7 +1808,7 @@ jQuery(document).ready(function () {
 
     jQuery('#authentication_context_class_dropdown').change(function(){
         var selectedClass = $("#authentication_context_class_dropdown" ).val();
-        if(selectedClass=='<%=IdentityApplicationConstants.Authenticator.SAML2SSO.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION%>'){
+        if(selectedClass=='<%=IdPManagementUIUtil.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION%>'){
             jQuery('#custom_authentication_context_class').removeAttr('disabled');
         }else{
             jQuery('#custom_authentication_context_class').val("");
@@ -4141,11 +4141,11 @@ function doValidation() {
                       <%
                           if(isNotCustom){
                       %>
-                        <option><%=IdentityApplicationConstants.Authenticator.SAML2SSO.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION %></option>
+                        <option><%=IdPManagementUIUtil.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION %></option>
                       <%
                           }else{
                       %>
-                        <option selected="selected"><%=IdentityApplicationConstants.Authenticator.SAML2SSO.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION %></option>
+                        <option selected="selected"><%=IdPManagementUIUtil.CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION %></option>
                       <%
                           }
                       %>
