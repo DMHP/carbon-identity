@@ -344,6 +344,12 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
 
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 
+            try {
+                IdentityTenantUtil.initializeRegistry(tenantId, tenantDomain);
+            } catch (IdentityException e) {
+                throw new IdentityOAuth2Exception("Error occurred while loading registry for tenant " + tenantDomain, e);
+            }
+
             Key privateKey;
 
             if (!(privateKeys.containsKey(tenantId))) {
