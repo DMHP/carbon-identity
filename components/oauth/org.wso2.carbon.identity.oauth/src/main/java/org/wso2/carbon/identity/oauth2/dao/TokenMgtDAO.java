@@ -1028,7 +1028,7 @@ public class TokenMgtDAO {
             } else {
                 ps.setString(1, authenticatedUser.getUserName().toLowerCase());
             }
-            ps.setString(2, Integer.toString(OAuth2Util.getTenantId(authenticatedUser.getTenantDomain())));
+            ps.setInt(2, OAuth2Util.getTenantId(authenticatedUser.getTenantDomain()));
             ps.setString(3, OAuthConstants.TokenStates.TOKEN_STATE_ACTIVE);
             ps.setString(4, authenticatedUser.getUserStoreDomain());
             rs = ps.executeQuery();
@@ -1072,7 +1072,7 @@ public class TokenMgtDAO {
             } else {
                 ps.setString(1, authenticatedUser.getUserName().toLowerCase());
             }
-            ps.setString(2,Integer.toString(OAuth2Util.getTenantId(authenticatedUser.getTenantDomain())));
+            ps.setInt(2, OAuth2Util.getTenantId(authenticatedUser.getTenantDomain()));
             ps.setString(3, authenticatedUser.getUserStoreDomain());
             rs = ps.executeQuery();
             while (rs.next()) {
