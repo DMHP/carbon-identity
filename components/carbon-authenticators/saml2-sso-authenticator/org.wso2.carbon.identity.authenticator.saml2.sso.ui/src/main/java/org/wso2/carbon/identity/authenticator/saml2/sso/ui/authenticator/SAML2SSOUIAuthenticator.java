@@ -73,6 +73,7 @@ public class SAML2SSOUIAuthenticator extends AbstractCarbonUIAuthenticator {
         boolean isAuthenticated = false;
         String auditResult = SAML2SSOAuthenticatorConstants.AUDIT_RESULT_FAILED;
 
+        request.getSession().invalidate();
         HttpSession session = request.getSession();
         Response samlResponse = (Response) request.getAttribute(SAML2SSOAuthenticatorConstants.HTTP_ATTR_SAML2_RESP_TOKEN);
         String responseStr = request.getParameter(SAML2SSOAuthenticatorConstants.HTTP_POST_PARAM_SAML2_RESP);
