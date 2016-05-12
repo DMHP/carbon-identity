@@ -30,6 +30,7 @@ import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.RegistryConstants;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
+import org.wso2.carbon.registry.core.exceptions.ResourceNotFoundException;
 
 import java.util.Properties;
 
@@ -137,7 +138,16 @@ public class RegistryRecoveryDataStore implements UserRecoveryDataStore {
             String dataPath = IdentityMgtConstants.IDENTITY_MANAGEMENT_DATA;
             Collection dataItems = (Collection)registry.get(dataPath);
             for (int i = 0; i < dataItems.getChildren().length; i++) {
-                Resource currentResource = registry.get(dataItems.getChildren()[i]);
+                Resource currentResource;
+                try {
+                    currentResource = registry.get(dataItems.getChildren()[i]);
+                } catch (ResourceNotFoundException exception) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Resource :" + dataItems.getChildren()[i] + " is already deleted from a seperate thread");
+                    }
+                    continue;
+                }
+
                 if (currentResource instanceof Collection) {
                     String[] currentResourceChildren = ((Collection) currentResource).getChildren();
                     for (int j = 0; j < currentResourceChildren.length; j++) {
