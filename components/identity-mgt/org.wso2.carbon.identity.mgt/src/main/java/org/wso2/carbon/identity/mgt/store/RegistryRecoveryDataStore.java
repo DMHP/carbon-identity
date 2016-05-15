@@ -129,6 +129,34 @@ public class RegistryRecoveryDataStore implements UserRecoveryDataStore {
     }
 
     @Override
+    public void invalidate(String code) throws IdentityException {
+
+        Registry registry = null;
+        try {
+            registry = IdentityMgtServiceComponent.getRegistryService().
+                    getConfigSystemRegistry(PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId());
+
+            registry.beginTransaction();
+            String secretKeyPath = IdentityMgtConstants.IDENTITY_MANAGEMENT_DATA +
+                    RegistryConstants.PATH_SEPARATOR + code.toLowerCase();
+            if (registry.resourceExists(secretKeyPath)) {
+                registry.delete(secretKeyPath);
+            }
+        } catch (RegistryException e) {
+            log.error(e);
+            throw IdentityException.error("Error while invalidating user recovery data for code : " + code);
+        } finally {
+            if (registry != null) {
+                try {
+                    registry.commitTransaction();
+                } catch (RegistryException e) {
+                    log.error("Error while processing registry transaction", e);
+                }
+            }
+        }
+    }
+
+    @Override
     public void invalidate(UserRecoveryDataDO recoveryDataDO) throws IdentityException {
         Registry registry = null;
         try {
@@ -143,7 +171,7 @@ public class RegistryRecoveryDataStore implements UserRecoveryDataStore {
                     currentResource = registry.get(dataItems.getChildren()[i]);
                 } catch (ResourceNotFoundException exception) {
                     if (log.isDebugEnabled()) {
-                        log.debug("Resource :" + dataItems.getChildren()[i] + " is already deleted from a seperate thread");
+                        log.debug("Resource :" + dataItems.getChildren()[i] + " is already deleted");
                     }
                     continue;
                 }
@@ -151,7 +179,15 @@ public class RegistryRecoveryDataStore implements UserRecoveryDataStore {
                 if (currentResource instanceof Collection) {
                     String[] currentResourceChildren = ((Collection) currentResource).getChildren();
                     for (int j = 0; j < currentResourceChildren.length; j++) {
-                        Resource innerResource = registry.get(currentResourceChildren[j]);
+                        Resource innerResource;
+                        try {
+                            innerResource = registry.get(currentResourceChildren[i]);
+                        } catch (ResourceNotFoundException exception) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Resource :" + registry.get(currentResourceChildren[i]) + " is already deleted");
+                            }
+                            continue;
+                        }
                         if (innerResource.getProperty(SECRET_KEY).equals(recoveryDataDO.getSecret())) {
                             registry.delete(currentResourceChildren[j]);
                             return;
