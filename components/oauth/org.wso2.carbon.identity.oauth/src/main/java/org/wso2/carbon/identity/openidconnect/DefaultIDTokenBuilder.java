@@ -23,6 +23,7 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.SignedJWT;
@@ -59,8 +60,10 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.user.core.UserStoreException;
 
 import java.security.Key;
+import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -94,6 +97,7 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
 
     private static final Log log = LogFactory.getLog(DefaultIDTokenBuilder.class);
     private static Map<Integer, Key> privateKeys = new ConcurrentHashMap<>();
+    private static Map<Integer, Certificate> publicCerts = new ConcurrentHashMap<>();
     private OAuthServerConfiguration config = null;
     private Algorithm signatureAlgorithm = null;
 
@@ -378,7 +382,9 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
                 privateKey = privateKeys.get(tenantId);
             }
             JWSSigner signer = new RSASSASigner((RSAPrivateKey) privateKey);
-            SignedJWT signedJWT = new SignedJWT(new JWSHeader((JWSAlgorithm) signatureAlgorithm), jwtClaimsSet);
+            JWSHeader header = new JWSHeader((JWSAlgorithm) signatureAlgorithm);
+            header.setX509CertThumbprint(new Base64URL(getThumbPrint(tenantDomain, tenantId)));
+            SignedJWT signedJWT = new SignedJWT(header, jwtClaimsSet);
             signedJWT.sign(signer);
             return signedJWT.serialize();
         } catch (JOSEException e) {
@@ -429,7 +435,9 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
                 privateKey = privateKeys.get(tenantId);
             }
             JWSSigner signer = new RSASSASigner((RSAPrivateKey) privateKey);
-            SignedJWT signedJWT = new SignedJWT(new JWSHeader((JWSAlgorithm) signatureAlgorithm), jwtClaimsSet);
+            JWSHeader header = new JWSHeader((JWSAlgorithm) signatureAlgorithm);
+            header.setX509CertThumbprint(new Base64URL(getThumbPrint(tenantDomain, tenantId)));
+            SignedJWT signedJWT = new SignedJWT(header, jwtClaimsSet);
             signedJWT.sign(signer);
             return signedJWT.serialize();
         } catch (JOSEException e) {
@@ -620,6 +628,95 @@ public class DefaultIDTokenBuilder implements org.wso2.carbon.identity.openidcon
             return SHA512;
         }
         throw new RuntimeException("Cannot map Signature Algorithm in identity.xml to hashing algorithm");
+    }
+
+    /**
+     * Helper method to add public certificate to JWT_HEADER to signature verification.
+     *
+     * @param tenantDomain
+     * @param tenantId
+     * @throws IdentityOAuth2Exception
+     */
+    private String getThumbPrint(String tenantDomain, int tenantId) throws IdentityOAuth2Exception {
+
+        try {
+
+            Certificate certificate = getCertificate(tenantDomain, tenantId);
+
+            // TODO: maintain a hashmap with tenants' pubkey thumbprints after first initialization
+
+            //generate the SHA-1 thumbprint of the certificate
+            MessageDigest digestValue = MessageDigest.getInstance("SHA-1");
+            byte[] der = certificate.getEncoded();
+            digestValue.update(der);
+            byte[] digestInBytes = digestValue.digest();
+
+            String publicCertThumbprint = hexify(digestInBytes);
+            String base64EncodedThumbPrint = new String(new Base64(0, null, true).encode(
+                    publicCertThumbprint.getBytes(Charsets.UTF_8)), Charsets.UTF_8);
+            return base64EncodedThumbPrint;
+
+        } catch (Exception e) {
+            String error = "Error in obtaining certificate for tenant " + tenantDomain;
+            throw new IdentityOAuth2Exception(error, e);
+        }
+    }
+
+    private Certificate getCertificate(String tenantDomain, int tenantId) throws Exception {
+
+        if (tenantDomain == null) {
+            tenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+        }
+
+        if (tenantId == 0) {
+            tenantId = OAuth2Util.getTenantId(tenantDomain);
+        }
+
+        Certificate publicCert = null;
+
+        if (!(publicCerts.containsKey(tenantId))) {
+            // get tenant's key store manager
+            KeyStoreManager tenantKSM = KeyStoreManager.getInstance(tenantId);
+
+            KeyStore keyStore = null;
+            if (!tenantDomain.equals(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME)) {
+                // derive key store name
+                String ksName = tenantDomain.trim().replace(".", "-");
+                String jksName = ksName + ".jks";
+                keyStore = tenantKSM.getKeyStore(jksName);
+                publicCert = keyStore.getCertificate(tenantDomain);
+            } else {
+                publicCert = tenantKSM.getDefaultPrimaryCertificate();
+            }
+            if (publicCert != null) {
+                publicCerts.put(tenantId, publicCert);
+            }
+        } else {
+            publicCert = publicCerts.get(tenantId);
+        }
+        return publicCert;
+    }
+
+    /**
+     * Helper method to hexify a byte array.
+     * TODO:need to verify the logic
+     *
+     * @param bytes
+     * @return  hexadecimal representation
+     */
+    private String hexify(byte bytes[]) {
+
+        char[] hexDigits = {'0', '1', '2', '3', '4', '5', '6', '7',
+                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+        StringBuilder buf = new StringBuilder(bytes.length * 2);
+
+        for (int i = 0; i < bytes.length; ++i) {
+            buf.append(hexDigits[(bytes[i] & 0xf0) >> 4]);
+            buf.append(hexDigits[bytes[i] & 0x0f]);
+        }
+
+        return buf.toString();
     }
 }
 

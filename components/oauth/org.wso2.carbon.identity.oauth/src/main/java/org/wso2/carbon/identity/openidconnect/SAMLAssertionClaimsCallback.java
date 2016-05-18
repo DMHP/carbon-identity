@@ -44,6 +44,7 @@ import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCache;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheEntry;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheKey;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
+import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 import org.wso2.carbon.identity.oauth2.internal.OAuth2ServiceComponentHolder;
 import org.wso2.carbon.identity.oauth2.token.OAuthTokenReqMessageContext;
@@ -101,33 +102,8 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
                 log.debug("Adding claims for user " + requestMsgCtx.getAuthorizedUser() + " to id token.");
             }
             try {
-                JSONArray values;
                 Map<String, Object> claims = getResponse(requestMsgCtx);
-                Object claimSeparator = claims.get(IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR);
-                if (claimSeparator != null) {
-                    String claimSeparatorString = (String) claimSeparator;
-                    if(StringUtils.isNotBlank(claimSeparatorString)) {
-                        userAttributeSeparator = (String) claimSeparator;
-                    }
-                    claims.remove(IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR);
-                }
-
-                for (Map.Entry<String, Object> entry : claims.entrySet()) {
-                    String value = entry.getValue().toString();
-                    values = new JSONArray();
-                    if (userAttributeSeparator != null && value.contains(userAttributeSeparator)) {
-                        StringTokenizer st = new StringTokenizer(value, userAttributeSeparator);
-                        while (st.hasMoreElements()) {
-                            String attributeValue = st.nextElement().toString();
-                            if (StringUtils.isNotBlank(attributeValue)) {
-                                values.add(attributeValue);
-                            }
-                        }
-                    } else {
-                        values.add(value);
-                    }
-                    jwtClaimsSet.setClaim(entry.getKey(), values.toJSONString());
-                }
+                setClaimsToJwtClaimSet(claims, jwtClaimsSet);
             } catch (OAuthSystemException e) {
                 log.error("Error occurred while adding claims of " + requestMsgCtx.getAuthorizedUser() +
                                 " to id token.", e);
@@ -142,33 +118,8 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             log.debug("Adding claims for user " + requestMsgCtx.getAuthorizationReqDTO().getUser() + " to id token.");
         }
         try {
-            JSONArray values;
             Map<String, Object> claims = getResponse(requestMsgCtx);
-            Object claimSeparator = claims.get(IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR);
-            if (claimSeparator != null) {
-                String claimSeparatorString = (String) claimSeparator;
-                if(StringUtils.isNotBlank(claimSeparatorString)) {
-                    userAttributeSeparator = (String) claimSeparator;
-                }
-                claims.remove(IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR);
-            }
-
-            for (Map.Entry<String, Object> entry : claims.entrySet()) {
-                String value = entry.getValue().toString();
-                values = new JSONArray();
-                if (userAttributeSeparator != null && value.contains(userAttributeSeparator)) {
-                    StringTokenizer st = new StringTokenizer(value, userAttributeSeparator);
-                    while (st.hasMoreElements()) {
-                        String attributeValue = st.nextElement().toString();
-                        if (StringUtils.isNotBlank(attributeValue)) {
-                            values.add(attributeValue);
-                        }
-                    }
-                } else {
-                    values.add(value);
-                }
-                jwtClaimsSet.setClaim(entry.getKey(), values.toJSONString());
-            }
+            setClaimsToJwtClaimSet(claims, jwtClaimsSet);
         } catch (OAuthSystemException e) {
             log.error("Error occurred while adding claims of " + requestMsgCtx.getAuthorizationReqDTO().getUser() +
                     " to id token.", e);
@@ -502,6 +453,42 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             log.error("Error while getting service provider information.", ex);
         }
         return null;
+    }
+
+    /**
+     * Set claims from a Users claims Map object to a JWTClaimsSet object
+     * @param claims Users claims
+     * @param jwtClaimsSet JWTClaimsSet object
+     */
+    private void setClaimsToJwtClaimSet(Map<String, Object> claims, JWTClaimsSet jwtClaimsSet) {
+        JSONArray values;
+        Object claimSeparator = claims.get(IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR);
+        if (claimSeparator != null) {
+            String claimSeparatorString = (String) claimSeparator;
+            if(StringUtils.isNotBlank(claimSeparatorString)) {
+                userAttributeSeparator = (String) claimSeparator;
+            }
+            claims.remove(IdentityCoreConstants.MULTI_ATTRIBUTE_SEPARATOR);
+        }
+
+        boolean isSubAsString = OAuthServerConfiguration.getInstance().isSubAsString();
+        for (Map.Entry<String, Object> entry : claims.entrySet()) {
+            String value = entry.getValue().toString();
+            values = new JSONArray();
+            if (userAttributeSeparator != null && value.contains(userAttributeSeparator) &&
+                    "sub".equals(entry.getKey()) && !isSubAsString) {
+                StringTokenizer st = new StringTokenizer(value, userAttributeSeparator);
+                while (st.hasMoreElements()) {
+                    String attributeValue = st.nextElement().toString();
+                    if (StringUtils.isNotBlank(attributeValue)) {
+                        values.add(attributeValue);
+                    }
+                }
+                jwtClaimsSet.setClaim(entry.getKey(), values);
+            } else {
+                jwtClaimsSet.setClaim(entry.getKey(), value);
+            }
+        }
     }
 
 }
