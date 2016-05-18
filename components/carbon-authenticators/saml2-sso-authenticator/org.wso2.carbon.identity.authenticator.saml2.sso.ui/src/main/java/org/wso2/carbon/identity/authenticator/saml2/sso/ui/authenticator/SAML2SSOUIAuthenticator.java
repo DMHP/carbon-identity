@@ -44,8 +44,10 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 public class SAML2SSOUIAuthenticator extends AbstractCarbonUIAuthenticator {
 
@@ -73,6 +75,7 @@ public class SAML2SSOUIAuthenticator extends AbstractCarbonUIAuthenticator {
         boolean isAuthenticated = false;
         String auditResult = SAML2SSOAuthenticatorConstants.AUDIT_RESULT_FAILED;
 
+        regenerateSession(request);
         HttpSession session = request.getSession();
         Response samlResponse = (Response) request.getAttribute(SAML2SSOAuthenticatorConstants.HTTP_ATTR_SAML2_RESP_TOKEN);
         String responseStr = request.getParameter(SAML2SSOAuthenticatorConstants.HTTP_POST_PARAM_SAML2_RESP);
@@ -299,5 +302,31 @@ public class SAML2SSOUIAuthenticator extends AbstractCarbonUIAuthenticator {
             throws AuthenticationException {
         // TODO Auto-generated method stub
 
+    }
+
+    /**
+     * Regenerates session id after each login attempt.
+     * @param request
+     */
+    private void regenerateSession(HttpServletRequest request) {
+
+        HttpSession oldSession = request.getSession();
+
+        Enumeration attrNames = oldSession.getAttributeNames();
+        Properties props = new Properties();
+
+        while (attrNames != null && attrNames.hasMoreElements()) {
+            String key = (String) attrNames.nextElement();
+            props.put(key, oldSession.getAttribute(key));
+        }
+
+        oldSession.invalidate();
+        HttpSession newSession = request.getSession(true);
+        attrNames = props.keys();
+
+        while (attrNames != null && attrNames.hasMoreElements()) {
+            String key = (String) attrNames.nextElement();
+            newSession.setAttribute(key, props.get(key));
+        }
     }
 }

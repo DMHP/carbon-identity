@@ -57,6 +57,10 @@ public class IdPManagementUIUtil {
 
     private static final Log log = LogFactory.getLog(IdPManagementUIUtil.class);
 
+    //This constants are added as a fix for IDENTITY-4542
+    private static final String ATTRIBUTE_CUSTOM_AUTHENTICATION_CONTEXT_CLASS = "CustomAuthnContextClassRef";
+    public static final String CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION = "Custom Authentication Context Class";
+
     /**
      * Validates an URI.
      *
@@ -1527,10 +1531,14 @@ public class IdPManagementUIUtil {
                 .get(IdentityApplicationConstants.Authenticator.SAML2SSO.SIGNATURE_ALGORITHM_POST));
         properties[18] = property;
 
+
+        String authenticationContextClass = paramMap.get(IdentityApplicationConstants.Authenticator.SAML2SSO.AUTHENTICATION_CONTEXT_CLASS);
+        if(CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION.equals(authenticationContextClass)){
+            authenticationContextClass = paramMap.get(ATTRIBUTE_CUSTOM_AUTHENTICATION_CONTEXT_CLASS);
+        }
         property = new Property();
         property.setName(IdentityApplicationConstants.Authenticator.SAML2SSO.AUTHENTICATION_CONTEXT_CLASS);
-        property.setValue(paramMap
-                .get(IdentityApplicationConstants.Authenticator.SAML2SSO.AUTHENTICATION_CONTEXT_CLASS));
+        property.setValue(authenticationContextClass);
         properties[19] = property;
         
         property = new Property();

@@ -232,13 +232,6 @@ public class SCIMUserOperationListener extends AbstractIdentityUserOperationEven
     public boolean doPreSetUserClaimValues(String userName, Map<String, String> claims,
                                            String profileName, UserStoreManager userStoreManager)
             throws UserStoreException {
-        return true;
-    }
-
-    @Override
-    public boolean doPostSetUserClaimValues(String userName, Map<String, String> claims,
-                                            String profileName, UserStoreManager userStoreManager)
-            throws UserStoreException {
 
         try {
             if (!isEnable() || !userStoreManager.isSCIMEnabled()) {
@@ -248,20 +241,19 @@ public class SCIMUserOperationListener extends AbstractIdentityUserOperationEven
             throw new UserStoreException("Error while reading isScimEnabled from userstore manager", e);
         }
 
-        String newUserName = claims.get("urn:scim:schemas:core:1.0:userName");
-        if(newUserName != null && !newUserName.isEmpty()){
-            userName = newUserName;
-        }
         //update last-modified-date and proceed if scim enabled.
-        try {
-            Date date = new Date();
-            String lastModifiedDate = AttributeUtil.formatDateTime(date);
-            userStoreManager.setUserClaimValue(
-                    userName, SCIMConstants.META_LAST_MODIFIED_URI, lastModifiedDate, null);
-        } catch (org.wso2.carbon.user.api.UserStoreException e) {
-            throw new UserStoreException("Error in retrieving claim values while provisioning " +
-                    "'update user' operation.", e);
-        }
+
+        Date date = new Date();
+        String lastModifiedDate = AttributeUtil.formatDateTime(date);
+        claims.put(SCIMConstants.META_LAST_MODIFIED_URI, lastModifiedDate);
+
+        return true;
+    }
+
+    @Override
+    public boolean doPostSetUserClaimValues(String userName, Map<String, String> claims,
+                                            String profileName, UserStoreManager userStoreManager)
+            throws UserStoreException {
         return true;
     }
 
