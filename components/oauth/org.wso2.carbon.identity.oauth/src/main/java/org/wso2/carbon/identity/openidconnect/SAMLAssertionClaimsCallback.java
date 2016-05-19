@@ -356,7 +356,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             Map<String, String> userClaims = null;
             try {
                 userClaims = userStoreManager.getUserClaimValues(UserCoreUtil.addDomainToName(user.getUserName(),
-                        user.getUserStoreDomain()), claimURIList.toArray(new String[claimURIList.size()]),null);
+                                                                                              user.getUserStoreDomain()), claimURIList.toArray(new String[claimURIList.size()]),null);
             } catch (UserStoreException e) {
                 if (e.getMessage().contains("UserNotFound")) {
                     if (log.isDebugEnabled()) {
@@ -472,11 +472,12 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
         }
 
         boolean isSubAsString = OAuthServerConfiguration.getInstance().isSubAsString();
+        boolean isClaimsAsArray = OAuthServerConfiguration.getInstance().isClaimsAsArray();
         for (Map.Entry<String, Object> entry : claims.entrySet()) {
             String value = entry.getValue().toString();
             values = new JSONArray();
             if (userAttributeSeparator != null && value.contains(userAttributeSeparator) &&
-                    "sub".equals(entry.getKey()) && !isSubAsString) {
+                    (!"sub".equals(entry.getKey()) || !isSubAsString)) {
                 StringTokenizer st = new StringTokenizer(value, userAttributeSeparator);
                 while (st.hasMoreElements()) {
                     String attributeValue = st.nextElement().toString();
@@ -484,7 +485,11 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
                         values.add(attributeValue);
                     }
                 }
-                jwtClaimsSet.setClaim(entry.getKey(), values);
+                if(isClaimsAsArray) {
+                    jwtClaimsSet.setClaim(entry.getKey(), values);
+                } else {
+                    jwtClaimsSet.setClaim(entry.getKey(), values.toJSONString());
+                }
             } else {
                 jwtClaimsSet.setClaim(entry.getKey(), value);
             }

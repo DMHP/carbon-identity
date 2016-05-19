@@ -156,6 +156,7 @@ public class OAuthServerConfiguration {
     private boolean isJWTSignedWithSPKey = false;
     // property added to fix IDENTITY-4387 in backward compatible manner
     private boolean isSubAsString = false;
+    private boolean isClaimsAsArray = false;
     private OAuth2ScopeValidator oAuth2ScopeValidator;
 
     private OAuthServerConfiguration() {
@@ -775,6 +776,10 @@ public class OAuthServerConfiguration {
 
     public boolean isSubAsString() {
         return isSubAsString;
+    }
+
+    public boolean isClaimsAsArray() {
+        return isClaimsAsArray;
     }
 
     private void parseOAuthCallbackHandlers(OMElement callbackHandlersElem) {
@@ -1452,6 +1457,12 @@ public class OAuthServerConfiguration {
                 isSubAsString = Boolean.parseBoolean(openIDConnectConfigElem.getFirstChildWithName(
                         getQNameWithIdentityNS(ConfigElements.OPENID_CONNECT_IS_SUB_AS_STRING)).getText().trim());
             }
+
+            if (openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(
+                    ConfigElements.OPENID_CONNECT_IS_CLAIMS_AS_ARRAY)) != null) {
+                isClaimsAsArray = Boolean.parseBoolean(openIDConnectConfigElem.getFirstChildWithName(
+                        getQNameWithIdentityNS(ConfigElements.OPENID_CONNECT_IS_CLAIMS_AS_ARRAY)).getText().trim());
+            }
             if (openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.SUPPORTED_CLAIMS)) != null) {
                 String supportedClaimStr =
                         openIDConnectConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.SUPPORTED_CLAIMS))
@@ -1516,6 +1527,7 @@ public class OAuthServerConfiguration {
         public static final String OPENID_CONNECT_USERINFO_ENDPOINT_RESPONSE_BUILDER = "UserInfoEndpointResponseBuilder";
         public static final String OPENID_CONNECT_SIGN_JWT_WITH_SP_KEY = "SignJWTWithSPKey";
         public static final String OPENID_CONNECT_IS_SUB_AS_STRING = "SubAsString";
+        public static final String OPENID_CONNECT_IS_CLAIMS_AS_ARRAY = "ClaimsAsArray";
         public static final String OPENID_CONNECT_IDTOKEN_CUSTOM_CLAIM_CALLBACK_HANDLER = "IDTokenCustomClaimsCallBackHandler";
         public static final String SUPPORTED_CLAIMS = "OpenIDConnectClaims";
         // Callback handler related configuration elements
