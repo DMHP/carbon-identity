@@ -74,13 +74,6 @@ public class CommonAuthResponseWrapper extends HttpServletResponseWrapper {
     }
 
     @Override
-    public void resetBuffer() {
-
-        reset();
-        super.resetBuffer();
-    }
-
-    @Override
     public void flushBuffer() throws IOException {
 
         writeContent();
