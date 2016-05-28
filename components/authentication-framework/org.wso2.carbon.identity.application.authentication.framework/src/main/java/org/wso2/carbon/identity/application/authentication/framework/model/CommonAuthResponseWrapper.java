@@ -39,14 +39,16 @@ public class CommonAuthResponseWrapper extends HttpServletResponseWrapper {
     public CommonAuthResponseWrapper(HttpServletResponse response) throws IOException {
 
         super(response);
-        reset();
+        this.extraParameters = new HashMap();
+        this.printWriter = new CommonAuthServletPrintWriter(new ByteArrayOutputStream());
     }
 
     public CommonAuthResponseWrapper(HttpServletResponse response, HttpServletRequest request) {
 
         super(response);
         this.request = request;
-        reset();
+        this.extraParameters = new HashMap();
+        this.printWriter = new CommonAuthServletPrintWriter(new ByteArrayOutputStream());
     }
 
     @Override
@@ -69,13 +71,6 @@ public class CommonAuthResponseWrapper extends HttpServletResponseWrapper {
         this.extraParameters = new HashMap();
         this.printWriter = new CommonAuthServletPrintWriter(new ByteArrayOutputStream());
         super.reset();
-    }
-
-    @Override
-    public void resetBuffer() {
-
-        reset();
-        super.resetBuffer();
     }
 
     @Override
