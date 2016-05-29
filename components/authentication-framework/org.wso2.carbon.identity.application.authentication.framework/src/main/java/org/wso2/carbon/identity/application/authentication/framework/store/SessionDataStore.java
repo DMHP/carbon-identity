@@ -185,8 +185,6 @@ public class SessionDataStore {
         String isCleanUpEnabledVal = IdentityUtil.getProperty("JDBCPersistenceManager.SessionDataPersist.SessionDataCleanUp.Enable");
 
         String isOperationCleanUpEnabledVal = IdentityUtil.getProperty("JDBCPersistenceManager.SessionDataPersist.OperationDataCleanUp.Enable");
-        String operationCleanUpPeriodVal = IdentityUtil.getProperty("JDBCPersistenceManager.SessionDataPersist.OperationDataCleanUp.CleanUpPeriod");
-
 
         if (StringUtils.isBlank(isCleanUpEnabledVal)) {
             isCleanUpEnabledVal = defaultCleanUpEnabled;
@@ -205,9 +203,8 @@ public class SessionDataStore {
             log.info("Session Data CleanUp Task of Authentication framework is not enabled.");
         }
         if (Boolean.parseBoolean(isOperationCleanUpEnabledVal)) {
-            if (StringUtils.isNotBlank(operationCleanUpPeriodVal)) {
-                operationCleanUpPeriod = Long.parseLong(operationCleanUpPeriodVal);
-            }
+            long operationCleanUpPeriod = getOperationCleanUpPeriod(
+                    CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
             OperationCleanUpService operationCleanUpService = new OperationCleanUpService(operationCleanUpPeriod/4,
                     operationCleanUpPeriod);
             operationCleanUpService.activateCleanUp();
@@ -450,7 +447,7 @@ public class SessionDataStore {
             return;
         }
         long cleanupLimitNano = FrameworkUtils.getCurrentStandardNano() -
-                TimeUnit.MINUTES.toNanos(IdentityUtil.getCleanUpTimeout());
+                TimeUnit.MINUTES.toNanos(getOperationCleanUpTimeout());
         try {
             if (StringUtils.isBlank(sqlDeleteSTORETask)) {
                 if (connection.getMetaData().getDriverName().contains("MySQL")) {
@@ -485,7 +482,7 @@ public class SessionDataStore {
             return;
         }
         long cleanupLimitNano = FrameworkUtils.getCurrentStandardNano() -
-                TimeUnit.MINUTES.toNanos(IdentityUtil.getCleanUpTimeout());
+                TimeUnit.MINUTES.toNanos(getOperationCleanUpTimeout());
         try {
             statement = connection.prepareStatement(sqlDeleteDELETETask);
             statement.setLong(1, cleanupLimitNano);
@@ -500,5 +497,29 @@ public class SessionDataStore {
             IdentityDatabaseUtil.closeAllConnections(connection, null, statement);
 
         }
+    }
+
+    private long getOperationCleanUpTimeout() {
+
+        String cleanUpTimeout = IdentityUtil.getProperty(
+                "JDBCPersistenceManager.SessionDataPersist.OperationDataCleanUp.CleanUpTimeout");
+        if (StringUtils.isBlank(cleanUpTimeout)) {
+            cleanUpTimeout = "1";
+        } else if (!StringUtils.isNumeric(cleanUpTimeout)) {
+            cleanUpTimeout = "1";
+        }
+        return Long.parseLong(cleanUpTimeout);
+    }
+
+    private long getOperationCleanUpPeriod(String tenantDomain) {
+
+        String cleanUpPeriod = IdentityUtil.getProperty(
+                "JDBCPersistenceManager.SessionDataPersist.OperationDataCleanUp.CleanUpPeriod");
+        if (StringUtils.isBlank(cleanUpPeriod)) {
+            cleanUpPeriod = "720";
+        } else if (!StringUtils.isNumeric(cleanUpPeriod)) {
+            cleanUpPeriod = "720";
+        }
+        return Long.parseLong(cleanUpPeriod);
     }
 }
