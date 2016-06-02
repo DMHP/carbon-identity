@@ -494,7 +494,7 @@ public class FrameworkUtils {
             cookieBuilder.setMaxAge(Integer.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "."
                                                                              + FrameworkConstants.Config.ELEM_MAX_AGE)));
         } else if (age != null) {
-            cookieBuilder.setMaxAge(age * 60);
+            cookieBuilder.setMaxAge(age);
         }
 
         if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_PATH) != null)   {
