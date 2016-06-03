@@ -28,7 +28,6 @@ import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AttributeStatement;
-import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
@@ -213,13 +212,13 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
 
         Map<String, Object> mappedAppClaims = new HashMap<>();
 
-        String tenantDomain = (String) requestMsgCtx.getProperty(MultitenantConstants.TENANT_DOMAIN);
+        String spTenantDomain = requestMsgCtx.getOauth2AccessTokenReqDTO().getTenantDomain();
         ApplicationManagementService applicationMgtService = OAuth2ServiceComponentHolder.getApplicationMgtService();
         String spName = applicationMgtService
                 .getServiceProviderNameByClientId(requestMsgCtx.getOauth2AccessTokenReqDTO().getClientId(),
-                                                  INBOUND_AUTH2_TYPE, tenantDomain);
+                                                  INBOUND_AUTH2_TYPE, spTenantDomain);
         ServiceProvider serviceProvider = applicationMgtService.getApplicationExcludingFileBasedSPs(spName,
-                                                                                                    tenantDomain);
+                                                                                                    spTenantDomain);
         if (serviceProvider == null) {
             return mappedAppClaims;
         }
@@ -228,10 +227,12 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
             return new HashMap<>();
         }
 
-        String username = requestMsgCtx.getAuthorizedUser().toString();
-        UserRealm realm = IdentityTenantUtil.getRealm(tenantDomain, username);
+        AuthenticatedUser user = requestMsgCtx.getAuthorizedUser();
+        String userTenantDomain = user.getTenantDomain();
+        String username = user.toString();
+        UserRealm realm = IdentityTenantUtil.getRealm(userTenantDomain, username);
         if (realm == null) {
-            log.warn("No valid tenant domain provider. Empty claim returned back for tenant " + tenantDomain
+            log.warn("Invalid tenant domain provided. Empty claim returned back for tenant " + userTenantDomain
                      + " and user " + username);
             return new HashMap<>();
         }
@@ -247,7 +248,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
         }
 
         Map<String, String> spToLocalClaimMappings = ClaimManagerHandler.getInstance()
-                .getMappingsMapFromOtherDialectToCarbon(SP_DIALECT, null, tenantDomain, false);
+                .getMappingsMapFromOtherDialectToCarbon(SP_DIALECT, null, spTenantDomain, false);
         Map<String, String> userClaims = null;
         try {
             userClaims = realm.getUserStoreManager().getUserClaimValues(
@@ -300,13 +301,13 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
 
         Map<String, Object> mappedAppClaims = new HashMap<>();
 
-        String tenantDomain = (String) requestMsgCtx.getProperty(MultitenantConstants.TENANT_DOMAIN);
+        String spTenantDomain = (String) requestMsgCtx.getProperty(ATTR_SP_TENANT_DOMAIN);
         ApplicationManagementService applicationMgtService = OAuth2ServiceComponentHolder.getApplicationMgtService();
         String spName = applicationMgtService
                 .getServiceProviderNameByClientId(requestMsgCtx.getAuthorizationReqDTO().getConsumerKey(),
-                                                  INBOUND_AUTH2_TYPE, tenantDomain);
+                                                  INBOUND_AUTH2_TYPE, spTenantDomain);
         ServiceProvider serviceProvider = applicationMgtService.getApplicationExcludingFileBasedSPs(spName,
-                                                                                                    tenantDomain);
+                                                                                                    spTenantDomain);
         if (serviceProvider == null) {
             return mappedAppClaims;
         }
@@ -316,10 +317,12 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
         }
 
         AuthenticatedUser user = requestMsgCtx.getAuthorizationReqDTO().getUser();
-        UserRealm realm = IdentityTenantUtil.getRealm(tenantDomain, user.toString());
+        String userTenantDomain = user.getTenantDomain();
+        String username = user.toString();
+        UserRealm realm = IdentityTenantUtil.getRealm(user.getTenantDomain(), user.toString());
         if (realm == null) {
-            log.warn("No valid tenant domain provider. Empty claim returned back for tenant " + tenantDomain
-                     + " and user " + user);
+            log.warn("Invalid tenant domain provided. Empty claim returned back for tenant " + userTenantDomain
+                     + " and user " + username);
             return new HashMap<>();
         }
 
@@ -334,7 +337,7 @@ public class SAMLAssertionClaimsCallback implements CustomClaimsCallbackHandler 
         }
 
         Map<String, String> spToLocalClaimMappings = ClaimManagerHandler.getInstance().
-                getMappingsMapFromOtherDialectToCarbon(SP_DIALECT, null, tenantDomain, false);
+                getMappingsMapFromOtherDialectToCarbon(SP_DIALECT, null, spTenantDomain, false);
 
         Map<String, String> userClaims = null;
         try {
