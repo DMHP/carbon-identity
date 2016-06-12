@@ -57,6 +57,10 @@ public class IdentityConfigParser {
     private static Log log = LogFactory.getLog(IdentityConfigParser.class);
     private static String configFilePath;
 
+    private static final String DOOM_PARSER_POOL_ENABLED = "SSOService.isDoomParserPoolEnabled";
+    private static final String DOOM_PARSER_POOL_SYS_PROPERTY = "doom.parser.pool.enabled";
+
+
     private OMElement rootElement;
 
     private IdentityConfigParser() {
@@ -268,6 +272,7 @@ public class IdentityConfigParser {
                 String key = getKey(nameStack);
                 Object currentObject = configuration.get(key);
                 String value = replaceSystemProperty(element.getText());
+                setSystemProperty(key, value);
                 if (secretResolver != null && secretResolver.isInitialized() &&
                         secretResolver.isTokenProtected(key)) {
                     value = secretResolver.resolve(key);
@@ -332,6 +337,14 @@ public class IdentityConfigParser {
             }
         }
         return text;
+    }
+
+    // Set a system property based on a value in identity.xml
+    // added for ELLUCIANDEV-58 as a way to set a system property to be used by rampart
+    private void setSystemProperty(String key, String value) {
+        if (StringUtils.equalsIgnoreCase(DOOM_PARSER_POOL_ENABLED, key)) {
+            System.setProperty(DOOM_PARSER_POOL_SYS_PROPERTY, value);
+        }
     }
 
     /**
