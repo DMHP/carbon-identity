@@ -39,11 +39,6 @@ public class ErrorResponseBuilder {
     private static Log log = LogFactory.getLog(ErrorResponseBuilder.class);
     private Response response;
 
-    //Do the bootstrap first
-    static {
-        SAMLSSOUtil.doBootstrap();
-    }
-
 
     public ErrorResponseBuilder() {
         ResponseBuilder responseBuilder = new ResponseBuilder();

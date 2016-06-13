@@ -23,9 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.impl.Constants;
 import org.apache.xerces.util.SecurityManager;
 import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.xml.SAMLConstants;
-import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.io.Unmarshaller;
 import org.opensaml.xml.io.UnmarshallerFactory;
@@ -57,7 +55,6 @@ public class Util {
     private static final String SECURITY_MANAGER_PROPERTY = Constants.XERCES_PROPERTY_PREFIX +
             Constants.SECURITY_MANAGER_PROPERTY;
     private static final int ENTITY_EXPANSION_LIMIT = 0;
-    private static boolean bootStrapped = false;
     private static Log log = LogFactory.getLog(Util.class);
 
     /**
@@ -71,7 +68,6 @@ public class Util {
 
         XMLObject response;
         try {
-            doBootstrap();
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             documentBuilderFactory.setNamespaceAware(true);
 
@@ -112,21 +108,6 @@ public class Util {
 
     }
 
-    /**
-     * This method is used to initialize the OpenSAML2 library. It calls the bootstrap method, if it
-     * is not initialized yet.
-     */
-    public static void doBootstrap() {
-
-        if (!bootStrapped) {
-            try {
-                DefaultBootstrap.bootstrap();
-                bootStrapped = true;
-            } catch (ConfigurationException e) {
-                log.error("Error in bootstrapping the OpenSAML2 library", e);
-            }
-        }
-    }
 
     /**
      * Get the X509CredentialImpl object for a particular tenant

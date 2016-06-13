@@ -26,49 +26,16 @@ import org.apache.xerces.impl.Constants;
 import org.apache.xerces.util.SecurityManager;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.common.Extensions;
 import org.opensaml.saml2.common.impl.ExtensionsBuilder;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.Attribute;
-import org.opensaml.saml2.core.AttributeStatement;
-import org.opensaml.saml2.core.Audience;
-import org.opensaml.saml2.core.AudienceRestriction;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.saml2.core.AuthnContextClassRef;
-import org.opensaml.saml2.core.AuthnContextComparisonTypeEnumeration;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.Conditions;
-import org.opensaml.saml2.core.EncryptedAssertion;
-import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.LogoutRequest;
-import org.opensaml.saml2.core.LogoutResponse;
-import org.opensaml.saml2.core.NameID;
-import org.opensaml.saml2.core.NameIDPolicy;
-import org.opensaml.saml2.core.NameIDType;
-import org.opensaml.saml2.core.RequestAbstractType;
-import org.opensaml.saml2.core.RequestedAuthnContext;
-import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.SessionIndex;
-import org.opensaml.saml2.core.impl.AuthnContextClassRefBuilder;
-import org.opensaml.saml2.core.impl.AuthnRequestBuilder;
-import org.opensaml.saml2.core.impl.IssuerBuilder;
-import org.opensaml.saml2.core.impl.LogoutRequestBuilder;
-import org.opensaml.saml2.core.impl.NameIDBuilder;
-import org.opensaml.saml2.core.impl.NameIDPolicyBuilder;
-import org.opensaml.saml2.core.impl.RequestedAuthnContextBuilder;
-import org.opensaml.saml2.core.impl.SessionIndexBuilder;
+import org.opensaml.saml2.core.*;
+import org.opensaml.saml2.core.impl.*;
 import org.opensaml.saml2.encryption.Decrypter;
-import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.encryption.EncryptedKey;
-import org.opensaml.xml.io.Marshaller;
-import org.opensaml.xml.io.MarshallingException;
-import org.opensaml.xml.io.Unmarshaller;
-import org.opensaml.xml.io.UnmarshallerFactory;
-import org.opensaml.xml.io.UnmarshallingException;
+import org.opensaml.xml.io.*;
 import org.opensaml.xml.security.SecurityHelper;
 import org.opensaml.xml.security.credential.Credential;
 import org.opensaml.xml.security.keyinfo.KeyInfoCredentialResolver;
@@ -103,11 +70,7 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
@@ -127,24 +90,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     private IdentityProvider identityProvider = null;
     private Map<String, String> properties;
     private String tenantDomain;
-
-    public static void doBootstrap() {
-
-        /* Initializing the OpenSAML library */
-        if (!bootStrapped) {
-            Thread thread = Thread.currentThread();
-            ClassLoader loader = thread.getContextClassLoader();
-            thread.setContextClassLoader(new DefaultSAML2SSOManager().getClass().getClassLoader());
-            try {
-                DefaultBootstrap.bootstrap();
-                bootStrapped = true;
-            } catch (ConfigurationException e) {
-                log.error("Error in bootstrapping the OpenSAML2 library", e);
-            } finally {
-                thread.setContextClassLoader(loader);
-            }
-        }
-    }
 
     @Override
     public void init(String tenantDomain, Map<String, String> properties, IdentityProvider idp)
@@ -167,7 +112,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
                                String loginPage, AuthenticationContext context)
             throws SAMLSSOException {
 
-        doBootstrap();
         String contextIdentifier = context.getContextIdentifier();
         RequestAbstractType requestMessage;
 
@@ -250,7 +194,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     public String buildPostRequest(HttpServletRequest request, boolean isLogout,
                                    boolean isPassive, String loginPage, AuthenticationContext context) throws SAMLSSOException {
 
-        doBootstrap();
         RequestAbstractType requestMessage;
         String signatureAlgoProp = null;
         String digestAlgoProp = null;
@@ -306,7 +249,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     @Override
     public void processResponse(HttpServletRequest request) throws SAMLSSOException {
 
-        doBootstrap();
         String decodedResponse = new String(Base64.decode(request.getParameter(
                 SSOConstants.HTTP_POST_PARAM_SAML2_RESP)));
         XMLObject samlObject = unmarshall(decodedResponse);
@@ -397,8 +339,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
      * @throws IOException
      */
     public void doSLO(HttpServletRequest request) throws SAMLSSOException {
-
-        doBootstrap();
         XMLObject samlObject = null;
         if (request.getParameter(SSOConstants.HTTP_POST_PARAM_SAML2_AUTH_REQ) != null) {
             samlObject = unmarshall(new String(Base64.decode(request.getParameter(

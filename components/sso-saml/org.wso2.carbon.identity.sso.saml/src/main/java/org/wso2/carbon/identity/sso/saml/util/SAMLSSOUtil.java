@@ -24,17 +24,8 @@ import org.apache.xerces.impl.Constants;
 import org.apache.xerces.util.SecurityManager;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.EncryptedAssertion;
-import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.LogoutRequest;
-import org.opensaml.saml2.core.LogoutResponse;
-import org.opensaml.saml2.core.RequestAbstractType;
-import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.core.impl.IssuerBuilder;
-import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.io.Marshaller;
 import org.opensaml.xml.io.MarshallerFactory;
@@ -101,32 +92,13 @@ import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
+import java.util.*;
+import java.util.zip.*;
 
 public class SAMLSSOUtil {
 
@@ -163,7 +135,6 @@ public class SAMLSSOUtil {
     private static RealmService realmService;
     private static ConfigurationContextService configCtxService;
     private static HttpService httpService;
-    private static boolean isBootStrapped = false;
     private static Random random = new Random();
     private static int singleLogoutRetryCount = 5;
     private static long singleLogoutRetryInterval = 60000;
@@ -287,7 +258,6 @@ public class SAMLSSOUtil {
     public static XMLObject unmarshall(String authReqStr) throws IdentityException {
         InputStream inputStream = null;
         try {
-            doBootstrap();
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             documentBuilderFactory.setNamespaceAware(true);
 
@@ -331,7 +301,6 @@ public class SAMLSSOUtil {
 
         ByteArrayOutputStream byteArrayOutputStrm = null;
         try {
-            doBootstrap();
             System.setProperty("javax.xml.parsers.DocumentBuilderFactory",
                     "org.apache.xerces.jaxp.DocumentBuilderFactoryImpl");
 
@@ -539,17 +508,6 @@ public class SAMLSSOUtil {
         return destinationURLs;
     }
 
-    public static void doBootstrap() {
-        if (!isBootStrapped) {
-            try {
-                DefaultBootstrap.bootstrap();
-                isBootStrapped = true;
-            } catch (ConfigurationException e) {
-                log.error("Error in bootstrapping the OpenSAML2 library", e);
-            }
-        }
-    }
-
     /**
      * Sign the SAML Assertion
      *
@@ -627,7 +585,6 @@ public class SAMLSSOUtil {
     private static SignableXMLObject doSetSignature(SignableXMLObject request, String signatureAlgorithm, String
             digestAlgorithm, X509Credential cred) throws IdentityException {
 
-            doBootstrap();
             try {
                 synchronized (Runtime.getRuntime().getClass()) {
                     ssoSigner = (SSOSigner) Class.forName(IdentityUtil.getProperty(
@@ -653,7 +610,6 @@ public class SAMLSSOUtil {
 
     public static EncryptedAssertion setEncryptedAssertion(Assertion assertion, String encryptionAlgorithm,
                                                            String alias, String domainName) throws IdentityException {
-        doBootstrap();
         try {
             X509Credential cred = SAMLSSOUtil.getX509CredentialImplForTenant(domainName, alias);
 
@@ -680,7 +636,6 @@ public class SAMLSSOUtil {
     public static Assertion buildSAMLAssertion(SAMLSSOAuthnReqDTO authReqDTO, DateTime notOnOrAfter,
                                                String sessionId) throws IdentityException {
 
-        doBootstrap();
         String assertionBuilderClass = null;
         try {
             assertionBuilderClass = IdentityUtil.getProperty("SSOService.SAMLSSOAssertionBuilder").trim();

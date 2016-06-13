@@ -21,12 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.opensaml.common.SAMLVersion;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.EncryptedAssertion;
-import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.Status;
-import org.opensaml.saml2.core.StatusCode;
-import org.opensaml.saml2.core.StatusMessage;
+import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.core.impl.StatusBuilder;
 import org.opensaml.saml2.core.impl.StatusCodeBuilder;
 import org.opensaml.saml2.core.impl.StatusMessageBuilder;
@@ -40,9 +35,6 @@ public class DefaultResponseBuilder implements ResponseBuilder {
 
     private static Log log = LogFactory.getLog(DefaultResponseBuilder.class);
 
-    static {
-        SAMLSSOUtil.doBootstrap();
-    }
 
     @Override
     public Response buildResponse(SAMLSSOAuthnReqDTO authReqDTO, String sessionId)
