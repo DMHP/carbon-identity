@@ -24,12 +24,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.impl.Constants;
 import org.apache.xerces.util.SecurityManager;
 import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
 import org.opensaml.saml1.core.Attribute;
 import org.opensaml.saml1.core.AttributeStatement;
 import org.opensaml.saml1.core.NameIdentifier;
 import org.opensaml.saml1.core.Subject;
-import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.io.Unmarshaller;
 import org.opensaml.xml.io.UnmarshallerFactory;
@@ -72,7 +70,6 @@ public class PassiveSTSManager {
             Constants.SECURITY_MANAGER_PROPERTY;
     private static final int ENTITY_EXPANSION_LIMIT = 0;
     private static Log log = LogFactory.getLog(PassiveSTSManager.class);
-    private static boolean bootStrapped = false;
     private X509Credential credential = null;
 
     public PassiveSTSManager(ExternalIdPConfig externalIdPConfig) throws PassiveSTSException {
@@ -93,18 +90,6 @@ public class PassiveSTSManager {
         }
     }
 
-    public static void doBootstrap() {
-
-        /* Initializing the OpenSAML library */
-        if (!bootStrapped) {
-            try {
-                DefaultBootstrap.bootstrap();
-                bootStrapped = true;
-            } catch (ConfigurationException e) {
-                log.error("Error in bootstrapping the OpenSAML2 library", e);
-            }
-        }
-    }
 
     /**
      * Returns the redirection URL with the appended SAML2
@@ -138,8 +123,6 @@ public class PassiveSTSManager {
      * @throws PassiveSTSException
      */
     public void processResponse(HttpServletRequest request, AuthenticationContext context) throws PassiveSTSException {
-
-        doBootstrap();
 
         String response = request.getParameter(PassiveSTSConstants.HTTP_PARAM_PASSIVE_STS_RESULT).replaceAll("(\\r|\\n)", "");
 

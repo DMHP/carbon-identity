@@ -26,7 +26,6 @@ import org.apache.xerces.impl.Constants;
 import org.apache.xerces.util.SecurityManager;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.common.Extensions;
@@ -61,7 +60,6 @@ import org.opensaml.saml2.core.impl.NameIDPolicyBuilder;
 import org.opensaml.saml2.core.impl.RequestedAuthnContextBuilder;
 import org.opensaml.saml2.core.impl.SessionIndexBuilder;
 import org.opensaml.saml2.encryption.Decrypter;
-import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.encryption.EncryptedKey;
 import org.opensaml.xml.io.Marshaller;
@@ -97,12 +95,6 @@ import org.wso2.carbon.identity.application.common.util.IdentityApplicationManag
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.xml.sax.SAXException;
 
-import javax.crypto.SecretKey;
-import javax.servlet.http.HttpServletRequest;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -115,6 +107,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+import javax.crypto.SecretKey;
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 public class DefaultSAML2SSOManager implements SAML2SSOManager {
 
@@ -127,24 +125,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     private IdentityProvider identityProvider = null;
     private Map<String, String> properties;
     private String tenantDomain;
-
-    public static void doBootstrap() {
-
-        /* Initializing the OpenSAML library */
-        if (!bootStrapped) {
-            Thread thread = Thread.currentThread();
-            ClassLoader loader = thread.getContextClassLoader();
-            thread.setContextClassLoader(new DefaultSAML2SSOManager().getClass().getClassLoader());
-            try {
-                DefaultBootstrap.bootstrap();
-                bootStrapped = true;
-            } catch (ConfigurationException e) {
-                log.error("Error in bootstrapping the OpenSAML2 library", e);
-            } finally {
-                thread.setContextClassLoader(loader);
-            }
-        }
-    }
 
     @Override
     public void init(String tenantDomain, Map<String, String> properties, IdentityProvider idp)
@@ -167,7 +147,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
                                String loginPage, AuthenticationContext context)
             throws SAMLSSOException {
 
-        doBootstrap();
         String contextIdentifier = context.getContextIdentifier();
         RequestAbstractType requestMessage;
 
@@ -250,7 +229,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     public String buildPostRequest(HttpServletRequest request, boolean isLogout,
                                    boolean isPassive, String loginPage, AuthenticationContext context) throws SAMLSSOException {
 
-        doBootstrap();
         RequestAbstractType requestMessage;
         String signatureAlgoProp = null;
         String digestAlgoProp = null;
@@ -306,7 +284,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     @Override
     public void processResponse(HttpServletRequest request) throws SAMLSSOException {
 
-        doBootstrap();
         String decodedResponse = new String(Base64.decode(request.getParameter(
                 SSOConstants.HTTP_POST_PARAM_SAML2_RESP)));
         XMLObject samlObject = unmarshall(decodedResponse);
@@ -397,8 +374,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
      * @throws IOException
      */
     public void doSLO(HttpServletRequest request) throws SAMLSSOException {
-
-        doBootstrap();
         XMLObject samlObject = null;
         if (request.getParameter(SSOConstants.HTTP_POST_PARAM_SAML2_AUTH_REQ) != null) {
             samlObject = unmarshall(new String(Base64.decode(request.getParameter(
