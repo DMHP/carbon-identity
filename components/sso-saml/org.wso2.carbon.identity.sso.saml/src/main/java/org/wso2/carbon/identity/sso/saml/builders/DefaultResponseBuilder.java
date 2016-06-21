@@ -40,9 +40,6 @@ public class DefaultResponseBuilder implements ResponseBuilder {
 
     private static Log log = LogFactory.getLog(DefaultResponseBuilder.class);
 
-    static {
-        SAMLSSOUtil.doBootstrap();
-    }
 
     @Override
     public Response buildResponse(SAMLSSOAuthnReqDTO authReqDTO, String sessionId)

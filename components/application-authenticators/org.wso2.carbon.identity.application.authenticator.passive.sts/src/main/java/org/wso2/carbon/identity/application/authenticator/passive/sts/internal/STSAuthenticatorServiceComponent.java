@@ -19,6 +19,8 @@ package org.wso2.carbon.identity.application.authenticator.passive.sts.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.opensaml.DefaultBootstrap;
+import org.opensaml.xml.ConfigurationException;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.passive.sts.PassiveSTSAuthenticator;
@@ -41,6 +43,12 @@ public class STSAuthenticatorServiceComponent {
             }
         } catch (Throwable e) {
             log.error("STS Authenticator bundle activation Failed", e);
+        }
+
+        try {
+            DefaultBootstrap.bootstrap();
+        } catch (ConfigurationException e) {
+            log.error("Error in bootstrapping the OpenSAML2 library", e);
         }
     }
 

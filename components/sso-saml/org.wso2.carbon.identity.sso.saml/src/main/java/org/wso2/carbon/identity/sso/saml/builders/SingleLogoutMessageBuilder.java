@@ -47,9 +47,6 @@ public class SingleLogoutMessageBuilder {
 
     private static Log log = LogFactory.getLog(SingleLogoutMessageBuilder.class);
 
-    static {
-        SAMLSSOUtil.doBootstrap();
-    }
 
     public LogoutRequest buildLogoutRequest(String subject, String sessionId, String reason, String destination,
                                             String nameIDFormat, String tenantDomain, String

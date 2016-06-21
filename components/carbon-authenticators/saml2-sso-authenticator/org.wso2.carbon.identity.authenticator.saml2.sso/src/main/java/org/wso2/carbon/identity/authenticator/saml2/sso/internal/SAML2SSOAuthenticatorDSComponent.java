@@ -19,6 +19,8 @@ package org.wso2.carbon.identity.authenticator.saml2.sso.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.opensaml.DefaultBootstrap;
+import org.opensaml.xml.ConfigurationException;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.core.security.AuthenticatorsConfiguration;
@@ -64,6 +66,12 @@ public class SAML2SSOAuthenticatorDSComponent {
             if (log.isDebugEnabled()) {
                 log.error("SAML2 SSO Authenticator BE Bundle activation Failed.");
             }
+        }
+
+        try {
+            DefaultBootstrap.bootstrap();
+        } catch (ConfigurationException e) {
+            log.error("Error in bootstrapping the OpenSAML2 library", e);
         }
     }
 

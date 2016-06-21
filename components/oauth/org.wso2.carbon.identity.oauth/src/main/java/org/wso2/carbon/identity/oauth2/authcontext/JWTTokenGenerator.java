@@ -35,6 +35,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.core.util.KeyStoreManager;
+import org.wso2.carbon.identity.base.IdentityException;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
@@ -88,8 +90,6 @@ public class JWTTokenGenerator implements AuthorizationContextTokenGenerator {
     private static final String API_GATEWAY_ID = "http://wso2.org/gateway";
 
     private static final String NONE = "NONE";
-
-    private static final Base64 base64Url = new Base64(0, null, true);
 
     private static volatile long ttl = -1L;
 
@@ -420,7 +420,8 @@ public class JWTTokenGenerator implements AuthorizationContextTokenGenerator {
             byte[] digestInBytes = digestValue.digest();
 
             String publicCertThumbprint = hexify(digestInBytes);
-            String base64EncodedThumbPrint = new String(base64Url.encode(publicCertThumbprint.getBytes(Charsets.UTF_8)), Charsets.UTF_8);
+            String base64EncodedThumbPrint = new String(new Base64(0, null, true).encode(
+                    publicCertThumbprint.getBytes(Charsets.UTF_8)), Charsets.UTF_8);
             return base64EncodedThumbPrint;
 
         } catch (Exception e) {
@@ -442,6 +443,13 @@ public class JWTTokenGenerator implements AuthorizationContextTokenGenerator {
         Key privateKey = null;
 
         if (!(privateKeys.containsKey(tenantId))) {
+
+            try {
+                IdentityTenantUtil.initializeRegistry(tenantId, tenantDomain);
+            } catch (IdentityException e) {
+                throw new IdentityOAuth2Exception("Error occurred while loading registry for tenant " + tenantDomain, e);
+            }
+
             // get tenant's key store manager
             KeyStoreManager tenantKSM = KeyStoreManager.getInstance(tenantId);
 
@@ -481,6 +489,13 @@ public class JWTTokenGenerator implements AuthorizationContextTokenGenerator {
         Certificate publicCert = null;
 
         if (!(publicCerts.containsKey(tenantId))) {
+
+            try {
+                IdentityTenantUtil.initializeRegistry(tenantId, tenantDomain);
+            } catch (IdentityException e) {
+                throw new IdentityOAuth2Exception("Error occurred while loading registry for tenant " + tenantDomain, e);
+            }
+            
             // get tenant's key store manager
             KeyStoreManager tenantKSM = KeyStoreManager.getInstance(tenantId);
 

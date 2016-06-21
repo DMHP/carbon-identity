@@ -21,6 +21,8 @@ package org.wso2.carbon.identity.sso.saml.internal;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.equinox.http.helper.ContextPathServletAdaptor;
+import org.opensaml.DefaultBootstrap;
+import org.opensaml.xml.ConfigurationException;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.http.HttpService;
 import org.wso2.carbon.identity.authenticator.saml2.sso.common.Util;
@@ -151,6 +153,12 @@ public class IdentitySAMLSSOServiceComponent {
             }
         } finally {
             IdentityIOStreamUtils.closeInputStream(fis);
+        }
+
+        try {
+            DefaultBootstrap.bootstrap();
+        } catch (ConfigurationException e) {
+            log.error("Error in bootstrapping the OpenSAML2 library", e);
         }
 
     }

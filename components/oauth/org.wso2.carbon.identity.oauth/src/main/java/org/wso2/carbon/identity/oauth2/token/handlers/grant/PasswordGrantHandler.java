@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.base.MultitenantConstants;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
@@ -109,7 +110,9 @@ public class PasswordGrantHandler extends AbstractAuthorizationGrantHandler {
                     null && !"".equals(UserCoreUtil.getDomainFromThreadLocal())) {
                 username = UserCoreUtil.getDomainFromThreadLocal() + CarbonConstants.DOMAIN_SEPARATOR + username;
             }
-            tokReqMsgCtx.setAuthorizedUser(OAuth2Util.getUserFromUserName(username));
+            AuthenticatedUser user = OAuth2Util.getUserFromUserName(username);
+            user.setAuthenticatedSubjectIdentifier(user.toString());
+            tokReqMsgCtx.setAuthorizedUser(user);
             tokReqMsgCtx.setScope(oAuth2AccessTokenReqDTO.getScope());
         } else {
             throw new IdentityOAuth2Exception("Authentication failed for " + username);
