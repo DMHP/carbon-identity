@@ -50,6 +50,8 @@ import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -69,6 +71,8 @@ public class RecoveryProcessor {
     private final static String FIRST_NAME = "first-name";
     private final static String CONFIRMATION_CODE = "confirmation-code";
     private final static String TEMPORARY_PASSWORD = "temporary-password";
+    private static final String USE_HASHED_USERNAME_PROPERTY = "UserInfoRecovery.UseHashedUserNames";
+    private static final String USERNAME_HASH_ALG_PROPERTY = "UserInfoRecovery.UsernameHashAlg";
 
     /*
      *  Delimiter that will be used to store the registry resource entries. Must be valid characters.
@@ -138,7 +142,7 @@ public class RecoveryProcessor {
                         MessageContext.TRANSPORT_HEADERS) != null) {
             Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
                     .getProperty(MessageContext.TRANSPORT_HEADERS);
-            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+            if (transportHeaderMap != null && !transportHeaderMap.isEmpty()) {
                 Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
                 TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
                 int i = 0;
@@ -328,7 +332,8 @@ public class RecoveryProcessor {
      * @return
      * @throws IdentityException
      */
-    public VerificationBean verifyConfirmationCode(int sequence, String username, String code) throws IdentityException {
+    public VerificationBean verifyConfirmationCode(int sequence, String username, String code)
+            throws IdentityException {
 
         UserRecoveryDataDO dataDO = null;
         String internalCode = getUserInternalCodeStr(sequence, username, code);
@@ -363,7 +368,8 @@ public class RecoveryProcessor {
 
     }
 
-    public VerificationBean updateConfirmationCode(int sequence, String username, int tenantId) throws IdentityException {
+    public VerificationBean updateConfirmationCode(int sequence, String username, int tenantId)
+            throws IdentityException {
 
         String confirmationKey = generateUserCode(sequence, username);
         String secretKey = UUIDGenerator.generateUUID();
@@ -484,7 +490,7 @@ public class RecoveryProcessor {
                         MessageContext.TRANSPORT_HEADERS) != null) {
             Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
                     .getProperty(MessageContext.TRANSPORT_HEADERS);
-            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+            if (transportHeaderMap != null && !transportHeaderMap.isEmpty()) {
                 Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
                 TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
                 int i = 0;
@@ -601,7 +607,7 @@ public class RecoveryProcessor {
      * @param username
      * @return
      */
-    private String generateUserCode(int sequence, String username) {
+    private String generateUserCode(int sequence, String username) throws IdentityException {
 
         String genCode = null;
 
@@ -610,7 +616,20 @@ public class RecoveryProcessor {
             StringBuilder userCode = new StringBuilder();
             userCode.append(sequence);
             userCode.append(REG_DELIMITER);
-            userCode.append(stripSpecialChars(username));
+
+            String useHashedUserName =
+                    IdentityMgtConfig.getInstance().getProperty(USE_HASHED_USERNAME_PROPERTY);
+            if (Boolean.parseBoolean(useHashedUserName)) {
+                String hashAlg = IdentityMgtConfig.getInstance().getProperty(USERNAME_HASH_ALG_PROPERTY);
+                try {
+                    userCode.append(hashString(username, hashAlg));
+                } catch (NoSuchAlgorithmException e) {
+                    throw IdentityException.error("Invalid hash algorithm " + hashAlg, e);
+                }
+            } else {
+                userCode.append(stripSpecialChars(username));
+            }
+
             userCode.append(REG_DELIMITER);
             userCode.append(UUID.randomUUID().toString());
 
@@ -630,7 +649,7 @@ public class RecoveryProcessor {
      * @param code     - user provided code
      * @return
      */
-    private String getUserInternalCodeStr(int sequence, String username, String code) {
+    private String getUserInternalCodeStr(int sequence, String username, String code) throws IdentityException {
 
         String searchCode = null;
 
@@ -639,7 +658,19 @@ public class RecoveryProcessor {
             StringBuilder userCode = new StringBuilder();
             userCode.append(sequence);
             userCode.append(REG_DELIMITER);
-            userCode.append(stripSpecialChars(username));
+            String useHashedUserName =
+                    IdentityMgtConfig.getInstance().getProperty(USE_HASHED_USERNAME_PROPERTY);
+            if (Boolean.parseBoolean(useHashedUserName)) {
+                String hashAlg = IdentityMgtConfig.getInstance().getProperty(USERNAME_HASH_ALG_PROPERTY);
+                try {
+                    userCode.append(hashString(username, hashAlg));
+                } catch (NoSuchAlgorithmException e) {
+                    throw IdentityException.error("Invalid hash algorithm " + hashAlg, e);
+                }
+            } else {
+                userCode.append(stripSpecialChars(username));
+            }
+
             userCode.append(REG_DELIMITER);
             userCode.append(code);
 
@@ -721,5 +752,17 @@ public class RecoveryProcessor {
         }
 
         return output.toString();
+    }
+
+    private String hashString(String userName, String alg) throws NoSuchAlgorithmException {
+
+        MessageDigest messageDigest = MessageDigest.getInstance(alg);
+        byte[] in = messageDigest.digest(userName.getBytes());
+        final StringBuilder builder = new StringBuilder();
+        for (byte b : in) {
+            builder.append(String.format("%02x", b));
+        }
+        return builder.toString();
+
     }
 }
