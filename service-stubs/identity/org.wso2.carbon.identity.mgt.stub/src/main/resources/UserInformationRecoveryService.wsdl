@@ -1,4 +1,4 @@
-<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ns="http://services.mgt.identity.carbon.wso2.org" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ax2284="http://mgt.identity.carbon.wso2.org/xsd" xmlns:ax2286="http://beans.mgt.identity.carbon.wso2.org/xsd" xmlns:ax2290="http://beans.mgt.captcha.carbon.wso2.org/xsd" xmlns:ax2287="http://dto.mgt.identity.carbon.wso2.org/xsd" xmlns:ax2293="http://base.identity.carbon.wso2.org/xsd" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://services.mgt.identity.carbon.wso2.org">
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ns="http://services.mgt.identity.carbon.wso2.org" xmlns:ax2310="http://base.identity.carbon.wso2.org/xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ax2313="http://beans.mgt.identity.carbon.wso2.org/xsd" xmlns:ax2315="http://beans.mgt.captcha.carbon.wso2.org/xsd" xmlns:ax2317="http://mail.mgt.identity.carbon.wso2.org/xsd" xmlns:ax2309="http://mgt.identity.carbon.wso2.org/xsd" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://services.mgt.identity.carbon.wso2.org">
     <wsdl:documentation>UserInformationRecoveryService</wsdl:documentation>
     <wsdl:types>
         <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://beans.mgt.captcha.carbon.wso2.org/xsd">
@@ -10,16 +10,226 @@
                 </xs:sequence>
             </xs:complexType>
         </xs:schema>
-        <xs:schema xmlns:ax2289="http://beans.mgt.identity.carbon.wso2.org/xsd" xmlns:ax2292="http://dto.mgt.identity.carbon.wso2.org/xsd" xmlns:ax2294="http://base.identity.carbon.wso2.org/xsd" xmlns:ax2285="http://mgt.identity.carbon.wso2.org/xsd" xmlns:ax2291="http://beans.mgt.captcha.carbon.wso2.org/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://services.mgt.identity.carbon.wso2.org">
+        <xs:schema xmlns:ax2319="http://base.identity.carbon.wso2.org/xsd"
+                   xmlns:ax2320="http://dto.mgt.identity.carbon.wso2.org/xsd"
+                   attributeFormDefault="qualified"
+                   elementFormDefault="qualified" targetNamespace="http://services.mgt.identity.carbon.wso2.org">
             <xs:import namespace="http://mgt.identity.carbon.wso2.org/xsd"></xs:import>
             <xs:import namespace="http://beans.mgt.identity.carbon.wso2.org/xsd"></xs:import>
             <xs:import namespace="http://beans.mgt.captcha.carbon.wso2.org/xsd"></xs:import>
-            <xs:import namespace="http://dto.mgt.identity.carbon.wso2.org/xsd"></xs:import>
             <xs:import namespace="http://base.identity.carbon.wso2.org/xsd"></xs:import>
+            <xs:import namespace="http://dto.mgt.identity.carbon.wso2.org/xsd"></xs:import>
             <xs:element name="UserInformationRecoveryServiceIdentityMgtServiceException">
                 <xs:complexType>
                     <xs:sequence>
-                        <xs:element minOccurs="0" name="IdentityMgtServiceException" nillable="true" type="ax2284:IdentityMgtServiceException"></xs:element>
+                        <xs:element minOccurs="0" name="IdentityMgtServiceException" nillable="true" type="ax2309:IdentityMgtServiceException"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="sendRecoveryNotification">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="key" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="notificationType" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="sendRecoveryNotificationResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getCaptcha">
+                <xs:complexType>
+                    <xs:sequence></xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getCaptchaResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2315:CaptchaInfoBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="UserInformationRecoveryServiceIdentityException">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="IdentityException" nillable="true" type="ax2319:IdentityException"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getUserIdentitySupportedClaims">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="dialect" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getUserIdentitySupportedClaimsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax2320:UserIdentityClaimDTO"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="verifyUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2315:CaptchaInfoBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="verifyUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="verifyAccount">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="claims" nillable="true" type="ax2320:UserIdentityClaimDTO"></xs:element>
+                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2315:CaptchaInfoBean"></xs:element>
+                        <xs:element minOccurs="0" name="tenantDomain" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="verifyAccountResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="registerUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="userName" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="password" nillable="true" type="xs:string"></xs:element>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="claims" nillable="true" type="ax2320:UserIdentityClaimDTO"></xs:element>
+                        <xs:element minOccurs="0" name="profileName" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="tenantDomain" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="registerUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="resendSignUpConfiramtionCode">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="userName" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="code" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="profileName" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="tenantDomain" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="resendSignUpConfiramtionCodeResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="confirmUserSelfRegistration">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="code" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2315:CaptchaInfoBean"></xs:element>
+                        <xs:element minOccurs="0" name="tenantDomain" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="confirmUserSelfRegistrationResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getAllChallengeQuestions">
+                <xs:complexType>
+                    <xs:sequence></xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getAllChallengeQuestionsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax2320:ChallengeQuestionDTO"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="verifyConfirmationCode">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="code" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2315:CaptchaInfoBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="verifyConfirmationCodeResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="updatePassword">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="confirmationCode" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="newPassword" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="updatePasswordResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getUserChallengeQuestion">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="userName" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="confirmation" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="questionId" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getUserChallengeQuestionResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2320:UserChallengesDTO"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getUserChallengeQuestionIds">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
+                        <xs:element minOccurs="0" name="confirmation" nillable="true" type="xs:string"></xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getUserChallengeQuestionIdsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2320:ChallengeQuestionIdsDTO"></xs:element>
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
@@ -36,197 +246,7 @@
             <xs:element name="verifyUserChallengeAnswerResponse">
                 <xs:complexType>
                     <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="verifyUser">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2290:CaptchaInfoBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="verifyUserResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="verifyConfirmationCode">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="code" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2290:CaptchaInfoBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="verifyConfirmationCodeResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="verifyAccount">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element maxOccurs="unbounded" minOccurs="0" name="claims" nillable="true" type="ax2287:UserIdentityClaimDTO"></xs:element>
-                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2290:CaptchaInfoBean"></xs:element>
-                        <xs:element minOccurs="0" name="tenantDomain" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="verifyAccountResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="updatePassword">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="confirmationCode" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="newPassword" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="updatePasswordResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="sendRecoveryNotification">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="key" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="notificationType" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="sendRecoveryNotificationResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="registerUser">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="userName" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="password" nillable="true" type="xs:string"></xs:element>
-                        <xs:element maxOccurs="unbounded" minOccurs="0" name="claims" nillable="true" type="ax2287:UserIdentityClaimDTO"></xs:element>
-                        <xs:element minOccurs="0" name="profileName" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="tenantDomain" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="registerUserResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="UserInformationRecoveryServiceIdentityException">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="IdentityException" nillable="true" type="ax2293:IdentityException"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getUserIdentitySupportedClaims">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="dialect" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getUserIdentitySupportedClaimsResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax2287:UserIdentityClaimDTO"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getUserChallengeQuestionIds">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="confirmation" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getUserChallengeQuestionIdsResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2287:ChallengeQuestionIdsDTO"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getUserChallengeQuestion">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="userName" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="confirmation" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="questionId" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getUserChallengeQuestionResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2287:UserChallengesDTO"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getCaptcha">
-                <xs:complexType>
-                    <xs:sequence></xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getCaptchaResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2290:CaptchaInfoBean"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getAllChallengeQuestions">
-                <xs:complexType>
-                    <xs:sequence></xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="getAllChallengeQuestionsResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax2287:ChallengeQuestionDTO"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="confirmUserSelfRegistration">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="code" nillable="true" type="xs:string"></xs:element>
-                        <xs:element minOccurs="0" name="captcha" nillable="true" type="ax2290:CaptchaInfoBean"></xs:element>
-                        <xs:element minOccurs="0" name="tenantDomain" nillable="true" type="xs:string"></xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="confirmUserSelfRegistrationResponse">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2289:VerificationBean"></xs:element>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax2313:VerificationBean"></xs:element>
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
@@ -242,6 +262,7 @@
                     <xs:element minOccurs="0" name="notificationSent" type="xs:boolean"></xs:element>
                     <xs:element minOccurs="0" name="notificationSubject" nillable="true" type="xs:string"></xs:element>
                     <xs:element minOccurs="0" name="notificationType" nillable="true" type="xs:string"></xs:element>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="transportHeaders" nillable="true" type="ax2317:TransportHeader"/>
                     <xs:element minOccurs="0" name="userId" nillable="true" type="xs:string"></xs:element>
                 </xs:sequence>
             </xs:complexType>
@@ -251,11 +272,12 @@
                     <xs:element minOccurs="0" name="claimValue" nillable="true" type="xs:string"></xs:element>
                 </xs:sequence>
             </xs:complexType>
-            <xs:complexType name="ChallengeQuestionIdsDTO">
+            <xs:complexType name="ChallengeQuestionDTO">
                 <xs:sequence>
-                    <xs:element minOccurs="0" name="error" nillable="true" type="xs:string"></xs:element>
-                    <xs:element maxOccurs="unbounded" minOccurs="0" name="ids" nillable="true" type="xs:string"></xs:element>
-                    <xs:element minOccurs="0" name="key" nillable="true" type="xs:string"></xs:element>
+                    <xs:element minOccurs="0" name="order" type="xs:int"></xs:element>
+                    <xs:element minOccurs="0" name="promoteQuestion" type="xs:boolean"></xs:element>
+                    <xs:element minOccurs="0" name="question" nillable="true" type="xs:string"></xs:element>
+                    <xs:element minOccurs="0" name="questionSetId" nillable="true" type="xs:string"></xs:element>
                 </xs:sequence>
             </xs:complexType>
             <xs:complexType name="UserChallengesDTO">
@@ -270,36 +292,51 @@
                     <xs:element minOccurs="0" name="verfied" type="xs:boolean"></xs:element>
                 </xs:sequence>
             </xs:complexType>
-            <xs:complexType name="ChallengeQuestionDTO">
+            <xs:complexType name="ChallengeQuestionIdsDTO">
                 <xs:sequence>
-                    <xs:element minOccurs="0" name="order" type="xs:int"></xs:element>
-                    <xs:element minOccurs="0" name="promoteQuestion" type="xs:boolean"></xs:element>
-                    <xs:element minOccurs="0" name="question" nillable="true" type="xs:string"></xs:element>
-                    <xs:element minOccurs="0" name="questionSetId" nillable="true" type="xs:string"></xs:element>
+                    <xs:element minOccurs="0" name="error" nillable="true" type="xs:string"></xs:element>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="ids" nillable="true" type="xs:string"></xs:element>
+                    <xs:element minOccurs="0" name="key" nillable="true" type="xs:string"></xs:element>
                 </xs:sequence>
             </xs:complexType>
         </xs:schema>
-        <xs:schema xmlns:ax2288="http://dto.mgt.identity.carbon.wso2.org/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://beans.mgt.identity.carbon.wso2.org/xsd">
+        <xs:schema xmlns:ax2315="http://dto.mgt.identity.carbon.wso2.org/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://beans.mgt.identity.carbon.wso2.org/xsd">
             <xs:import namespace="http://dto.mgt.identity.carbon.wso2.org/xsd"></xs:import>
             <xs:complexType name="VerificationBean">
                 <xs:sequence>
                     <xs:element minOccurs="0" name="error" nillable="true" type="xs:string"></xs:element>
                     <xs:element minOccurs="0" name="key" nillable="true" type="xs:string"></xs:element>
-                    <xs:element minOccurs="0" name="notificationData" nillable="true" type="ax2287:NotificationDataDTO"></xs:element>
+                    <xs:element minOccurs="0" name="notificationData" nillable="true" type="ax2315:NotificationDataDTO"></xs:element>
                     <xs:element minOccurs="0" name="redirectPath" nillable="true" type="xs:string"></xs:element>
                     <xs:element minOccurs="0" name="userId" nillable="true" type="xs:string"></xs:element>
                     <xs:element minOccurs="0" name="verified" type="xs:boolean"></xs:element>
                 </xs:sequence>
             </xs:complexType>
         </xs:schema>
-        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://base.identity.carbon.wso2.org/xsd">
-            <xs:complexType name="IdentityException">
-                <xs:sequence></xs:sequence>
+        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://mail.mgt.identity.carbon.wso2.org/xsd">
+            <xs:complexType name="TransportHeader">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="headerName" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="headerValue" nillable="true" type="xs:string"/>
+                </xs:sequence>
             </xs:complexType>
         </xs:schema>
-        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://mgt.identity.carbon.wso2.org/xsd">
+        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://base.identity.carbon.wso2.org/xsd">
+            <xs:complexType name="IdentityException">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="code" nillable="true" type="xs:string"></xs:element>
+                    <xs:element minOccurs="0" name="errorInfoList" nillable="true" type="xs:anyType"></xs:element>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+        <xs:schema xmlns:ax2311="http://base.identity.carbon.wso2.org/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://mgt.identity.carbon.wso2.org/xsd">
+            <xs:import namespace="http://base.identity.carbon.wso2.org/xsd"></xs:import>
             <xs:complexType name="IdentityMgtServiceException">
-                <xs:sequence></xs:sequence>
+                <xs:complexContent>
+                    <xs:extension base="ax2310:IdentityException">
+                        <xs:sequence></xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
             </xs:complexType>
         </xs:schema>
     </wsdl:types>
@@ -354,11 +391,23 @@
     <wsdl:message name="verifyUserChallengeAnswerResponse">
         <wsdl:part name="parameters" element="ns:verifyUserChallengeAnswerResponse"></wsdl:part>
     </wsdl:message>
+    <wsdl:message name="resendSignUpConfiramtionCodeRequest">
+        <wsdl:part name="parameters" element="ns:resendSignUpConfiramtionCode"></wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="resendSignUpConfiramtionCodeResponse">
+        <wsdl:part name="parameters" element="ns:resendSignUpConfiramtionCodeResponse"></wsdl:part>
+    </wsdl:message>
     <wsdl:message name="updatePasswordRequest">
         <wsdl:part name="parameters" element="ns:updatePassword"></wsdl:part>
     </wsdl:message>
     <wsdl:message name="updatePasswordResponse">
         <wsdl:part name="parameters" element="ns:updatePasswordResponse"></wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="registerUserRequest">
+        <wsdl:part name="parameters" element="ns:registerUser"></wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="registerUserResponse">
+        <wsdl:part name="parameters" element="ns:registerUserResponse"></wsdl:part>
     </wsdl:message>
     <wsdl:message name="getUserIdentitySupportedClaimsRequest">
         <wsdl:part name="parameters" element="ns:getUserIdentitySupportedClaims"></wsdl:part>
@@ -368,12 +417,6 @@
     </wsdl:message>
     <wsdl:message name="UserInformationRecoveryServiceIdentityException">
         <wsdl:part name="parameters" element="ns:UserInformationRecoveryServiceIdentityException"></wsdl:part>
-    </wsdl:message>
-    <wsdl:message name="registerUserRequest">
-        <wsdl:part name="parameters" element="ns:registerUser"></wsdl:part>
-    </wsdl:message>
-    <wsdl:message name="registerUserResponse">
-        <wsdl:part name="parameters" element="ns:registerUserResponse"></wsdl:part>
     </wsdl:message>
     <wsdl:message name="verifyAccountRequest">
         <wsdl:part name="parameters" element="ns:verifyAccount"></wsdl:part>
@@ -428,20 +471,25 @@
             <wsdl:output message="ns:verifyUserChallengeAnswerResponse" wsaw:Action="urn:verifyUserChallengeAnswerResponse"></wsdl:output>
             <wsdl:fault message="ns:UserInformationRecoveryServiceIdentityMgtServiceException" name="UserInformationRecoveryServiceIdentityMgtServiceException" wsaw:Action="urn:verifyUserChallengeAnswerUserInformationRecoveryServiceIdentityMgtServiceException"></wsdl:fault>
         </wsdl:operation>
+        <wsdl:operation name="resendSignUpConfiramtionCode">
+            <wsdl:input message="ns:resendSignUpConfiramtionCodeRequest" wsaw:Action="urn:resendSignUpConfiramtionCode"></wsdl:input>
+            <wsdl:output message="ns:resendSignUpConfiramtionCodeResponse" wsaw:Action="urn:resendSignUpConfiramtionCodeResponse"></wsdl:output>
+            <wsdl:fault message="ns:UserInformationRecoveryServiceIdentityMgtServiceException" name="UserInformationRecoveryServiceIdentityMgtServiceException" wsaw:Action="urn:resendSignUpConfiramtionCodeUserInformationRecoveryServiceIdentityMgtServiceException"></wsdl:fault>
+        </wsdl:operation>
         <wsdl:operation name="updatePassword">
             <wsdl:input message="ns:updatePasswordRequest" wsaw:Action="urn:updatePassword"></wsdl:input>
             <wsdl:output message="ns:updatePasswordResponse" wsaw:Action="urn:updatePasswordResponse"></wsdl:output>
             <wsdl:fault message="ns:UserInformationRecoveryServiceIdentityMgtServiceException" name="UserInformationRecoveryServiceIdentityMgtServiceException" wsaw:Action="urn:updatePasswordUserInformationRecoveryServiceIdentityMgtServiceException"></wsdl:fault>
         </wsdl:operation>
-        <wsdl:operation name="getUserIdentitySupportedClaims">
-            <wsdl:input message="ns:getUserIdentitySupportedClaimsRequest" wsaw:Action="urn:getUserIdentitySupportedClaims"></wsdl:input>
-            <wsdl:output message="ns:getUserIdentitySupportedClaimsResponse" wsaw:Action="urn:getUserIdentitySupportedClaimsResponse"></wsdl:output>
-            <wsdl:fault message="ns:UserInformationRecoveryServiceIdentityException" name="UserInformationRecoveryServiceIdentityException" wsaw:Action="urn:getUserIdentitySupportedClaimsUserInformationRecoveryServiceIdentityException"></wsdl:fault>
-        </wsdl:operation>
         <wsdl:operation name="registerUser">
             <wsdl:input message="ns:registerUserRequest" wsaw:Action="urn:registerUser"></wsdl:input>
             <wsdl:output message="ns:registerUserResponse" wsaw:Action="urn:registerUserResponse"></wsdl:output>
             <wsdl:fault message="ns:UserInformationRecoveryServiceIdentityMgtServiceException" name="UserInformationRecoveryServiceIdentityMgtServiceException" wsaw:Action="urn:registerUserUserInformationRecoveryServiceIdentityMgtServiceException"></wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="getUserIdentitySupportedClaims">
+            <wsdl:input message="ns:getUserIdentitySupportedClaimsRequest" wsaw:Action="urn:getUserIdentitySupportedClaims"></wsdl:input>
+            <wsdl:output message="ns:getUserIdentitySupportedClaimsResponse" wsaw:Action="urn:getUserIdentitySupportedClaimsResponse"></wsdl:output>
+            <wsdl:fault message="ns:UserInformationRecoveryServiceIdentityException" name="UserInformationRecoveryServiceIdentityException" wsaw:Action="urn:getUserIdentitySupportedClaimsUserInformationRecoveryServiceIdentityException"></wsdl:fault>
         </wsdl:operation>
         <wsdl:operation name="verifyAccount">
             <wsdl:input message="ns:verifyAccountRequest" wsaw:Action="urn:verifyAccount"></wsdl:input>
@@ -552,8 +600,8 @@
                 <soap:fault use="literal" name="UserInformationRecoveryServiceIdentityMgtServiceException"></soap:fault>
             </wsdl:fault>
         </wsdl:operation>
-        <wsdl:operation name="updatePassword">
-            <soap:operation soapAction="urn:updatePassword" style="document"></soap:operation>
+        <wsdl:operation name="resendSignUpConfiramtionCode">
+            <soap:operation soapAction="urn:resendSignUpConfiramtionCode" style="document"></soap:operation>
             <wsdl:input>
                 <soap:body use="literal"></soap:body>
             </wsdl:input>
@@ -564,8 +612,8 @@
                 <soap:fault use="literal" name="UserInformationRecoveryServiceIdentityMgtServiceException"></soap:fault>
             </wsdl:fault>
         </wsdl:operation>
-        <wsdl:operation name="registerUser">
-            <soap:operation soapAction="urn:registerUser" style="document"></soap:operation>
+        <wsdl:operation name="updatePassword">
+            <soap:operation soapAction="urn:updatePassword" style="document"></soap:operation>
             <wsdl:input>
                 <soap:body use="literal"></soap:body>
             </wsdl:input>
@@ -586,6 +634,18 @@
             </wsdl:output>
             <wsdl:fault name="UserInformationRecoveryServiceIdentityException">
                 <soap:fault use="literal" name="UserInformationRecoveryServiceIdentityException"></soap:fault>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="registerUser">
+            <soap:operation soapAction="urn:registerUser" style="document"></soap:operation>
+            <wsdl:input>
+                <soap:body use="literal"></soap:body>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"></soap:body>
+            </wsdl:output>
+            <wsdl:fault name="UserInformationRecoveryServiceIdentityMgtServiceException">
+                <soap:fault use="literal" name="UserInformationRecoveryServiceIdentityMgtServiceException"></soap:fault>
             </wsdl:fault>
         </wsdl:operation>
         <wsdl:operation name="verifyUser">
@@ -711,8 +771,8 @@
                 <soap12:fault use="literal" name="UserInformationRecoveryServiceIdentityMgtServiceException"></soap12:fault>
             </wsdl:fault>
         </wsdl:operation>
-        <wsdl:operation name="updatePassword">
-            <soap12:operation soapAction="urn:updatePassword" style="document"></soap12:operation>
+        <wsdl:operation name="resendSignUpConfiramtionCode">
+            <soap12:operation soapAction="urn:resendSignUpConfiramtionCode" style="document"></soap12:operation>
             <wsdl:input>
                 <soap12:body use="literal"></soap12:body>
             </wsdl:input>
@@ -723,8 +783,8 @@
                 <soap12:fault use="literal" name="UserInformationRecoveryServiceIdentityMgtServiceException"></soap12:fault>
             </wsdl:fault>
         </wsdl:operation>
-        <wsdl:operation name="registerUser">
-            <soap12:operation soapAction="urn:registerUser" style="document"></soap12:operation>
+        <wsdl:operation name="updatePassword">
+            <soap12:operation soapAction="urn:updatePassword" style="document"></soap12:operation>
             <wsdl:input>
                 <soap12:body use="literal"></soap12:body>
             </wsdl:input>
@@ -745,6 +805,18 @@
             </wsdl:output>
             <wsdl:fault name="UserInformationRecoveryServiceIdentityException">
                 <soap12:fault use="literal" name="UserInformationRecoveryServiceIdentityException"></soap12:fault>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="registerUser">
+            <soap12:operation soapAction="urn:registerUser" style="document"></soap12:operation>
+            <wsdl:input>
+                <soap12:body use="literal"></soap12:body>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"></soap12:body>
+            </wsdl:output>
+            <wsdl:fault name="UserInformationRecoveryServiceIdentityMgtServiceException">
+                <soap12:fault use="literal" name="UserInformationRecoveryServiceIdentityMgtServiceException"></soap12:fault>
             </wsdl:fault>
         </wsdl:operation>
         <wsdl:operation name="verifyUser">
@@ -846,6 +918,15 @@
                 <mime:content type="text/xml" part="parameters"></mime:content>
             </wsdl:output>
         </wsdl:operation>
+        <wsdl:operation name="resendSignUpConfiramtionCode">
+            <http:operation location="resendSignUpConfiramtionCode"></http:operation>
+            <wsdl:input>
+                <mime:content type="text/xml" part="parameters"></mime:content>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="parameters"></mime:content>
+            </wsdl:output>
+        </wsdl:operation>
         <wsdl:operation name="updatePassword">
             <http:operation location="updatePassword"></http:operation>
             <wsdl:input>
@@ -855,8 +936,8 @@
                 <mime:content type="text/xml" part="parameters"></mime:content>
             </wsdl:output>
         </wsdl:operation>
-        <wsdl:operation name="registerUser">
-            <http:operation location="registerUser"></http:operation>
+        <wsdl:operation name="getUserIdentitySupportedClaims">
+            <http:operation location="getUserIdentitySupportedClaims"></http:operation>
             <wsdl:input>
                 <mime:content type="text/xml" part="parameters"></mime:content>
             </wsdl:input>
@@ -864,8 +945,8 @@
                 <mime:content type="text/xml" part="parameters"></mime:content>
             </wsdl:output>
         </wsdl:operation>
-        <wsdl:operation name="getUserIdentitySupportedClaims">
-            <http:operation location="getUserIdentitySupportedClaims"></http:operation>
+        <wsdl:operation name="registerUser">
+            <http:operation location="registerUser"></http:operation>
             <wsdl:input>
                 <mime:content type="text/xml" part="parameters"></mime:content>
             </wsdl:input>
