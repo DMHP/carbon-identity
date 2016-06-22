@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.mgt;
 
 import org.apache.axis2.context.MessageContext;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.base.IdentityException;
