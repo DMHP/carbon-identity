@@ -93,8 +93,6 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
     private static final String ASK_PASSWORD_FEATURE_IS_DISABLED = "Ask Password Feature is disabled";
 
 
-
-
     public IdentityMgtEventListener() {
         identityMgtConfig = IdentityMgtConfig.getInstance();
         // Get the policy registry with the loaded policies.
@@ -102,7 +100,7 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
         module = IdentityMgtConfig.getInstance().getIdentityDataStore();
         String isAdminUnlockSysProp = System.getProperty(UNLOCK_ADMIN_SYS_PROP);
         // If the system property unlockAdmin is set, then admin account will be unlocked
-        if(StringUtils.isNotBlank(isAdminUnlockSysProp) && Boolean.parseBoolean(isAdminUnlockSysProp)) {
+        if (StringUtils.isNotBlank(isAdminUnlockSysProp) && Boolean.parseBoolean(isAdminUnlockSysProp)) {
             log.info("unlockAdmin system property is defined. Hence unlocking admin account");
             unlockAdmin();
         }
@@ -285,22 +283,24 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
                     if (notificationModules != null) {
 
                         NotificationDataDTO notificationData = new NotificationDataDTO();
-                        if(MessageContext.getCurrentMessageContext() != null &&
+                        if (MessageContext.getCurrentMessageContext() != null &&
                                 MessageContext.getCurrentMessageContext().getProperty(
                                         MessageContext.TRANSPORT_HEADERS) != null) {
-                            Map transportHeaderMap = (Map)MessageContext.getCurrentMessageContext()
+                            Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
                                     .getProperty(MessageContext.TRANSPORT_HEADERS);
-                            Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
-                            TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
-                            int i = 0;
-                            while(entries.hasNext()) {
-                                TransportHeader transportHeader = new TransportHeader();
-                                transportHeader.setHeaderName((String) entries.next().getKey());
-                                transportHeader.setHeaderValue((String) entries.next().getKey());
-                                transportHeadersArray[i] = transportHeader;
-                                ++i;
+                            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+                                Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
+                                TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
+                                int i = 0;
+                                while (entries.hasNext()) {
+                                    TransportHeader transportHeader = new TransportHeader();
+                                    transportHeader.setHeaderName((String) entries.next().getKey());
+                                    transportHeader.setHeaderValue((String) entries.next().getKey());
+                                    transportHeadersArray[i] = transportHeader;
+                                    ++i;
+                                }
+                                notificationData.setTransportHeaders(transportHeadersArray);
                             }
-                            notificationData.setTransportHeaders(transportHeadersArray);
                         }
 
                         NotificationData emailNotificationData = new NotificationData();
@@ -660,13 +660,12 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
     }
 
     /**
-	 * This method is used to check pre conditions when changing the user
-	 * password.
-	 * 
-	 */
+     * This method is used to check pre conditions when changing the user
+     * password.
+     */
     @Override
-	public boolean doPreUpdateCredential(String userName, Object newCredential,
-            Object oldCredential, UserStoreManager userStoreManager) throws UserStoreException {
+    public boolean doPreUpdateCredential(String userName, Object newCredential,
+                                         Object oldCredential, UserStoreManager userStoreManager) throws UserStoreException {
 
         if (!isEnable()) {
             return true;
@@ -680,7 +679,7 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
             // Enforcing the password policies.
             if (newCredential != null
                     && (newCredential instanceof String && (newCredential.toString().trim()
-                            .length() > 0))) {
+                    .length() > 0))) {
                 policyRegistry.enforcePasswordPolicies(newCredential.toString(), userName);
 
             }
@@ -691,15 +690,15 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
 
         return true;
     }
-	
-	/**
-	 * This method is used when the admin is updating the credentials with an
-	 * empty credential. A random password will be generated and will be mailed
-	 * to the user. 
-	 */
-	@Override
+
+    /**
+     * This method is used when the admin is updating the credentials with an
+     * empty credential. A random password will be generated and will be mailed
+     * to the user.
+     */
+    @Override
     public boolean doPreUpdateCredentialByAdmin(String userName, Object newCredential,
-            UserStoreManager userStoreManager) throws UserStoreException {
+                                                UserStoreManager userStoreManager) throws UserStoreException {
 
         if (!isEnable()) {
             return true;
@@ -714,7 +713,7 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
             // Enforcing the password policies.
             if (newCredential != null
                     && (newCredential instanceof StringBuffer && (newCredential.toString().trim()
-                            .length() > 0))) {
+                    .length() > 0))) {
                 policyRegistry.enforcePasswordPolicies(newCredential.toString(), userName);
             }
 
@@ -724,7 +723,7 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
 
         if (newCredential == null
                 || (newCredential instanceof StringBuffer && ((StringBuffer) newCredential)
-                        .toString().trim().length() < 1)) {
+                .toString().trim().length() < 1)) {
 
             if (!config.isEnableTemporaryPassword()) {
                 log.error("Empty passwords are not allowed");
@@ -945,7 +944,7 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
     public boolean doPostUpdateCredential(String userName, Object credential, UserStoreManager userStoreManager)
             throws UserStoreException {
 
-       return true;
+        return true;
     }
 
 }
