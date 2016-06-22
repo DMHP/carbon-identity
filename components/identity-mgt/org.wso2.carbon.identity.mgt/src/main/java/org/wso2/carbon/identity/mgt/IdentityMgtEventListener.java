@@ -19,7 +19,6 @@
 package org.wso2.carbon.identity.mgt;
 
 import org.apache.axis2.context.MessageContext;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.base.IdentityException;
@@ -288,7 +287,7 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
                                         MessageContext.TRANSPORT_HEADERS) != null) {
                             Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
                                     .getProperty(MessageContext.TRANSPORT_HEADERS);
-                            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+                            if (transportHeaderMap != null && !transportHeaderMap.isEmpty()) {
                                 Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
                                 TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
                                 int i = 0;

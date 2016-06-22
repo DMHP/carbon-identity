@@ -142,7 +142,7 @@ public class RecoveryProcessor {
                         MessageContext.TRANSPORT_HEADERS) != null) {
             Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
                     .getProperty(MessageContext.TRANSPORT_HEADERS);
-            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+            if (transportHeaderMap != null && !transportHeaderMap.isEmpty()) {
                 Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
                 TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
                 int i = 0;
@@ -490,7 +490,7 @@ public class RecoveryProcessor {
                         MessageContext.TRANSPORT_HEADERS) != null) {
             Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
                     .getProperty(MessageContext.TRANSPORT_HEADERS);
-            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+            if (transportHeaderMap != null && !transportHeaderMap.isEmpty()) {
                 Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
                 TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
                 int i = 0;
