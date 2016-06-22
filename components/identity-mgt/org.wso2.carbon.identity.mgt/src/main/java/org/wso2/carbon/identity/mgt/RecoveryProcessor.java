@@ -38,6 +38,7 @@ import org.wso2.carbon.identity.mgt.internal.IdentityMgtServiceComponent;
 import org.wso2.carbon.identity.mgt.mail.Notification;
 import org.wso2.carbon.identity.mgt.mail.NotificationBuilder;
 import org.wso2.carbon.identity.mgt.mail.NotificationData;
+import org.wso2.carbon.identity.mgt.mail.TransportHeader;
 import org.wso2.carbon.identity.mgt.store.RegistryRecoveryDataStore;
 import org.wso2.carbon.identity.mgt.store.UserIdentityDataStore;
 import org.wso2.carbon.identity.mgt.store.UserRecoveryDataStore;
@@ -50,6 +51,7 @@ import org.wso2.carbon.user.core.tenant.TenantManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -125,18 +127,30 @@ public class RecoveryProcessor {
             }
 
         } catch (UserStoreException e) {
-            if(log.isDebugEnabled()){
+            if (log.isDebugEnabled()) {
                 log.debug("No Tenant domain for tenant id " + tenantId, e);
             }
         }
 
         NotificationDataDTO notificationData = new NotificationDataDTO();
-        if(MessageContext.getCurrentMessageContext() != null &&
+        if (MessageContext.getCurrentMessageContext() != null &&
                 MessageContext.getCurrentMessageContext().getProperty(
                         MessageContext.TRANSPORT_HEADERS) != null) {
-            notificationData.setTransportHeaders(new HashMap(
-                    (Map)MessageContext.getCurrentMessageContext().getProperty(
-                            MessageContext.TRANSPORT_HEADERS)));
+            Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
+                    .getProperty(MessageContext.TRANSPORT_HEADERS);
+            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+                Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
+                TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
+                int i = 0;
+                while (entries.hasNext()) {
+                    TransportHeader transportHeader = new TransportHeader();
+                    transportHeader.setHeaderName((String) entries.next().getKey());
+                    transportHeader.setHeaderValue((String) entries.next().getKey());
+                    transportHeadersArray[i] = transportHeader;
+                    ++i;
+                }
+                notificationData.setTransportHeaders(transportHeadersArray);
+            }
         }
 
         String internalCode = null;
@@ -189,7 +203,7 @@ public class RecoveryProcessor {
                 try {
                     confirmationKey = getUserExternalCodeStr(internalCode);
                 } catch (Exception e) {
-                    throw IdentityException.error("Error while getting user's external code string.",e);
+                    throw IdentityException.error("Error while getting user's external code string.", e);
                 }
                 secretKey = UUIDGenerator.generateUUID();
                 emailNotificationData.setTagData(CONFIRMATION_CODE, confirmationKey);
@@ -241,7 +255,7 @@ public class RecoveryProcessor {
         try {
             emailNotification = NotificationBuilder.createNotification("EMAIL", emailTemplate, emailNotificationData);
         } catch (Exception e) {
-            throw IdentityException.error("Error when creating notification for user : "+ userId, e);
+            throw IdentityException.error("Error when creating notification for user : " + userId, e);
         }
 
         notificationData.setNotificationAddress(notificationAddress);
@@ -465,12 +479,24 @@ public class RecoveryProcessor {
         String userName = UserCoreUtil.removeDomainFromName(userId);
 
         NotificationDataDTO notificationData = new NotificationDataDTO();
-        if(MessageContext.getCurrentMessageContext() != null &&
+        if (MessageContext.getCurrentMessageContext() != null &&
                 MessageContext.getCurrentMessageContext().getProperty(
                         MessageContext.TRANSPORT_HEADERS) != null) {
-            notificationData.setTransportHeaders(new HashMap(
-                    (Map)MessageContext.getCurrentMessageContext().getProperty(
-                            MessageContext.TRANSPORT_HEADERS)));
+            Map transportHeaderMap = (Map) MessageContext.getCurrentMessageContext()
+                    .getProperty(MessageContext.TRANSPORT_HEADERS);
+            if (transportHeaderMap != null && transportHeaderMap.size() != 0) {
+                Iterator<Map.Entry> entries = transportHeaderMap.entrySet().iterator();
+                TransportHeader[] transportHeadersArray = new TransportHeader[transportHeaderMap.size()];
+                int i = 0;
+                while (entries.hasNext()) {
+                    TransportHeader transportHeader = new TransportHeader();
+                    transportHeader.setHeaderName((String) entries.next().getKey());
+                    transportHeader.setHeaderValue((String) entries.next().getKey());
+                    transportHeadersArray[i] = transportHeader;
+                    ++i;
+                }
+                notificationData.setTransportHeaders(transportHeadersArray);
+            }
         }
 
 
