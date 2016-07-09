@@ -1035,6 +1035,14 @@ public class SAMLSSOUtil {
         return SAMLSSOUtil.encode(SAMLSSOUtil.marshall(response));
     }
 
+    public static String buildCompressedErrorResponse(String id, List<String> statusCodes, String statusMsg, String
+            destination) throws IdentityException, IOException {
+        ErrorResponseBuilder respBuilder = new ErrorResponseBuilder();
+        Response response = respBuilder.buildResponse(id, statusCodes, statusMsg, destination);
+        String resp = SAMLSSOUtil.marshall(response);
+        return compressResponse(resp);
+    }
+
     public static int getSAMLResponseValidityPeriod() {
         if (StringUtils.isNotBlank(IdentityUtil.getProperty(IdentityConstants.ServerConfig.SAML_RESPONSE_VALIDITY_PERIOD))) {
             return Integer.parseInt(IdentityUtil.getProperty(

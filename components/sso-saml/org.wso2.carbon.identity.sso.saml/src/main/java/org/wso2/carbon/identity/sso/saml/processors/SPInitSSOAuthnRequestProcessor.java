@@ -111,8 +111,13 @@ public class SPInitSSOAuthnRequestProcessor implements SSOAuthnRequestProcessor{
                         !authenticatedSubjectIdentifier.equals(authnReqDTO.getSubject())) {
                     String msg = "Provided username does not match with the requested subject";
                     log.warn(msg);
-                    return buildErrorResponse(authnReqDTO.getId(),
-                            SAMLSSOConstants.StatusCodes.AUTHN_FAILURE, msg, authnReqDTO.getAssertionConsumerURL());
+
+                    List<String> statusCodes = new ArrayList<>();
+                    statusCodes.add(SAMLSSOConstants.StatusCodes.AUTHN_FAILURE);
+                    statusCodes.add(SAMLSSOConstants.StatusCodes.IDENTITY_PROVIDER_ERROR);
+
+                    return buildErrorResponse(authnReqDTO.getId(), statusCodes, msg, authnReqDTO
+                            .getAssertionConsumerURL());
                 }
             }
 
@@ -181,9 +186,13 @@ public class SPInitSSOAuthnRequestProcessor implements SSOAuthnRequestProcessor{
             return samlssoRespDTO;
         } catch (Exception e) {
             log.error("Error processing the authentication request", e);
+
+            List<String> statusCodes = new ArrayList<String>();
+            statusCodes.add(SAMLSSOConstants.StatusCodes.AUTHN_FAILURE);
+            statusCodes.add(SAMLSSOConstants.StatusCodes.IDENTITY_PROVIDER_ERROR);
+
             SAMLSSORespDTO errorResp =
-                    buildErrorResponse(authnReqDTO.getId(),
-                            SAMLSSOConstants.StatusCodes.AUTHN_FAILURE,
+                    buildErrorResponse(authnReqDTO.getId(), statusCodes,
                             "Authentication Failure, invalid username or password.", null);
             errorResp.setLoginPageURL(authnReqDTO.getLoginPageURL());
             return errorResp;
@@ -278,6 +287,18 @@ public class SPInitSSOAuthnRequestProcessor implements SSOAuthnRequestProcessor{
         Response resp = errRespBuilder.buildResponse(id, statusCodeList, statMsg, destination);
         String encodedResp = SAMLSSOUtil.compressResponse(SAMLSSOUtil.marshall(resp));
         samlSSORespDTO.setRespString(encodedResp);
+        samlSSORespDTO.setSessionEstablished(false);
+        return samlSSORespDTO;
+    }
+
+    private SAMLSSORespDTO buildErrorResponse(String id, List<String> statusCodeList,
+                                              String statMsg, String destination) throws Exception {
+        SAMLSSORespDTO samlSSORespDTO = new SAMLSSORespDTO();
+        ErrorResponseBuilder errRespBuilder = new ErrorResponseBuilder();
+        Response resp = errRespBuilder.buildResponse(id, statusCodeList, statMsg, destination);
+        String encodedResponse = SAMLSSOUtil.compressResponse(SAMLSSOUtil.marshall(resp));
+
+        samlSSORespDTO.setRespString(encodedResponse);
         samlSSORespDTO.setSessionEstablished(false);
         return samlSSORespDTO;
     }
