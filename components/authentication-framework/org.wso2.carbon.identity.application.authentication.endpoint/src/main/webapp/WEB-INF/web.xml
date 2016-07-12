@@ -46,6 +46,13 @@
         <param-value>http://localhost:8080/customauthenticationendpoint/retry.do?type=retry.do</param-value>
     </context-param-->
     <!-- *************** End of Global configurations ********************** -->
+
+    <!--Display scopes in the consent page.-->
+    <context-param>
+        <param-name>displayScopes</param-name>
+        <param-value>false</param-value>
+    </context-param>
+
     <filter>
         <filter-name>AuthenticationEndpointFilter</filter-name>
         <filter-class>org.wso2.carbon.identity.application.authentication.endpoint.util.filter.AuthenticationEndpointFilter</filter-class>
