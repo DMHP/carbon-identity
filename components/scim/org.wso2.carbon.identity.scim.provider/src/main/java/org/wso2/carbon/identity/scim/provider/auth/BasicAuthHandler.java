@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.cxf.jaxrs.model.ClassResourceInfo;
 import org.apache.cxf.message.Message;
+import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -31,6 +32,7 @@ import org.wso2.carbon.identity.scim.provider.util.SCIMProviderConstants;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import org.wso2.charon.core.exceptions.InternalServerException;
 import org.wso2.charon.core.exceptions.UnauthorizedException;
@@ -138,6 +140,15 @@ public class BasicAuthHandler implements SCIMAuthenticationHandler {
 
                             IdentityApplicationManagementUtil
                                     .setThreadLocalProvisioningServiceProvider(serviceProvider);
+
+                            // if username doesn't contain a domain, add domain to user
+                            // name in order to comply with multiple user store feature.
+                            if (!userName.contains(CarbonConstants.DOMAIN_SEPARATOR)) {
+                                String domain = UserCoreUtil.getDomainFromThreadLocal();
+                                if (domain != null) {
+                                    userName = domain + CarbonConstants.DOMAIN_SEPARATOR + userName;
+                                }
+                            }
 
                             // authentication success. set the username for authorization header and
                             // proceed the REST call
