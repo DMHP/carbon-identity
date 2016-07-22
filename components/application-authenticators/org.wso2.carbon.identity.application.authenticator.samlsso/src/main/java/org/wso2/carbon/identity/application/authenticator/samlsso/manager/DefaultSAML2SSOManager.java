@@ -441,11 +441,11 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
         // validate the assertion validity period
         validateAssertionValidityPeriod(assertion);
 
-        // validate signature this SP only looking for assertion signature
-        validateSignature(samlResponse, assertion);
-
         // validate audience restriction
         validateAudienceRestriction(assertion);
+
+        // validate signature this SP only looking for assertion signature
+        validateSignature(samlResponse, assertion);
 
         // Get the subject name from the Response Object and forward it to login_action.jsp
         String subject = null;
