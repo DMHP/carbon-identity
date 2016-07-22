@@ -60,6 +60,7 @@ import org.opensaml.saml2.core.impl.NameIDPolicyBuilder;
 import org.opensaml.saml2.core.impl.RequestedAuthnContextBuilder;
 import org.opensaml.saml2.core.impl.SessionIndexBuilder;
 import org.opensaml.saml2.encryption.Decrypter;
+import org.opensaml.security.SAMLSignatureProfileValidator;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.encryption.EncryptedKey;
 import org.opensaml.xml.io.Marshaller;
@@ -404,6 +405,9 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
             List<EncryptedAssertion> encryptedAssertions = samlResponse.getEncryptedAssertions();
             EncryptedAssertion encryptedAssertion = null;
             if (CollectionUtils.isNotEmpty(encryptedAssertions)) {
+                if (encryptedAssertions.size() != 1) {
+                    throw new SAMLSSOException("SAML Response contains multiple encrypted assertions");
+                }
                 encryptedAssertion = encryptedAssertions.get(0);
                 try {
                     assertion = getDecryptedAssertion(encryptedAssertion);
@@ -414,6 +418,9 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
         } else {
             List<Assertion> assertions = samlResponse.getAssertions();
             if (CollectionUtils.isNotEmpty(assertions)) {
+                if (assertions.size() != 1) {
+                    throw new SAMLSSOException("SAML Response contains multiple assertions");
+                }
                 assertion = assertions.get(0);
             }
         }
@@ -431,6 +438,15 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
             throw new SAMLSSOException("SAML Assertion not found in the Response");
         }
 
+        // validate the assertion validity period
+        validateAssertionValidityPeriod(assertion);
+
+        // validate signature this SP only looking for assertion signature
+        validateSignature(samlResponse, assertion);
+
+        // validate audience restriction
+        validateAudienceRestriction(assertion);
+
         // Get the subject name from the Response Object and forward it to login_action.jsp
         String subject = null;
         String nameQualifier = null;
@@ -446,12 +462,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
         request.getSession().setAttribute("username", subject); // get the subject
         nameQualifier = assertion.getSubject().getNameID().getNameQualifier();
         spNameQualifier = assertion.getSubject().getNameID().getSPNameQualifier();
-
-        // validate audience restriction
-        validateAudienceRestriction(assertion);
-
-        // validate signature this SP only looking for assertion signature
-        validateSignature(samlResponse, assertion);
 
         request.getSession(false).setAttribute("samlssoAttributes", getAssertionStatements(assertion));
 
@@ -850,6 +860,9 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
                         "not found in SAML Response element.");
             } else {
                 try {
+                    SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
+                    signatureProfileValidator.validate(response.getSignature());
+
                     X509Credential credential =
                             new X509CredentialImpl(tenantDomain, identityProvider.getCertificate());
                     SignatureValidator validator = new SignatureValidator(credential);
@@ -872,6 +885,9 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
                         "not found in SAML Assertion element.");
             } else {
                 try {
+                    SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
+                    signatureProfileValidator.validate(assertion.getSignature());
+
                     X509Credential credential =
                             new X509CredentialImpl(tenantDomain, identityProvider.getCertificate());
                     SignatureValidator validator = new SignatureValidator(credential);
@@ -880,6 +896,30 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
                     throw new SAMLSSOException("Signature validation failed for SAML Assertion", e);
                 }
             }
+        }
+    }
+
+    /**
+     * Validates the 'Not Before' and 'Not On Or After' conditions of the SAML Assertion
+     *
+     * @param assertion SAML Assertion element
+     * @throws SAMLSSOException
+     */
+    private void validateAssertionValidityPeriod(Assertion assertion) throws SAMLSSOException{
+
+        DateTime validFrom = assertion.getConditions().getNotBefore();
+        DateTime validTill = assertion.getConditions().getNotOnOrAfter();
+
+        if (validFrom != null && validFrom.isAfterNow()) {
+            throw new SAMLSSOException("Failed to meet SAML Assertion Condition 'Not Before'");
+        }
+
+        if (validTill != null && validTill.isBeforeNow()) {
+            throw new SAMLSSOException("Failed to meet SAML Assertion Condition 'Not On Or After'");
+        }
+
+        if (validFrom != null && validTill != null && validFrom.isAfter(validTill)) {
+            throw new SAMLSSOException("SAML Assertion Condition 'Not Before' must be less than the value of 'Not On Or After'");
         }
     }
 
