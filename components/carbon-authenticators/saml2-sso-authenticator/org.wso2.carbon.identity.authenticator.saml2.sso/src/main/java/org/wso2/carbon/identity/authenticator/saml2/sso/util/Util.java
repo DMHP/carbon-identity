@@ -88,8 +88,8 @@ public class Util {
             // Check for duplicate samlp:Response
             NodeList list = response.getDOM().getElementsByTagNameNS(SAMLConstants.SAML20P_NS, "Response");
             if (list.getLength() > 0) {
-                log.error("Invalid schema for the SAML2 reponse");
-                throw new SAML2SSOAuthenticatorException("Error occured while processing saml2 response");
+                log.error("Invalid schema for the SAML2 response");
+                throw new SAML2SSOAuthenticatorException("Error occurred while processing saml2 response");
             }
             return response;
         } catch (ParserConfigurationException e) {
