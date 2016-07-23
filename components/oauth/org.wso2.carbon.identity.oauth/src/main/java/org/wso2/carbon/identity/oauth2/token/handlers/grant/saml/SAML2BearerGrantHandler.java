@@ -443,6 +443,8 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
 
         try {
             profileValidator.validate(assertion.getSignature());
+            // Following code segment is taken from org.opensaml.security.SAMLSignatureProfileValidator
+            // of OpenSAML 2.6.4. This is done to get the latest XSW related fixes.
             SignatureImpl sigImpl = (SignatureImpl) assertion.getSignature();
             XMLSignature apacheSig = sigImpl.getXMLSignature();
             SignableSAMLObject signableObject = (SignableSAMLObject) sigImpl.getParent();
@@ -459,11 +461,14 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
             String uri = ref.getURI();
             validateReferenceURI(uri, signableObject);
             validateObjectChildren(apacheSig);
+            // End of OpenSAML 2.6.4 logic
+            // -----------------------------------------------------------------------------
         } catch (ValidationException e) {
             // Indicates signature did not conform to SAML Signature profile
             String logMsg = "Signature do not confirm to SAML signature profile. Possible XML Signature Wrapping " +
                     "Attack!";
             AUDIT_LOG.warn(logMsg);
+            log.error(logMsg);
             if (log.isDebugEnabled()) {
                 log.debug(logMsg, e);
             }
@@ -522,6 +527,8 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
         return true;
     }
 
+    // -----------------------------------------------------------------------------
+    // Start of ported OpenSAML 2.6.4 methods for XSW Prevention
     /**
      * Validate the Signature's Reference URI.
      * <p/>
@@ -571,5 +578,6 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
             throw new ValidationException("Signature contained illegal ds:Object children");
         }
     }
-    
+    // End of ported OpenSAML 2.6.4 methods for XSW Prevention
+    // -----------------------------------------------------------------------------
 }
