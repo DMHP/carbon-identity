@@ -23,8 +23,13 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.xml.security.exceptions.XMLSecurityException;
+import org.apache.xml.security.signature.Reference;
+import org.apache.xml.security.signature.XMLSignature;
+import org.apache.xml.security.utils.IdResolver;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
+import org.opensaml.common.SignableSAMLObject;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Audience;
 import org.opensaml.saml2.core.AudienceRestriction;
@@ -35,7 +40,12 @@ import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.security.x509.X509Credential;
 import org.opensaml.xml.signature.SignatureValidator;
+import org.opensaml.xml.signature.impl.SignatureImpl;
+import org.opensaml.xml.util.DatatypeHelper;
 import org.opensaml.xml.validation.ValidationException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.FederatedAuthenticatorConfig;
@@ -71,6 +81,7 @@ import java.util.Set;
 public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
 
     private static Log log = LogFactory.getLog(SAML2BearerGrantHandler.class);
+    private static final Log AUDIT_LOG = CarbonConstants.AUDIT_LOG;
     SAMLSignatureProfileValidator profileValidator = null;
 
     @Override
@@ -432,10 +443,30 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
 
         try {
             profileValidator.validate(assertion.getSignature());
+            SignatureImpl sigImpl = (SignatureImpl) assertion.getSignature();
+            XMLSignature apacheSig = sigImpl.getXMLSignature();
+            SignableSAMLObject signableObject = (SignableSAMLObject) sigImpl.getParent();
+
+            Reference ref = null;
+            try {
+                ref = apacheSig.getSignedInfo().item(0);
+            } catch (XMLSecurityException e) {
+                // This exception should never occur, because it's already checked
+                // from the previous call to signatureProfileValidator#validate
+                log.error("Apache XML Security exception obtaining Reference", e);
+                throw new ValidationException("Could not obtain Reference from Signature/SignedInfo", e);
+            }
+            String uri = ref.getURI();
+            validateReferenceURI(uri, signableObject);
+            validateObjectChildren(apacheSig);
         } catch (ValidationException e) {
             // Indicates signature did not conform to SAML Signature profile
-            log.error("Signature do not confirm to SAML signature profile.", e);
-
+            String logMsg = "Signature do not confirm to SAML signature profile. Possible XML Signature Wrapping " +
+                    "Attack!";
+            AUDIT_LOG.warn(logMsg);
+            if (log.isDebugEnabled()) {
+                log.debug(logMsg, e);
+            }
             return false;
         }
 
@@ -490,4 +521,55 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
 
         return true;
     }
+
+    /**
+     * Validate the Signature's Reference URI.
+     * <p/>
+     * First validate the Reference URI against the parent's ID itself.  Then validate that the
+     * URI (if non-empty) resolves to the same Element node as is cached by the SignableSAMLObject.
+     *
+     * @param uri            the Signature Reference URI attribute value
+     * @param signableObject the SignableSAMLObject whose signature is being validated
+     * @throws ValidationException if the URI is invalid or doesn't resolve to the expected DOM node
+     */
+    private void validateReferenceURI(String uri, SignableSAMLObject signableObject) throws ValidationException {
+        if (DatatypeHelper.isEmpty(uri)) {
+            return;
+        }
+
+        String uriID = uri.substring(1);
+
+        Element expected = signableObject.getDOM();
+        if (expected == null) {
+            log.error("SignableSAMLObject does not have a cached DOM Element.");
+            throw new ValidationException("SignableSAMLObject does not have a cached DOM Element.");
+        }
+        Document doc = expected.getOwnerDocument();
+
+        Element resolved = IdResolver.getElementById(doc, uriID);
+        if (resolved == null) {
+            log.error("Apache xmlsec IdResolver could not resolve the Element for id reference: " + uriID);
+            throw new ValidationException("Apache xmlsec IdResolver could not resolve the Element for id reference: "
+                    + uriID);
+        }
+
+        if (!expected.isSameNode(resolved)) {
+            log.error("Signature Reference URI " + uri + " did not resolve to the expected parent Element");
+            throw new ValidationException("Signature Reference URI did not resolve to the expected parent Element");
+        }
+    }
+
+    /**
+     * Validate that the Signature instance does not contain any ds:Object children.
+     *
+     * @param apacheSig the Apache XML Signature instance
+     * @throws ValidationException if the signature contains ds:Object children
+     */
+    private void validateObjectChildren(XMLSignature apacheSig) throws ValidationException {
+        if (apacheSig.getObjectLength() > 0) {
+            log.error("Signature contained " + apacheSig.getObjectLength() + " ds:Object child element(s)");
+            throw new ValidationException("Signature contained illegal ds:Object children");
+        }
+    }
+    
 }
