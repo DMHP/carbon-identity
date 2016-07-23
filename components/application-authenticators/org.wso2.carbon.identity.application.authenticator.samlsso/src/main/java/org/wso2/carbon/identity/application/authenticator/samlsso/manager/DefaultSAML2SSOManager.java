@@ -24,9 +24,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.impl.Constants;
 import org.apache.xerces.util.SecurityManager;
+import org.apache.xml.security.exceptions.XMLSecurityException;
+import org.apache.xml.security.signature.Reference;
+import org.apache.xml.security.signature.XMLSignature;
+import org.apache.xml.security.utils.IdResolver;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.common.SAMLVersion;
+import org.opensaml.common.SignableSAMLObject;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.common.Extensions;
 import org.opensaml.saml2.common.impl.ExtensionsBuilder;
@@ -74,11 +79,15 @@ import org.opensaml.xml.security.keyinfo.KeyInfoCredentialResolver;
 import org.opensaml.xml.security.keyinfo.StaticKeyInfoCredentialResolver;
 import org.opensaml.xml.security.x509.X509Credential;
 import org.opensaml.xml.signature.SignatureValidator;
+import org.opensaml.xml.signature.impl.SignatureImpl;
 import org.opensaml.xml.util.Base64;
+import org.opensaml.xml.util.DatatypeHelper;
 import org.opensaml.xml.util.XMLHelper;
 import org.opensaml.xml.validation.ValidationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
@@ -122,6 +131,7 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     private static final int ENTITY_EXPANSION_LIMIT = 0;
     private static final String SIGN_AUTH2_SAML_USING_SUPER_TENANT = "SignAuth2SAMLUsingSuperTenant";
     private static Log log = LogFactory.getLog(DefaultSAML2SSOManager.class);
+    private static Log AUDIT_LOG = CarbonConstants.AUDIT_LOG;
     private static boolean bootStrapped = false;
     private IdentityProvider identityProvider = null;
     private Map<String, String> properties;
@@ -742,6 +752,7 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
 
     private XMLObject unmarshall(String samlString) throws SAMLSSOException {
 
+        XMLObject response;
         try {
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             documentBuilderFactory.setNamespaceAware(true);
@@ -758,7 +769,14 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
             Element element = document.getDocumentElement();
             UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
             Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(element);
-            return unmarshaller.unmarshall(element);
+            response = unmarshaller.unmarshall(element);
+            // Check for duplicate samlp:Response
+            NodeList list = response.getDOM().getElementsByTagNameNS(SAMLConstants.SAML20P_NS, "Response");
+            if (list.getLength() > 0) {
+                log.error("Invalid schema for the SAML2 response. Multiple Response elements found.");
+                throw new SAMLSSOException("Error occurred while processing SAML2 response.");
+            }
+            return response;
         } catch (ParserConfigurationException e) {
             throw new SAMLSSOException("Error in unmarshalling SAML Request from the encoded String", e);
         } catch (UnmarshallingException e) {
@@ -849,53 +867,81 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
 
         if (SSOUtils.isAuthnResponseSigned(properties)) {
 
-            if (identityProvider.getCertificate() == null
-                    || identityProvider.getCertificate().isEmpty()) {
-                throw new SAMLSSOException(
-                        "SAMLResponse signing is enabled, but IdP doesn't have a certificate");
-            }
-
-            if (response.getSignature() == null) {
+            XMLObject signature = response.getSignature();
+            if (signature == null) {
                 throw new SAMLSSOException("SAMLResponse signing is enabled, but signature element " +
                         "not found in SAML Response element.");
             } else {
-                try {
-                    SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
-                    signatureProfileValidator.validate(response.getSignature());
-
-                    X509Credential credential =
-                            new X509CredentialImpl(tenantDomain, identityProvider.getCertificate());
-                    SignatureValidator validator = new SignatureValidator(credential);
-                    validator.validate(response.getSignature());
-                } catch (ValidationException e) {
-                    throw new SAMLSSOException("Signature validation failed for SAML Response", e);
-                }
+                validateSignature(signature);
             }
         }
         if (SSOUtils.isAssertionSigningEnabled(properties)) {
 
-            if (identityProvider.getCertificate() == null
-                    || identityProvider.getCertificate().isEmpty()) {
-                throw new SAMLSSOException(
-                        "SAMLAssertion signing is enabled, but IdP doesn't have a certificate");
-            }
-
-            if (assertion.getSignature() == null) {
+            XMLObject signature = assertion.getSignature();
+            if (signature == null) {
                 throw new SAMLSSOException("SAMLAssertion signing is enabled, but signature element " +
                         "not found in SAML Assertion element.");
             } else {
-                try {
-                    SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
-                    signatureProfileValidator.validate(assertion.getSignature());
-
-                    X509Credential credential =
-                            new X509CredentialImpl(tenantDomain, identityProvider.getCertificate());
-                    SignatureValidator validator = new SignatureValidator(credential);
-                    validator.validate(assertion.getSignature());
-                } catch (ValidationException e) {
-                    throw new SAMLSSOException("Signature validation failed for SAML Assertion", e);
-                }
+                validateSignature(signature);
             }
+        }
+    }
+
+    /**
+     * Validates the XML Signature object
+     *
+     * @param signature XMLObject
+     * @throws SAMLSSOException
+     */
+    private void validateSignature(XMLObject signature) throws SAMLSSOException {
+        SignatureImpl signImpl = (SignatureImpl) signature;
+        try {
+            SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
+            signatureProfileValidator.validate(signImpl);
+
+            // Following code segment is taken from org.opensaml.security.SAMLSignatureProfileValidator
+            // of OpenSAML 2.6.4. This is done to get the latest XSW related fixes.
+            XMLSignature apacheSig = signImpl.getXMLSignature();
+            SignableSAMLObject signableObject = (SignableSAMLObject) signature.getParent();
+
+            Reference ref = null;
+            try {
+                ref = apacheSig.getSignedInfo().item(0);
+            } catch (XMLSecurityException e) {
+                // This exception should never occur, because it's already checked
+                // from the previous call to signatureProfileValidator#validate
+                log.error("Apache XML Security exception obtaining Reference", e);
+                throw new ValidationException("Could not obtain Reference from Signature/SignedInfo", e);
+            }
+
+            String uri = ref.getURI();
+
+            validateReferenceURI(uri, signableObject);
+            validateObjectChildren(apacheSig);
+
+            // End of OpenSAML 2.6.4 logic
+            // -----------------------------------------------------------------------------
+
+        } catch (ValidationException ex) {
+            String logMsg = "Signature do not confirm to SAML signature profile. Possible XML Signature " +
+                    "Wrapping  Attack!";
+            AUDIT_LOG.warn(logMsg);
+            if (log.isDebugEnabled()) {
+                log.debug(logMsg, ex);
+            }
+            throw new SAMLSSOException(logMsg, ex);
+        }
+
+        if (identityProvider.getCertificate() == null || identityProvider.getCertificate().isEmpty()) {
+            throw new SAMLSSOException("Signature validation is enabled, but IdP doesn't have a certificate");
+        }
+
+        try{
+            X509Credential credential = new X509CredentialImpl(tenantDomain, identityProvider.getCertificate());
+            SignatureValidator validator = new SignatureValidator(credential);
+            validator.validate(signImpl);
+        } catch (ValidationException e) {
+            throw new SAMLSSOException("Signature validation failed for SAML Response", e);
         }
     }
 
@@ -920,6 +966,57 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
 
         if (validFrom != null && validTill != null && validFrom.isAfter(validTill)) {
             throw new SAMLSSOException("SAML Assertion Condition 'Not Before' must be less than the value of 'Not On Or After'");
+        }
+    }
+
+    /**
+     * Validate the Signature's Reference URI.
+     *
+     * First validate the Reference URI against the parent's ID itself.  Then validate that the
+     * URI (if non-empty) resolves to the same Element node as is cached by the SignableSAMLObject.
+     *
+     *
+     * @param uri the Signature Reference URI attribute value
+     * @param signableObject the SignableSAMLObject whose signature is being validated
+     * @throws ValidationException  if the URI is invalid or doesn't resolve to the expected DOM node
+     */
+    private void validateReferenceURI(String uri, SignableSAMLObject signableObject) throws ValidationException {
+        if (DatatypeHelper.isEmpty(uri)) {
+            return;
+        }
+
+        String uriID = uri.substring(1);
+
+        Element expected = signableObject.getDOM();
+        if (expected == null) {
+            log.error("SignableSAMLObject does not have a cached DOM Element.");
+            throw new ValidationException("SignableSAMLObject does not have a cached DOM Element.");
+        }
+        Document doc = expected.getOwnerDocument();
+
+        Element resolved = IdResolver.getElementById(doc, uriID);
+        if (resolved == null) {
+            log.error("Apache xmlsec IdResolver could not resolve the Element for id reference: " + uriID);
+            throw new ValidationException("Apache xmlsec IdResolver could not resolve the Element for id reference: "
+                    +  uriID);
+        }
+
+        if (!expected.isSameNode(resolved)) {
+            log.error("Signature Reference URI " + uri + " did not resolve to the expected parent Element");
+            throw new ValidationException("Signature Reference URI did not resolve to the expected parent Element");
+        }
+    }
+
+    /**
+     * Validate that the Signature instance does not contain any ds:Object children.
+     *
+     * @param apacheSig the Apache XML Signature instance
+     * @throws ValidationException if the signature contains ds:Object children
+     */
+    private void validateObjectChildren(XMLSignature apacheSig) throws ValidationException {
+        if (apacheSig.getObjectLength() > 0) {
+            log.error("Signature contained " + apacheSig.getObjectLength() + " ds:Object child element(s)");
+            throw new ValidationException("Signature contained illegal ds:Object children");
         }
     }
 

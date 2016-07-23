@@ -170,12 +170,12 @@ public class SAMLSSOAuthenticator extends AbstractApplicationAuthenticator imple
                             "Defaulting to Name Identifier.");
                 }
             }
-            idpSubject = (String) request.getSession().getAttribute("username");
             if (subject == null) {
+                idpSubject = (String) request.getSession().getAttribute("username");
+                if (idpSubject == null) {
+                    throw new SAMLSSOException("Cannot find federated User Identifier");
+                }
                 subject = idpSubject;
-            }
-            if (subject == null) {
-                throw new SAMLSSOException("Cannot find federated User Identifier");
             }
 
             Object sessionIndexObj = request.getSession(false).getAttribute(SSOConstants.IDP_SESSION);
