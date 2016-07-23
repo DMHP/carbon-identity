@@ -110,6 +110,7 @@
                             org.wso2.carbon.identity.base; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.authenticator.saml2.sso.common; version="${carbon.identity.package.import.version.range}",
                             org.joda.time; version="${opensaml2.wso2.osgi.version.range}",
+                            org.apache.xml.security.*; version="${wss4j.xml.security.imp.pkg.version.range}"
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.authenticator.saml2.sso.internal,
