@@ -675,7 +675,7 @@ public class SAMLSSOProviderServlet extends HttpServlet {
             } else { // if forceAuthn or normal flow
                 //TODO send a saml response with a status message.
                 if (!authResult.isAuthenticated()) {
-                    String destination = reqValidationDTO.getDestination();
+                    String destination = reqValidationDTO.getAssertionConsumerURL();
 
                     List<String> statusCodes = new ArrayList<String>();
                     statusCodes.add(SAMLSSOConstants.StatusCodes.AUTHN_FAILURE);
