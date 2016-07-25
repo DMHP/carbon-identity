@@ -102,7 +102,7 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
 
             Assertion assertion = getAssertionFromResponse((Response) xmlObject);
             if (assertion == null) {
-                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, username, -1,
+                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, "", -1,
                         "SAML2 SSO Authentication", "SAMLResponse does not contain a valid assertion");
                 return false;
             }
@@ -121,7 +121,7 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
             if ((username == null) || "".equals(username.trim())) {
                 log.error("Authentication Request is rejected. " +
                         "SAMLResponse does not contain the username of the subject.");
-                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, username, -1,
+                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, "", -1,
                         "SAML2 SSO Authentication", "SAMLResponse does not contain the username of the subject");
                 // Unable to call #handleAuthenticationCompleted since there is no way to determine
                 // tenantId without knowing the username.
