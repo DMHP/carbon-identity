@@ -415,9 +415,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
             List<EncryptedAssertion> encryptedAssertions = samlResponse.getEncryptedAssertions();
             EncryptedAssertion encryptedAssertion = null;
             if (CollectionUtils.isNotEmpty(encryptedAssertions)) {
-                if (encryptedAssertions.size() != 1) {
-                    throw new SAMLSSOException("SAML Response contains multiple encrypted assertions");
-                }
                 encryptedAssertion = encryptedAssertions.get(0);
                 try {
                     assertion = getDecryptedAssertion(encryptedAssertion);
@@ -428,9 +425,6 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
         } else {
             List<Assertion> assertions = samlResponse.getAssertions();
             if (CollectionUtils.isNotEmpty(assertions)) {
-                if (assertions.size() != 1) {
-                    throw new SAMLSSOException("SAML Response contains multiple assertions");
-                }
                 assertion = assertions.get(0);
             }
         }
@@ -774,6 +768,13 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
             NodeList list = response.getDOM().getElementsByTagNameNS(SAMLConstants.SAML20P_NS, "Response");
             if (list.getLength() > 0) {
                 log.error("Invalid schema for the SAML2 response. Multiple Response elements found.");
+                throw new SAMLSSOException("Error occurred while processing SAML2 response.");
+            }
+
+            // Checking for multiple Assertions
+            NodeList assertionList = response.getDOM().getElementsByTagNameNS(SAMLConstants.SAML20_NS, "Assertion");
+            if (assertionList.getLength() > 1) {
+                log.error("Invalid schema for the SAML2 response. Multiple Assertion elements found.");
                 throw new SAMLSSOException("Error occurred while processing SAML2 response.");
             }
             return response;
