@@ -146,7 +146,12 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
         try {
             XMLObject samlObject = IdentityUtil.unmarshall(new String(Base64.decodeBase64(
                     tokReqMsgCtx.getOauth2AccessTokenReqDTO().getAssertion())));
-            assertion = (Assertion) samlObject;
+            if (samlObject instanceof Assertion) {
+                assertion = (Assertion) samlObject;
+            } else {
+                log.error("Only Assertion objects are validated in SAML2Bearer Grant Type");
+                return false;
+            }
         } catch (IdentityException e) {
             // fault in the saml2 assertion
             if(log.isDebugEnabled()){
