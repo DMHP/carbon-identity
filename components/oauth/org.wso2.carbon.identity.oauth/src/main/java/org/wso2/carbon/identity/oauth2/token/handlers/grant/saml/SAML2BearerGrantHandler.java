@@ -30,6 +30,7 @@ import org.apache.xml.security.utils.IdResolver;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SignableSAMLObject;
+import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Audience;
 import org.opensaml.saml2.core.AudienceRestriction;
@@ -45,6 +46,7 @@ import org.opensaml.xml.util.DatatypeHelper;
 import org.opensaml.xml.validation.ValidationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
@@ -146,6 +148,14 @@ public class SAML2BearerGrantHandler extends AbstractAuthorizationGrantHandler {
         try {
             XMLObject samlObject = IdentityUtil.unmarshall(new String(Base64.decodeBase64(
                     tokReqMsgCtx.getOauth2AccessTokenReqDTO().getAssertion())));
+
+            // Validating for multiple assertions
+            NodeList assertionList = samlObject.getDOM().getElementsByTagNameNS(SAMLConstants.SAML20_NS, "Assertion");
+            if (assertionList.getLength() > 0) {
+                log.error("Invalid schema for SAML2 Assertion. Nested assertions detected.");
+                return false;
+            }
+
             if (samlObject instanceof Assertion) {
                 assertion = (Assertion) samlObject;
             } else {
