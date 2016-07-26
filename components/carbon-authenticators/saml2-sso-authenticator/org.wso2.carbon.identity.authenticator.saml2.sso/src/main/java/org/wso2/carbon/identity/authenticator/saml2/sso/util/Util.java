@@ -24,6 +24,7 @@ import org.apache.xerces.impl.Constants;
 import org.apache.xerces.util.SecurityManager;
 import org.opensaml.Configuration;
 import org.opensaml.common.xml.SAMLConstants;
+import org.opensaml.saml2.core.Assertion;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.io.Unmarshaller;
 import org.opensaml.xml.io.UnmarshallerFactory;
@@ -88,8 +89,21 @@ public class Util {
             // Check for duplicate samlp:Response
             NodeList list = response.getDOM().getElementsByTagNameNS(SAMLConstants.SAML20P_NS, "Response");
             if (list.getLength() > 0) {
-                log.error("Invalid schema for the SAML2 response");
+                log.error("Invalid schema for the SAML2 response. Multiple responses detected");
                 throw new SAML2SSOAuthenticatorException("Error occurred while processing saml2 response");
+            }
+
+            NodeList assertionList = response.getDOM().getElementsByTagNameNS(SAMLConstants.SAML20_NS, "Assertion");
+            if (response instanceof Assertion) {
+                if (assertionList.getLength() > 0) {
+                    log.error("Invalid schema for the SAML2 assertion. Multiple assertions detected");
+                    throw new SAML2SSOAuthenticatorException("Error occurred while processing saml2 response");
+                }
+            } else {
+                if (assertionList.getLength() > 1) {
+                    log.error("Invalid schema for the SAML2 response. Multiple assertions detected");
+                    throw new SAML2SSOAuthenticatorException("Error occurred while processing saml2 response");
+                }
             }
             return response;
         } catch (ParserConfigurationException e) {
