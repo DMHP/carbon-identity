@@ -100,23 +100,8 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
         try {
             XMLObject xmlObject = Util.unmarshall(org.wso2.carbon.identity.authenticator.saml2.sso.common.Util.decode(authDto.getResponse()));
 
-            Assertion assertion = getAssertionFromResponse((Response) xmlObject);
-            if (assertion == null) {
-                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, "", -1,
-                        "SAML2 SSO Authentication", "SAMLResponse does not contain a valid assertion");
-                return false;
-            }
-
-            validateAssertionValidityPeriod(assertion);
 
             username = org.wso2.carbon.identity.authenticator.saml2.sso.common.Util.getUsername(xmlObject);
-
-            if (!validateAudienceRestrictionInXML(xmlObject)) {
-                log.error("Authentication Request is rejected. SAMLResponse AudienceRestriction validation failed.");
-                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, username, -1,
-                        "SAML2 SSO Authentication", "AudienceRestriction validation failed");
-                return false;
-            }
 
             if ((username == null) || "".equals(username.trim())) {
                 log.error("Authentication Request is rejected. " +
@@ -125,6 +110,23 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
                         "SAML2 SSO Authentication", "SAMLResponse does not contain the username of the subject");
                 // Unable to call #handleAuthenticationCompleted since there is no way to determine
                 // tenantId without knowing the username.
+                return false;
+            }
+
+            try {
+                validateAssertionValidityPeriod(xmlObject);
+            } catch (SAML2SSOAuthenticatorException e) {
+                log.error("Authentication Request is rejected. " + e.getMessage());
+                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, username, -1,
+                        "SAML2 SSO Authentication", e.getMessage());
+                return false;
+            }
+
+
+            if (!validateAudienceRestrictionInXML(xmlObject)) {
+                log.error("Authentication Request is rejected. SAMLResponse AudienceRestriction validation failed.");
+                CarbonAuthenticationUtil.onFailedAdminLogin(httpSession, username, -1,
+                        "SAML2 SSO Authentication", "AudienceRestriction validation failed");
                 return false;
             }
 
@@ -536,13 +538,11 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
      */
     private Assertion getAssertionFromResponse(Response response) {
         Assertion assertion = null;
-        if (response != null) {
-            List<Assertion> assertions = response.getAssertions();
-            if (assertions != null && assertions.size() == 1) {
-                assertion = assertions.get(0);
-            } else {
-                log.error("Single Assertion is allowed in SAML2 Response");
-            }
+        List<Assertion> assertions = response.getAssertions();
+        if (assertions != null && !assertions.isEmpty()) {
+            assertion = assertions.get(0);
+        } else {
+            log.error("No Assertions found in SAML2 Response");
         }
         return assertion;
     }
@@ -868,10 +868,19 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
     /**
      * Validates the 'Not Before' and 'Not On Or After' conditions of the SAML Assertion
      *
-     * @param assertion SAML Assertion element
+     * @param xmlObject SAML Assertion element
      * @throws SAML2SSOAuthenticatorException
      */
-    private void validateAssertionValidityPeriod(Assertion assertion) throws SAML2SSOAuthenticatorException {
+    private void validateAssertionValidityPeriod(XMLObject xmlObject) throws SAML2SSOAuthenticatorException {
+        Assertion assertion;
+        if (xmlObject instanceof Response) {
+            assertion = getAssertionFromResponse((Response) xmlObject);
+        } else if (xmlObject instanceof Assertion) {
+            assertion = (Assertion) xmlObject;
+        } else {
+            throw new SAML2SSOAuthenticatorException("Only Response and Assertion objects are validated in this " +
+                    "authenticator");
+        }
 
         DateTime validFrom = assertion.getConditions().getNotBefore();
         DateTime validTill = assertion.getConditions().getNotOnOrAfter();
