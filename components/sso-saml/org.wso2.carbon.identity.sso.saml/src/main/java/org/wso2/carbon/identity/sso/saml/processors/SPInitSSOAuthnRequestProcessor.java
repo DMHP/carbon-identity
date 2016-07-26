@@ -280,19 +280,15 @@ public class SPInitSSOAuthnRequestProcessor implements SSOAuthnRequestProcessor{
      */
     private SAMLSSORespDTO buildErrorResponse(String id, String status,
                                               String statMsg, String destination) throws Exception {
-        SAMLSSORespDTO samlSSORespDTO = new SAMLSSORespDTO();
-        ErrorResponseBuilder errRespBuilder = new ErrorResponseBuilder();
+
         List<String> statusCodeList = new ArrayList<String>();
         statusCodeList.add(status);
-        Response resp = errRespBuilder.buildResponse(id, statusCodeList, statMsg, destination);
-        String encodedResp = SAMLSSOUtil.compressResponse(SAMLSSOUtil.marshall(resp));
-        samlSSORespDTO.setRespString(encodedResp);
-        samlSSORespDTO.setSessionEstablished(false);
-        return samlSSORespDTO;
+        return buildErrorResponse(id, statusCodeList, statMsg, destination);
     }
 
     private SAMLSSORespDTO buildErrorResponse(String id, List<String> statusCodeList,
                                               String statMsg, String destination) throws Exception {
+
         SAMLSSORespDTO samlSSORespDTO = new SAMLSSORespDTO();
         ErrorResponseBuilder errRespBuilder = new ErrorResponseBuilder();
         Response resp = errRespBuilder.buildResponse(id, statusCodeList, statMsg, destination);
