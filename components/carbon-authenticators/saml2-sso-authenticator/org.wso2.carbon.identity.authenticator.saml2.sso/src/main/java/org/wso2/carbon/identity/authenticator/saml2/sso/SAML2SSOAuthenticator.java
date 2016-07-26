@@ -882,6 +882,10 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
                     "authenticator");
         }
 
+        if (assertion == null) {
+            throw new SAML2SSOAuthenticatorException("Cannot find a SAML Assertion");
+        }
+
         DateTime validFrom = assertion.getConditions().getNotBefore();
         DateTime validTill = assertion.getConditions().getNotOnOrAfter();
 
