@@ -128,7 +128,6 @@ public class DefaultRequestPathBasedSequenceHandler implements RequestPathBasedS
                     if(log.isDebugEnabled()){
                         log.debug("InvalidCredentialsException stack trace : ", e);
                     }
-                    log.warn("A login attempt was failed due to invalid credentials");
                     context.setRequestAuthenticated(false);
                 } catch (AuthenticationFailedException e) {
                     log.error(e.getMessage(), e);
