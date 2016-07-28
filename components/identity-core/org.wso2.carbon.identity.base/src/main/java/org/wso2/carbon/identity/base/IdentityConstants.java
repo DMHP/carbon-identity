@@ -96,6 +96,9 @@ public class IdentityConstants {
     public final static String EVENT_LISTENER_ENABLE = "enable";
     public final static String EVENT_LISTENERS = "EventListeners";
     public final static String EVENT_LISTENER = "EventListener";
+    public final static String EVENT_LISTENER_PROPERTY = "Property";
+    public final static String EVENT_LISTENER_PROPERTY_NAME = "name";
+
 
     // Cache Config constants
     public final static String CACHE_CONFIG = "CacheConfig";
@@ -106,6 +109,33 @@ public class IdentityConstants {
     public final static String CACHE_ENABLE = "enable";
     public final static String CACHE_TIMEOUT = "timeout";
     public final static String CACHE_CAPACITY = "capacity";
+
+    // Cookie Config constants
+    public final static String COOKIES_CONFIG = "Cookies";
+    public final static String COOKIE = "Cookie";
+    public final static String COOKIE_NAME = "name";
+    public final static String COOKIE_DOMAIN = "domain";
+    public final static String COOKIE_COMMENT = "comment";
+    public final static String COOKIE_VERSION = "version";
+    public final static String COOKIE_PATH = "path";
+    public final static String COOKIE_MAX_AGE = "maxAge";
+    public final static String COOKIE_SECURE = "secure";
+    public final static String COOKIE_HTTP_ONLY = "httpOnly";
+
+    // HTTP headers which may contain IP address of the client in the order of priority
+    public static final String[] HEADERS_WITH_IP = {
+            "X-Forwarded-For",
+            "Proxy-Client-IP",
+            "WL-Proxy-Client-IP",
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_FORWARDED",
+            "HTTP_X_CLUSTER_CLIENT_IP",
+            "HTTP_CLIENT_IP",
+            "HTTP_FORWARDED_FOR",
+            "HTTP_FORWARDED",
+            "HTTP_VIA",
+            "REMOTE_ADDR"};
+    public static final String UNKNOWN = "unknown";
 
     private IdentityConstants() {
     }
@@ -184,6 +214,7 @@ public class IdentityConstants {
         public final static String XMPP_SETTINGS_PASSWORD = "MultifactorAuthentication.XMPPSettings.XMPPConfig.XMPPPassword";
 
         //SAML SSO Service config
+        public final static String SAMLSSO = "samlsso";
         public final static String ENTITY_ID = "SSOService.EntityID";
         public final static String SSO_IDP_URL = "SSOService.IdentityProviderURL";
         public final static String DEFAULT_LOGOUT_ENDPOINT = "SSOService.DefaultLogoutEndpoint";
@@ -196,6 +227,8 @@ public class IdentityConstants {
         public static final String SAML_RESPONSE_VALIDITY_PERIOD = "SSOService.SAMLResponseValidityPeriod";
         public static final String SSO_DEFAULT_SIGNING_ALGORITHM = "SSOService.SAMLDefaultSigningAlgorithmURI";
         public static final String SSO_DEFAULT_DIGEST_ALGORITHM = "SSOService.SAMLDefaultDigestAlgorithmURI";
+        public static final String SLO_HOST_NAME_VERIFICATION_ENABLED = "SSOService.SLOHostNameVerificationEnabled";
+
         //Identity Persistence Manager
         public static final String SKIP_DB_SCHEMA_CREATION = "JDBCPersistenceManager.SkipDBSchemaCreation";
 
@@ -206,8 +239,16 @@ public class IdentityConstants {
         public static final String CLEAN_UP_PERIOD = "JDBCPersistenceManager.SessionDataPersist.SessionDataCleanUp.CleanUpPeriod";
         public static final String CLEAN_UP_TIMEOUT = "JDBCPersistenceManager.SessionDataPersist.SessionDataCleanUp.CleanUpTimeout";
 
+        public static final String OPERATION_CLEAN_UP_PERIOD = "JDBCPersistenceManager.SessionDataPersist" +
+                ".OperationDataCleanUp.CleanUpPeriod";
+        public static final String OPERATION_CLEAN_UP_TIMEOUT = "JDBCPersistenceManager.SessionDataPersist" +
+                ".OperationDataCleanUp.CleanUpTimeout";
+
         public static final String CLEAN_UP_TIMEOUT_DEFAULT = "20160";
         public static final String CLEAN_UP_PERIOD_DEFAULT = "1140";
+
+        public static final String OPERATION_CLEAN_UP_TIMEOUT_DEFAULT = "1";
+        public static final String OPERATION_CLEAN_UP_PERIOD_DEFAULT = "720";
 
         //PassiveSTS
         public static final String PASSIVE_STS_RETRY = "PassiveSTS.RetryURL";
@@ -251,10 +292,57 @@ public class IdentityConstants {
     }
 
     /**
+     * Common constants related to OAuth.
+     */
+    public static class OAuth {
+
+        public static final String OAUTH1_REQUEST_TOKEN_URL = "OAuth.OAuth1RequestTokenUrl";
+        public static final String OAUTH1_AUTHORIZE_URL = "OAuth.OAuth1AuthorizeUrl";
+        public static final String OAUTH1_ACCESSTOKEN_URL = "OAuth.OAuth1AccessTokenUrl";
+        public static final String OAUTH2_AUTHZ_EP_URL = "OAuth.OAuth2AuthzEPUrl";
+        public static final String OAUTH2_TOKEN_EP_URL = "OAuth.OAuth2TokenEPUrl";
+        public static final String OAUTH2_USERINFO_EP_URL = "OAuth.OAuth2UserInfoEPUrl";
+        public static final String OAUTH2_REVOKE_EP_URL = "OAuth.OAuth2RevokeEPUrl";
+
+        public static final String REQUEST_TOKEN = "oauth/request-token";
+        public static final String AUTHORIZE_URL = "oauth/authorize-url";
+        public static final String ACCESS_TOKEN = "oauth/access-token";
+        public static final String AUTHORIZE = "oauth2/authorize";
+        public static final String TOKEN = "oauth2/token";
+        public static final String REVOKE = "oauth2/revoke";
+        public static final String USERINFO = "oauth2/userinfo";
+    }
+
+    /**
+     * Common constants related to STS
+     */
+    public static class STS {
+
+        public static final String PASSIVE_STS = "passivests";
+        public static final String WSO2_CARBON_STS = "wso2carbon-sts";
+        public static final String PSTS_IDENTITY_PROVIDER_URL = "PassiveSTS.IdentityProviderURL";
+        public static final String STS_IDENTITY_PROVIDER_URL = "SecurityTokenService.IdentityProviderURL";
+        public static final String PASSIVE_STS_SLO_HOST_NAME_VERIFICATION_ENABLED =
+                "PassiveSTS.SLOHostNameVerificationEnabled";
+    }
+
+    /**
+     * Common constants realted to SCIM
+     */
+    public static class SCIM {
+
+        public static final String USER_EP_URL = "SCIM.UserEPUrl";
+        public static final String GROUP_EP_URL = "SCIM.GroupEPUrl";
+        public static final String USER_EP = "wso2/scim/Users";
+        public static final String GROUP_EP = "wso2/scim/Users";
+    }
+
+    /**
      * Common constants related to OpenID.
      */
     public static class OpenId {
 
+        public final static String OPENID = "openid";
         public final static String NS = "http://schema.openid.net";
         public final static String OPENID_URL = "http://specs.openid.net/auth/2.0";
         public final static String ATTR_MODE = "openid.mode";

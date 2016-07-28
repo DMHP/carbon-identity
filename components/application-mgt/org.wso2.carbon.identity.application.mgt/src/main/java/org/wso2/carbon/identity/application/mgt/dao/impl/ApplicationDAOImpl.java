@@ -76,7 +76,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -260,13 +259,11 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             // by default authentication type would be default.
             // default authenticator is defined system-wide - in the configuration file.
             storeAppPrepStmt.setString(6, ApplicationConstants.AUTH_TYPE_DEFAULT);
+            storeAppPrepStmt.setString(7, "0");
+            storeAppPrepStmt.setString(8, "0");
             storeAppPrepStmt.execute();
 
             results = storeAppPrepStmt.getGeneratedKeys();
-
-            if (!connection.getAutoCommit()) {
-                connection.commit();
-            }
 
             int applicationId = 0;
             if (results.next()) {
@@ -285,6 +282,9 @@ public class ApplicationDAOImpl implements ApplicationDAO {
                         Arrays.asList(serviceProvider.getSpProperties()), tenantID);
             }
 
+            if (!connection.getAutoCommit()) {
+                connection.commit();
+            }
             if (log.isDebugEnabled()) {
                 log.debug("Application Stored successfully with application id " + applicationId);
             }
@@ -307,10 +307,6 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             IdentityApplicationManagementUtil.closeConnection(connection);
         }
     }
-
-    /**
-     *
-     */
 
     @Override
     public void updateApplication(ServiceProvider serviceProvider, String tenantDomain)
@@ -468,6 +464,17 @@ public class ApplicationDAOImpl implements ApplicationDAO {
 
     }
 
+    private List<Property> filterEmptyProperties(Property[] propertiesArray){
+        List<Property> propertyArrayList = new ArrayList<>();
+        if(ArrayUtils.isNotEmpty(propertiesArray)) {
+            for (Property property : propertiesArray) {
+                if (property != null && StringUtils.isNotBlank(property.getValue())) {
+                    propertyArrayList.add(property);
+                }
+            }
+        }
+        return propertyArrayList ;
+    }
     /**
      * @param applicationId
      * @param inBoundAuthenticationConfig
@@ -475,8 +482,8 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private void updateInboundAuthRequestConfiguration(int applicationId,
-                                                       InboundAuthenticationConfig inBoundAuthenticationConfig, Connection connection)
-            throws SQLException {
+            InboundAuthenticationConfig inBoundAuthenticationConfig, Connection connection)
+            throws IdentityApplicationManagementException {
         int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
 
         PreparedStatement inboundAuthReqConfigPrepStmt = null;
@@ -495,20 +502,56 @@ public class ApplicationDAOImpl implements ApplicationDAO {
                     .getInboundAuthenticationRequestConfigs();
 
             for (InboundAuthenticationRequestConfig authRequest : authRequests) {
-                if (authRequest == null || authRequest.getInboundAuthKey() == null
-                        || authRequest.getInboundAuthType() == null) {
+                if (authRequest == null || authRequest.getInboundAuthType() == null) {
                     log.warn("Invalid in-bound authentication request");
                     // not a valid authentication request. Must have client and a type.
                     continue;
                 }
-                // TENANT_ID, INBOUND_AUTH_KEY,INBOUND_AUTH_TYPE,PROP_NAME, PROP_VALUE, APP_ID
 
-                Property[] properties = authRequest.getProperties();
+                Property[] propertiesArray = authRequest.getProperties();
+                List<Property> propertyArrayList = new ArrayList<>();
 
-                if (properties != null && properties.length > 0) {
-                    for (Property prop : properties) {
+                String authKey = null;
+                if (standardInboundAuthTypes.contains(authRequest.getInboundAuthType())) {
+                    authKey = authRequest.getInboundAuthKey();
+                    propertyArrayList = filterEmptyProperties(propertiesArray);
+                } else {
+                    AbstractInboundAuthenticatorConfig inboundAuthenticatorConfig =
+                            ApplicationManagementServiceComponentHolder
+                                    .getInboundAuthenticatorConfig(authRequest.getInboundAuthType());
+                    if (inboundAuthenticatorConfig != null &&
+                            StringUtils.isNotBlank(inboundAuthenticatorConfig.getAuthKey())) {
+                        authKey = inboundAuthenticatorConfig.getAuthKey();
+                        propertyArrayList = filterEmptyProperties(propertiesArray);
+                    } else if (inboundAuthenticatorConfig != null &&
+                            StringUtils.isNotBlank(inboundAuthenticatorConfig.getRelyingPartyKey())) {
+                        if (propertiesArray != null && propertiesArray.length > 0) {
+                            for (Property prop : propertiesArray) {
+                                if (inboundAuthenticatorConfig.getRelyingPartyKey().equals(prop.getName())) {
+                                    if (StringUtils.isNotBlank(prop.getValue())) {
+                                        authKey = prop.getValue();
+                                    }
+                                } else {
+                                    if (StringUtils.isNotBlank(prop.getValue())) {
+                                        propertyArrayList.add(prop);
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        propertyArrayList = filterEmptyProperties(propertiesArray);
+                    }
+                }
+                if (StringUtils.isBlank(authKey)) {
+                    String applicationName = getApplicationName(applicationId, connection);
+                    if (StringUtils.isNotBlank(applicationName)) {
+                        authKey = applicationName;
+                    }
+                }
+                if (!propertyArrayList.isEmpty()) {
+                    for (Property prop : propertyArrayList) {
                         inboundAuthReqConfigPrepStmt.setInt(1, tenantID);
-                        inboundAuthReqConfigPrepStmt.setString(2,authRequest.getInboundAuthKey());
+                        inboundAuthReqConfigPrepStmt.setString(2,authKey);
                         inboundAuthReqConfigPrepStmt.setString(3,authRequest.getInboundAuthType());
                         inboundAuthReqConfigPrepStmt.setString(4,prop.getName());
                         inboundAuthReqConfigPrepStmt.setString(5,prop.getValue());
@@ -517,7 +560,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
                     }
                 } else {
                     inboundAuthReqConfigPrepStmt.setInt(1, tenantID);
-                    inboundAuthReqConfigPrepStmt.setString(2,authRequest.getInboundAuthKey());
+                    inboundAuthReqConfigPrepStmt.setString(2,authKey);
                     inboundAuthReqConfigPrepStmt.setString(3,authRequest.getInboundAuthType());
                     inboundAuthReqConfigPrepStmt.setString(4, null);
                     inboundAuthReqConfigPrepStmt.setString(5, null);
@@ -536,6 +579,8 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             }
 
             inboundAuthReqConfigPrepStmt.executeBatch();
+        } catch (SQLException e) {
+            log.error("Error occurred while updating the Inbound Authentication Request Configuration.", e);
         } finally {
             IdentityApplicationManagementUtil.closeStatement(inboundAuthReqConfigPrepStmt);
         }
@@ -548,7 +593,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private void updateInboundProvisioningConfiguration(int applicationId,
-                                                        InboundProvisioningConfig inBoundProvisioningConfig, Connection connection)
+            InboundProvisioningConfig inBoundProvisioningConfig, Connection connection)
             throws SQLException {
 
         int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
@@ -577,7 +622,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private void updateOutboundProvisioningConfiguration(int applicationId,
-                                                         OutboundProvisioningConfig outBoundProvisioningConfig, Connection connection)
+            OutboundProvisioningConfig outBoundProvisioningConfig, Connection connection)
             throws SQLException {
 
         int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
@@ -645,7 +690,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private InboundProvisioningConfig getInboundProvisioningConfiguration(int applicationId,
-                                                                          Connection connection, int tenantID) throws SQLException {
+            Connection connection, int tenantID) throws SQLException {
 
         PreparedStatement inboundProConfigPrepStmt = null;
         InboundProvisioningConfig inBoundProvisioningConfig = new InboundProvisioningConfig();
@@ -678,7 +723,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private OutboundProvisioningConfig getOutboundProvisioningConfiguration(int applicationId,
-                                                                            Connection connection, int tenantID) throws SQLException {
+            Connection connection, int tenantID) throws SQLException {
 
         PreparedStatement outboundProConfigPrepStmt = null;
         OutboundProvisioningConfig outBoundProvisioningConfig = new OutboundProvisioningConfig();
@@ -722,7 +767,8 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             }
 
             outBoundProvisioningConfig.setProvisioningIdentityProviders(idpProConnectors
-                    .toArray(new IdentityProvider[idpProConnectors.size()]));
+                    .toArray(new IdentityProvider[idpProConnectors
+                            .size()]));
 
         } finally {
             IdentityApplicationManagementUtil.closeStatement(outboundProConfigPrepStmt);
@@ -738,7 +784,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws IdentityApplicationManagementException
      */
     private void updateLocalAndOutboundAuthenticationConfiguration(int applicationId,
-                                                                   LocalAndOutboundAuthenticationConfig localAndOutboundAuthConfig, Connection connection)
+            LocalAndOutboundAuthenticationConfig localAndOutboundAuthConfig, Connection connection)
             throws SQLException, IdentityApplicationManagementException {
 
         int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
@@ -1019,7 +1065,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private void updateClaimConfiguration(int applicationId, ClaimConfig claimConfiguration,
-                                          int applicationID, Connection connection) throws SQLException {
+            int applicationID, Connection connection) throws SQLException {
 
         int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
 
@@ -1131,7 +1177,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private void updatePermissionAndRoleConfiguration(int applicationID,
-                                                      PermissionsAndRoleConfig permissionsAndRoleConfiguration, Connection connection)
+            PermissionsAndRoleConfig permissionsAndRoleConfiguration, Connection connection)
             throws SQLException {
 
         if (permissionsAndRoleConfiguration == null
@@ -1166,10 +1212,6 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             IdentityApplicationManagementUtil.closeStatement(storeRoleMapPrepStmt);
         }
     }
-
-    /**
-     *
-     */
 
     @Override
     public ServiceProvider getApplication(String applicationName, String tenantDomain)
@@ -1257,7 +1299,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private ServiceProvider getBasicApplicationData(String applicationName, Connection connection,
-                                                    int tenantID)
+            int tenantID)
             throws SQLException, IdentityApplicationManagementException {
 
         ServiceProvider serviceProvider = null;
@@ -1530,6 +1572,52 @@ public class ApplicationDAOImpl implements ApplicationDAO {
         return applicationId;
     }
 
+
+    /**
+     * Reading the mapping of properties.
+     *
+     * @param customAuthenticator
+     * @param propertyName
+     * @return
+     */
+    private Property getMappedProperty(AbstractInboundAuthenticatorConfig customAuthenticator, String propertyName) {
+        Property property = null;
+        if (customAuthenticator != null) {
+            Property[] confProps = customAuthenticator.getConfigurationProperties();
+            if (confProps != null) {
+                for (Property confProp : confProps) {
+                    if (propertyName != null && propertyName.equals(confProp.getName())) {
+                        property = confProp;
+                    }
+                }
+            }
+        }
+        return property;
+    }
+
+    /**
+     * Merge properties from config to request.
+     *
+     * @param sources
+     * @param destinations
+     */
+    private void mergedPropertiesMetaData(Property[] sources, Property[] destinations) {
+        Map<String, Property> destinationMap = new HashMap<>();
+        if (ArrayUtils.isNotEmpty(destinations)) {
+            for (Property destination : destinations) {
+                destinationMap.put(destination.getName(), destination);
+            }
+        }
+        if (ArrayUtils.isNotEmpty(sources)) {
+            for (Property source : sources) {
+                Property property = destinationMap.get(source.getName());
+                if (property == null) {
+                    destinationMap.put(source.getName(), source);
+                }
+            }
+        }
+    }
+
     /**
      * @param applicationId
      * @param connection
@@ -1537,21 +1625,18 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private InboundAuthenticationConfig getInboundAuthenticationConfig(int applicationId,
-                                                                       Connection connection, int tenantID) throws SQLException {
-
-        Map<String, InboundAuthenticationRequestConfig> authRequestMap = new HashMap<String, InboundAuthenticationRequestConfig>();
-
+            Connection connection, int tenantID)
+            throws SQLException {
         if (log.isDebugEnabled()) {
             log.debug("Reading Clients of Application " + applicationId);
         }
+        Map<String, InboundAuthenticationRequestConfig> inboundAuthenticationRequestConfigMap =
+                new HashMap<String, InboundAuthenticationRequestConfig>();
 
         PreparedStatement getClientInfo = null;
         ResultSet resultSet = null;
-        Map<String, List<String>> customAuthenticatorsAlreadyIn = new HashMap<String, List<String>>();
 
         try {
-
-            // INBOUND_AUTH_KEY, INBOUND_AUTH_TYPE, PROP_NAME, PROP_VALUE
             getClientInfo = connection
                     .prepareStatement(ApplicationMgtDBQueries.LOAD_CLIENTS_INFO_BY_APP_ID);
 
@@ -1560,104 +1645,105 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             resultSet = getClientInfo.executeQuery();
 
             while (resultSet.next()) {
-
-                InboundAuthenticationRequestConfig inbountAuthRequest = null;
                 String authKey = resultSet.getString(1);
                 //this is done to handle empty string added to oracle database as null.
-                if (authKey == null){
-                    authKey = "";
+                if (authKey == null) {
+                    authKey = new String();
                 }
                 String authType = resultSet.getString(2);
-                String mapKey = authType + ":" + authKey;
-                boolean isCustomAuthenticator = isCustomInboundAuthType(authType);
-
-                if (!authRequestMap.containsKey(mapKey)) {
-                    inbountAuthRequest = new InboundAuthenticationRequestConfig();
-                    inbountAuthRequest.setInboundAuthKey(authKey);
-                    inbountAuthRequest.setInboundAuthType(authType);
-                    inbountAuthRequest.setProperties(new Property[0]);
-                    authRequestMap.put(mapKey, inbountAuthRequest);
-                }
-
-                inbountAuthRequest = authRequestMap.get(mapKey);
-
                 String propName = resultSet.getString(3);
+                String propValue = resultSet.getString(4);
 
+                String mapKey = authType + ":" + authKey;
+
+                InboundAuthenticationRequestConfig inboundAuthRequest = null;
+                if ((inboundAuthRequest = inboundAuthenticationRequestConfigMap.get(mapKey)) == null) {
+                    inboundAuthRequest = new InboundAuthenticationRequestConfig();
+                }
+                inboundAuthRequest.setInboundAuthKey(authKey);
+                inboundAuthRequest.setInboundAuthType(authType);
+
+                boolean isCustomAuthenticator = isCustomInboundAuthType(authType);
+                AbstractInboundAuthenticatorConfig customAuthenticator = ApplicationManagementServiceComponentHolder
+                        .getInboundAuthenticatorConfig(authType);
+                if (isCustomAuthenticator && customAuthenticator != null) {
+                    inboundAuthRequest.setFriendlyName(customAuthenticator.getFriendlyName());
+                }
                 if (propName != null) {
                     Property prop = new Property();
                     prop.setName(propName);
-                    prop.setValue(resultSet.getString(4));
-
+                    prop.setValue(propValue);
                     if (isCustomAuthenticator) {
-                        AbstractInboundAuthenticatorConfig customAuthenticator = ApplicationManagementServiceComponentHolder
-                                .getInboundAuthenticatorConfig(authType);
                         if (customAuthenticator != null) {
-                            Property[] confProps = customAuthenticator.getConfigurationProperties();
-                            for (Property confProp : confProps) {
-                                if (confProp.getName().equals(propName)) {
-                                    prop.setDisplayName(confProp.getDisplayName());
-                                    break;
-                                }
+                            Property mappedProperty = getMappedProperty(customAuthenticator, propName);
+                            if (mappedProperty != null) {
+                                prop.setDisplayName(mappedProperty.getDisplayName());
                             }
                         }
-                        inbountAuthRequest.setFriendlyName(customAuthenticator.getFriendlyName());
-
-                        if (!customAuthenticatorsAlreadyIn.containsKey(authType)) {
-                            customAuthenticatorsAlreadyIn.put(authType, new ArrayList<String>());
-
-                        }
-
-                        List<String> propNamesIn = customAuthenticatorsAlreadyIn.get(authType);
-                        propNamesIn.add(propName);
                     }
-
-                    inbountAuthRequest.setProperties((ApplicationMgtUtil.concatArrays(
-                            new Property[]{prop}, inbountAuthRequest.getProperties())));
+                    inboundAuthRequest.setProperties((ApplicationMgtUtil.concatArrays(
+                            new Property[]{prop}, inboundAuthRequest.getProperties())));
                 }
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Auth request key: " + inbountAuthRequest.getInboundAuthKey()
-                            + " Auth request type: " + inbountAuthRequest.getInboundAuthType());
-                }
+                inboundAuthenticationRequestConfigMap.put(mapKey, inboundAuthRequest);
             }
-
         } finally {
             IdentityApplicationManagementUtil.closeStatement(getClientInfo);
             IdentityApplicationManagementUtil.closeResultSet(resultSet);
         }
-
-        Map<String, AbstractInboundAuthenticatorConfig> allCustomAuthenticators = ApplicationManagementServiceComponentHolder
-                .getAllInboundAuthenticatorConfig();
-
-        Iterator<Entry<String, AbstractInboundAuthenticatorConfig>> it = allCustomAuthenticators.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, AbstractInboundAuthenticatorConfig> entry = it.next();
-
-            if (!customAuthenticatorsAlreadyIn.containsKey(entry.getKey())) {
-                InboundAuthenticationRequestConfig inbountAuthRequest = new InboundAuthenticationRequestConfig();
-                inbountAuthRequest.setInboundAuthKey(entry.getValue().getAuthKey());
-                inbountAuthRequest.setInboundAuthType(entry.getValue().getName());
-                inbountAuthRequest.setFriendlyName(entry.getValue().getFriendlyName());
-                inbountAuthRequest.setProperties(entry.getValue().getConfigurationProperties());
-                authRequestMap.put(entry.getValue().getName() + ":" + entry.getValue().getAuthKey(), inbountAuthRequest);
-            } else {
-                InboundAuthenticationRequestConfig inbountAuthRequest = authRequestMap.get(entry.getValue().getName()
-                        + ":" + entry.getValue().getAuthKey());
-                List<String> propsAlreadyIn = customAuthenticatorsAlreadyIn.get(entry.getKey());
-                for (Property prop : entry.getValue().getConfigurationProperties()) {
-                    if (!propsAlreadyIn.contains(prop.getName())) {
-                        inbountAuthRequest.setProperties(ApplicationMgtUtil.concatArrays(new Property[] { prop },
-                                inbountAuthRequest.getProperties()));
-
+        Map<String, AbstractInboundAuthenticatorConfig> allCustomAuthenticators =
+                new HashMap<>(ApplicationManagementServiceComponentHolder
+                        .getAllInboundAuthenticatorConfig());
+        for (Map.Entry<String, InboundAuthenticationRequestConfig> entry : inboundAuthenticationRequestConfigMap
+                .entrySet()) {
+            InboundAuthenticationRequestConfig inboundAuthenticationRequestConfig = entry.getValue();
+            AbstractInboundAuthenticatorConfig inboundAuthenticatorConfig =
+                    allCustomAuthenticators.remove(inboundAuthenticationRequestConfig.getInboundAuthType());
+            if (inboundAuthenticatorConfig != null && inboundAuthenticationRequestConfig != null) {
+                Property[] sources = inboundAuthenticatorConfig.getConfigurationProperties();
+                Property[] destinations = inboundAuthenticationRequestConfig.getProperties();
+                Map<String, Property> destinationMap = new HashMap<>();
+                for (Property destination : destinations) {
+                    destinationMap.put(destination.getName(), destination);
+                }
+                for (Property source : sources) {
+                    Property property = destinationMap.get(source.getName());
+                    if (property == null) {
+                        if (isCustomInboundAuthType(inboundAuthenticationRequestConfig.getInboundAuthType())) {
+                            if (inboundAuthenticatorConfig.isRelyingPartyKeyConfigured()) {
+                                if (inboundAuthenticatorConfig.getAuthKey() == null &&
+                                        inboundAuthenticatorConfig.getRelyingPartyKey().equals(source.getName())) {
+                                    source.setValue(inboundAuthenticationRequestConfig.getInboundAuthKey());
+                                }
+                            }
+                        }
+                        destinationMap.put(source.getName(), source);
                     }
                 }
+                inboundAuthenticationRequestConfig
+                        .setProperties(destinationMap.values().toArray(new Property[destinationMap.size()]));
+            }
+        }
+        List<InboundAuthenticationRequestConfig> returnList =
+                new ArrayList<>(inboundAuthenticationRequestConfigMap.values());
+
+        for (Map.Entry<String, AbstractInboundAuthenticatorConfig> entry : allCustomAuthenticators.entrySet()) {
+            AbstractInboundAuthenticatorConfig inboundAuthenticatorConfig = entry.getValue();
+            InboundAuthenticationRequestConfig inboundAuthenticationRequestConfig =
+                    new InboundAuthenticationRequestConfig();
+            if (!inboundAuthenticatorConfig.isRelyingPartyKeyConfigured() &&
+                    StringUtils.isNotBlank(inboundAuthenticatorConfig.getAuthKey())) {
+                inboundAuthenticationRequestConfig.setInboundAuthKey(inboundAuthenticatorConfig.getAuthKey());
             }
 
+            inboundAuthenticationRequestConfig.setInboundAuthType(inboundAuthenticatorConfig.getName());
+            inboundAuthenticationRequestConfig.setFriendlyName(inboundAuthenticatorConfig.getFriendlyName());
+            inboundAuthenticationRequestConfig.setProperties(inboundAuthenticatorConfig.getConfigurationProperties());
+            returnList.add(inboundAuthenticationRequestConfig);
         }
-
         InboundAuthenticationConfig inboundAuthenticationConfig = new InboundAuthenticationConfig();
-        inboundAuthenticationConfig.setInboundAuthenticationRequestConfigs(authRequestMap.values()
-                .toArray(new InboundAuthenticationRequestConfig[authRequestMap.size()]));
+        inboundAuthenticationConfig.setInboundAuthenticationRequestConfigs(returnList
+                .toArray(new InboundAuthenticationRequestConfig[returnList
+                        .size()]));
         return inboundAuthenticationConfig;
     }
 
@@ -1811,13 +1897,13 @@ public class ApplicationDAOImpl implements ApplicationDAO {
 
                 if (localAndOutboundConfigResultSet.next()) {
                     localAndOutboundConfiguration.setUseTenantDomainInLocalSubjectIdentifier("1"
-                           .equals(localAndOutboundConfigResultSet.getString(1)));
+                            .equals(localAndOutboundConfigResultSet.getString(1)));
                     localAndOutboundConfiguration.setUseUserstoreDomainInLocalSubjectIdentifier("1"
-                           .equals(localAndOutboundConfigResultSet.getString(2)));
+                            .equals(localAndOutboundConfigResultSet.getString(2)));
                     localAndOutboundConfiguration.setAlwaysSendBackAuthenticatedListOfIdPs("1"
-                           .equals(localAndOutboundConfigResultSet.getString(3)));
+                            .equals(localAndOutboundConfigResultSet.getString(3)));
                     localAndOutboundConfiguration.setSubjectClaimUri(localAndOutboundConfigResultSet
-                           .getString(4));
+                            .getString(4));
                 }
             } finally {
                 IdentityApplicationManagementUtil.closeStatement(localAndOutboundConfigPrepStmt);
@@ -1944,7 +2030,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
                 claimConfig.setRoleClaimURI(loadClaimConfigsResultSet.getString(1));
                 claimConfig.setLocalClaimDialect("1".equals(loadClaimConfigsResultSet.getString(2)));
                 claimConfig.setAlwaysSendMappedLocalSubjectId("1".equals(loadClaimConfigsResultSet
-                                                                                 .getString(3)));
+                        .getString(3)));
             }
         } catch (SQLException e) {
             throw new IdentityApplicationManagementException("Error while retrieving all application");
@@ -1963,7 +2049,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws IdentityApplicationManagementException
      */
     private RequestPathAuthenticatorConfig[] getRequestPathAuthenticators(int applicationId,
-                                                                          Connection connection, int tenantID) throws IdentityApplicationManagementException {
+            Connection connection, int tenantID) throws IdentityApplicationManagementException {
 
         PreparedStatement loadReqPathAuthenticators = null;
         ResultSet authResultSet = null;
@@ -1999,7 +2085,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws IdentityApplicationManagementException
      */
     private void updateRequestPathAuthenticators(int applicationId,
-                                                 RequestPathAuthenticatorConfig[] authenticators, Connection connection)
+            RequestPathAuthenticatorConfig[] authenticators, Connection connection)
             throws IdentityApplicationManagementException {
 
         int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
@@ -2062,7 +2148,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws IdentityApplicationManagementException
      */
     private List<RoleMapping> getRoleMappingOfApplication(int applicationId, Connection connection,
-                                                          int tenantID) throws IdentityApplicationManagementException {
+            int tenantID) throws IdentityApplicationManagementException {
 
         ArrayList<RoleMapping> roleMappingList = new ArrayList<RoleMapping>();
 
@@ -2285,7 +2371,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private void deleteLocalAndOutboundAuthenticationConfiguration(int applicationId,
-                                                                   Connection connection) throws SQLException {
+            Connection connection) throws SQLException {
 
         if (log.isDebugEnabled()) {
             log.debug("Deleting Steps of Application " + applicationId);
@@ -2460,7 +2546,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * (java.lang.String, java.lang.String, java.lang.String)
      */
     public String getServiceProviderNameByClientId(String clientId, String clientType,
-                                                   String tenantDomain) throws IdentityApplicationManagementException {
+            String tenantDomain) throws IdentityApplicationManagementException {
         int tenantID = -123;
 
         if (tenantDomain != null) {
@@ -2510,7 +2596,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws IdentityApplicationManagementException
      */
     private Map<String, String> getClaimMapping(String serviceProviderName, String tenantDomain,
-                                                boolean localIdpAsKey) throws SQLException, IdentityApplicationManagementException {
+            boolean localIdpAsKey) throws SQLException, IdentityApplicationManagementException {
 
         int tenantID = -123;
 
@@ -2559,7 +2645,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
 
     @Override
     public Map<String, String> getServiceProviderToLocalIdPClaimMapping(String serviceProviderName,
-                                                                        String tenantDomain) throws IdentityApplicationManagementException {
+            String tenantDomain) throws IdentityApplicationManagementException {
         try {
             return getClaimMapping(serviceProviderName, tenantDomain, false);
         } catch (SQLException e) {
@@ -2570,7 +2656,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
 
     @Override
     public Map<String, String> getLocalIdPToServiceProviderClaimMapping(String serviceProviderName,
-                                                                        String tenantDomain) throws IdentityApplicationManagementException {
+            String tenantDomain) throws IdentityApplicationManagementException {
         try {
             return getClaimMapping(serviceProviderName, tenantDomain, true);
         } catch (SQLException e) {
@@ -2581,7 +2667,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
 
     @Override
     public List<String> getAllRequestedClaimsByServiceProvider(String serviceProviderName,
-                                                               String tenantDomain) throws IdentityApplicationManagementException {
+            String tenantDomain) throws IdentityApplicationManagementException {
         int tenantID = -123;
 
         if (tenantDomain != null) {
@@ -2637,7 +2723,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private int getAuthentictorID(Connection conn, int tenantId, String idpName,
-                                  String authenticatorName) throws SQLException {
+            String authenticatorName) throws SQLException {
         if (idpName == null || idpName.isEmpty()) {
             return -1;
         }
@@ -2671,7 +2757,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private Map<String, String> getAuthenticatorInfo(Connection conn, int tenantId,
-                                                     int authenticatorId) throws SQLException {
+            int authenticatorId) throws SQLException {
         PreparedStatement prepStmt = null;
         ResultSet rs = null;
         String sqlStmt = ApplicationMgtDBQueries.LOAD_IDP_AND_AUTHENTICATOR_NAMES;
@@ -2706,7 +2792,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @throws SQLException
      */
     private int addAuthenticator(Connection conn, int tenantId, String idpName,
-                                 String authenticatorName, String authenticatorDispalyName) throws SQLException {
+            String authenticatorName, String authenticatorDispalyName) throws SQLException {
         int authenticatorId = -1;
         PreparedStatement prepStmt = null;
         ResultSet rs = null;
