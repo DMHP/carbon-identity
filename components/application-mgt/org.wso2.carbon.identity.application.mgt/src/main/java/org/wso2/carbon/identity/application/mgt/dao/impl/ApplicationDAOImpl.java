@@ -516,9 +516,10 @@ public class ApplicationDAOImpl implements ApplicationDAO {
                     authKey = authRequest.getInboundAuthKey();
                     propertyArrayList = filterEmptyProperties(propertiesArray);
                 } else {
+                    String configType = getConfigTypeFromSPProperties(getServicePropertiesBySpId(connection,
+                            applicationId));
                     AbstractInboundAuthenticatorConfig inboundAuthenticatorConfig =
-                            ApplicationManagementServiceComponentHolder
-                                    .getInboundAuthenticatorConfig(authRequest.getInboundAuthType());
+                            ApplicationManagementServiceComponentHolder.getInboundAuthenticatorConfig(configType);
                     if (inboundAuthenticatorConfig != null &&
                             StringUtils.isNotBlank(inboundAuthenticatorConfig.getAuthKey())) {
                         authKey = inboundAuthenticatorConfig.getAuthKey();
@@ -1250,9 +1251,10 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             }
 
             applicationId = serviceProvider.getApplicationID();
-
-            serviceProvider.setInboundAuthenticationConfig(getInboundAuthenticationConfig(
-                    applicationId, connection, tenantID));
+            List<ServiceProviderProperty> propertyList = getServicePropertiesBySpId(connection, applicationId);
+            serviceProvider.setSpProperties(propertyList.toArray(new ServiceProviderProperty[propertyList.size()]));
+            serviceProvider.setInboundAuthenticationConfig(getInboundAuthenticationConfig(applicationId, connection,
+                    tenantID, propertyList));
             serviceProvider
                     .setLocalAndOutBoundAuthenticationConfig(getLocalAndOutboundAuthenticationConfig(
                             applicationId, connection, tenantID));
@@ -1278,9 +1280,6 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             RequestPathAuthenticatorConfig[] requestPathAuthenticators = getRequestPathAuthenticators(
                     applicationId, connection, tenantID);
             serviceProvider.setRequestPathAuthenticatorConfigs(requestPathAuthenticators);
-
-            List<ServiceProviderProperty> propertyList = getServicePropertiesBySpId(connection, applicationId);
-            serviceProvider.setSpProperties(propertyList.toArray(new ServiceProviderProperty[propertyList.size()]));
 
             return serviceProvider;
 
@@ -1624,21 +1623,20 @@ public class ApplicationDAOImpl implements ApplicationDAO {
      * @return
      * @throws SQLException
      */
-    private InboundAuthenticationConfig getInboundAuthenticationConfig(int applicationId,
-            Connection connection, int tenantID)
-            throws SQLException {
+    private InboundAuthenticationConfig getInboundAuthenticationConfig(int applicationId, Connection connection, int
+            tenantID, List<ServiceProviderProperty> spProperties) throws SQLException {
+
         if (log.isDebugEnabled()) {
             log.debug("Reading Clients of Application " + applicationId);
         }
         Map<String, InboundAuthenticationRequestConfig> inboundAuthenticationRequestConfigMap =
                 new HashMap<String, InboundAuthenticationRequestConfig>();
-
         PreparedStatement getClientInfo = null;
         ResultSet resultSet = null;
-
+        String wellKnownApplicationType = getConfigTypeFromSPProperties(spProperties);
         try {
-            getClientInfo = connection
-                    .prepareStatement(ApplicationMgtDBQueries.LOAD_CLIENTS_INFO_BY_APP_ID);
+            // INBOUND_AUTH_KEY, INBOUND_AUTH_TYPE, PROP_NAME, PROP_VALUE
+            getClientInfo = connection.prepareStatement(ApplicationMgtDBQueries.LOAD_CLIENTS_INFO_BY_APP_ID);
 
             getClientInfo.setInt(1, applicationId);
             getClientInfo.setInt(2, tenantID);
@@ -1665,7 +1663,7 @@ public class ApplicationDAOImpl implements ApplicationDAO {
 
                 boolean isCustomAuthenticator = isCustomInboundAuthType(authType);
                 AbstractInboundAuthenticatorConfig customAuthenticator = ApplicationManagementServiceComponentHolder
-                        .getInboundAuthenticatorConfig(authType);
+                        .getInboundAuthenticatorConfig(wellKnownApplicationType);
                 if (isCustomAuthenticator && customAuthenticator != null) {
                     inboundAuthRequest.setFriendlyName(customAuthenticator.getFriendlyName());
                 }
@@ -1690,14 +1688,13 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             IdentityApplicationManagementUtil.closeStatement(getClientInfo);
             IdentityApplicationManagementUtil.closeResultSet(resultSet);
         }
-        Map<String, AbstractInboundAuthenticatorConfig> allCustomAuthenticators =
-                new HashMap<>(ApplicationManagementServiceComponentHolder
-                        .getAllInboundAuthenticatorConfig());
+        Map<String, AbstractInboundAuthenticatorConfig> allCustomAuthenticators = new HashMap<>
+                (ApplicationManagementServiceComponentHolder.getAllInboundAuthenticatorConfig());
         for (Map.Entry<String, InboundAuthenticationRequestConfig> entry : inboundAuthenticationRequestConfigMap
                 .entrySet()) {
             InboundAuthenticationRequestConfig inboundAuthenticationRequestConfig = entry.getValue();
-            AbstractInboundAuthenticatorConfig inboundAuthenticatorConfig =
-                    allCustomAuthenticators.remove(inboundAuthenticationRequestConfig.getInboundAuthType());
+            AbstractInboundAuthenticatorConfig inboundAuthenticatorConfig = allCustomAuthenticators.remove
+                    (wellKnownApplicationType);
             if (inboundAuthenticatorConfig != null && inboundAuthenticationRequestConfig != null) {
                 Property[] sources = inboundAuthenticatorConfig.getConfigurationProperties();
                 Property[] destinations = inboundAuthenticationRequestConfig.getProperties();
@@ -1741,10 +1738,19 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             returnList.add(inboundAuthenticationRequestConfig);
         }
         InboundAuthenticationConfig inboundAuthenticationConfig = new InboundAuthenticationConfig();
-        inboundAuthenticationConfig.setInboundAuthenticationRequestConfigs(returnList
-                .toArray(new InboundAuthenticationRequestConfig[returnList
-                        .size()]));
+        inboundAuthenticationConfig.setInboundAuthenticationRequestConfigs(returnList.toArray(new
+                InboundAuthenticationRequestConfig[returnList.size()]));
         return inboundAuthenticationConfig;
+    }
+
+    private String getConfigTypeFromSPProperties(List<ServiceProviderProperty> spProperties) throws SQLException {
+
+        for (ServiceProviderProperty spProp : spProperties) {
+            if (StringUtils.equals(spProp.getName(), ApplicationConstants.WELLKNOWN_APPLICATION_TYPE)) {
+                return spProp.getValue();
+            }
+        }
+        return ApplicationConstants.STANDARD_APPLICATION;
     }
 
     /**
@@ -2259,8 +2265,9 @@ public class ApplicationDAOImpl implements ApplicationDAO {
         try {
             // First, delete all the clients of the application
             int applicationID = getApplicationIDByName(appName, tenantID, connection);
-            InboundAuthenticationConfig clients = getInboundAuthenticationConfig(applicationID,
-                    connection, tenantID);
+            List<ServiceProviderProperty> propertyList = getServicePropertiesBySpId(connection, applicationID);
+            InboundAuthenticationConfig clients = getInboundAuthenticationConfig(applicationID, connection, tenantID,
+                    propertyList);
             for (InboundAuthenticationRequestConfig client : clients
                     .getInboundAuthenticationRequestConfigs()) {
                 deleteClient(client.getInboundAuthKey(), client.getInboundAuthType());
@@ -2303,10 +2310,10 @@ public class ApplicationDAOImpl implements ApplicationDAO {
         // Now, delete the application
         PreparedStatement deleteClientPrepStmt = null;
         try {
-
+            List<ServiceProviderProperty> propertyList = getServicePropertiesBySpId(connection, applicationID);
             // delete clients
-            InboundAuthenticationConfig clients = getInboundAuthenticationConfig(applicationID,
-                    connection, tenantID);
+            InboundAuthenticationConfig clients = getInboundAuthenticationConfig(applicationID, connection, tenantID,
+                    propertyList);
             for (InboundAuthenticationRequestConfig client : clients
                     .getInboundAuthenticationRequestConfigs()) {
                 deleteClient(client.getInboundAuthKey(), client.getInboundAuthType());
