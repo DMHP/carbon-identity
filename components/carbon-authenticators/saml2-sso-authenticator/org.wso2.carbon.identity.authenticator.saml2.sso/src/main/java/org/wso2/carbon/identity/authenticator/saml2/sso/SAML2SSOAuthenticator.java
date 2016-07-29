@@ -941,13 +941,13 @@ public class SAML2SSOAuthenticator implements CarbonServerAuthenticator {
 
             DateTime validFrom = assertion.getConditions().getNotBefore();
             DateTime validTill = assertion.getConditions().getNotOnOrAfter();
-            long timeStampSkewInSeconds = getTimeStampSkewInSeconds();
+            int timeStampSkewInSeconds = getTimeStampSkewInSeconds();
 
-            if (validFrom != null && validFrom.minus(getTimeStampSkewInSeconds()).isAfterNow()) {
+            if (validFrom != null && validFrom.minusSeconds(timeStampSkewInSeconds).isAfterNow()) {
                 throw new SAML2SSOAuthenticatorException("Failed to meet SAML Assertion Condition 'Not Before'");
             }
 
-            if (validTill != null && validTill.plus(getTimeStampSkewInSeconds()).isBeforeNow()) {
+            if (validTill != null && validTill.plusSeconds(timeStampSkewInSeconds).isBeforeNow()) {
                 throw new SAML2SSOAuthenticatorException("Failed to meet SAML Assertion Condition 'Not On Or After'");
             }
 
