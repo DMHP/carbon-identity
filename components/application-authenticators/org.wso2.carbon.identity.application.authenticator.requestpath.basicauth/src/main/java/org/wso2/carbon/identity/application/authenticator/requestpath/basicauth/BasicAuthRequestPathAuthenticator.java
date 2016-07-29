@@ -25,6 +25,7 @@ import org.wso2.carbon.identity.application.authentication.framework.AbstractApp
 import org.wso2.carbon.identity.application.authentication.framework.RequestPathApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.exception.InvalidCredentialsException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.requestpath.basicauth.internal.BasicAuthRequestPathAuthenticatorServiceComponent;
@@ -97,7 +98,7 @@ public class BasicAuthRequestPathAuthenticator extends AbstractApplicationAuthen
             boolean isAuthenticated = userStoreManager.authenticate(
                     MultitenantUtils.getTenantAwareUsername(username), password);
             if (!isAuthenticated) {
-                throw new AuthenticationFailedException("Authentication Failed");
+                throw new InvalidCredentialsException("Authentication Failed");
             }
             if (log.isDebugEnabled()) {
                 log.debug("Authenticated user " + username);
@@ -117,6 +118,11 @@ public class BasicAuthRequestPathAuthenticator extends AbstractApplicationAuthen
 
             context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(
                     FrameworkUtils.prependUserStoreDomainToName(username)));
+        } catch (AuthenticationFailedException e) {
+            if(log.isDebugEnabled()){
+                log.debug("BasicAuthentication failed for the user " + username, e);
+            }
+            throw e;
         } catch (IdentityRuntimeException e) {
             if(log.isDebugEnabled()){
                 log.debug("BasicAuthentication failed while trying to get the tenant ID of the user " + username, e);
