@@ -137,6 +137,12 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     private Map<String, String> properties;
     private String tenantDomain;
 
+    // Parameter constants introduced for Assertion Validity Period Verification
+    private static final String VERIFY_ASSERTION_VALIDITY_PERIOD = "VerifyAssertionValidityPeriod";
+    private static final String TIME_STAMP_SKEW = "TimestampSkew";
+    // Instance variable that defines default Time Stamp Skew Value
+    private int timeStampSkewInSeconds = 300;
+
     @Override
     public void init(String tenantDomain, Map<String, String> properties, IdentityProvider idp)
             throws SAMLSSOException {
@@ -954,19 +960,28 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
      */
     private void validateAssertionValidityPeriod(Assertion assertion) throws SAMLSSOException{
 
-        DateTime validFrom = assertion.getConditions().getNotBefore();
-        DateTime validTill = assertion.getConditions().getNotOnOrAfter();
+        if (isVerifyAssertionValidityPeriod()) {
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "Assertion validity period verification is enabled. Verifying 'Not Before' and " +
+                        "'Not On Or After' conditions.");
+            }
+            DateTime validFrom = assertion.getConditions().getNotBefore();
+            DateTime validTill = assertion.getConditions().getNotOnOrAfter();
+            int timeStampSkewInSeconds = getTimeStampSkewInSeconds();
 
-        if (validFrom != null && validFrom.isAfterNow()) {
-            throw new SAMLSSOException("Failed to meet SAML Assertion Condition 'Not Before'");
-        }
+            if (validFrom != null && validFrom.minusSeconds(timeStampSkewInSeconds).isAfterNow()) {
+                throw new SAMLSSOException("Failed to meet SAML Assertion Condition 'Not Before'");
+            }
 
-        if (validTill != null && validTill.isBeforeNow()) {
-            throw new SAMLSSOException("Failed to meet SAML Assertion Condition 'Not On Or After'");
-        }
+            if (validTill != null && validTill.plusSeconds(timeStampSkewInSeconds).isBeforeNow()) {
+                throw new SAMLSSOException("Failed to meet SAML Assertion Condition 'Not On Or After'");
+            }
 
-        if (validFrom != null && validTill != null && validFrom.isAfter(validTill)) {
-            throw new SAMLSSOException("SAML Assertion Condition 'Not Before' must be less than the value of 'Not On Or After'");
+            if (validFrom != null && validTill != null && validFrom.isAfter(validTill)) {
+                throw new SAMLSSOException(
+                        "SAML Assertion Condition 'Not Before' must be less than the value of 'Not On Or After'");
+            }
         }
     }
 
@@ -1042,4 +1057,53 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
         return decrypter.decrypt(encryptedAssertion);
     }
 
+    /**
+     * Check whether the Assertion validity period validation is enabled or disabled in the
+     * application-authentication.xml configuration file.
+     *
+     * @return true only if SAMLSSOAuthenticator configuration has the configuration
+     * <Parameter name="VerifyAssertionValidityPeriod">true</Parameter>
+     * Otherwise returns false
+     */
+    private boolean isVerifyAssertionValidityPeriod() {
+
+        AuthenticatorConfig authenticatorConfig =
+                FileBasedConfigurationBuilder.getInstance().getAuthenticatorConfigMap().get(
+                        SSOConstants.AUTHENTICATOR_NAME);
+        if (authenticatorConfig != null) {
+            String verifyAssertionValidityPeriod =
+                    authenticatorConfig.getParameterMap().get(VERIFY_ASSERTION_VALIDITY_PERIOD);
+            if (StringUtils.isNotBlank(verifyAssertionValidityPeriod)) {
+                return Boolean.parseBoolean(verifyAssertionValidityPeriod);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns the assertion validity time stamp skew configured in application-authentication.xml configuration file.
+     *
+     * @return the value configured under the SAMLSSOAuthenticator configuration with below parameter
+     * <Parameter name="TimestampSkew">300</Parameter>
+     * If the configuration is not available returns 300 s by default
+     */
+    private int getTimeStampSkewInSeconds() {
+
+        AuthenticatorConfig authenticatorConfig =
+                FileBasedConfigurationBuilder.getInstance().getAuthenticatorConfigMap().get(
+                        SSOConstants.AUTHENTICATOR_NAME);
+        if (authenticatorConfig != null) {
+            String timeStampSkew = authenticatorConfig.getParameterMap().get(TIME_STAMP_SKEW);
+            if (timeStampSkew != null) {
+                timeStampSkewInSeconds = Integer.parseInt(timeStampSkew);
+            }
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("TimestampSkew is set to " + timeStampSkewInSeconds + " s.");
+        }
+
+        return timeStampSkewInSeconds;
+    }
 }
