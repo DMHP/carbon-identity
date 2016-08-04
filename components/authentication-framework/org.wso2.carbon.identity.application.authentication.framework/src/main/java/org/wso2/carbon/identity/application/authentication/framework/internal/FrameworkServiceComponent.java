@@ -26,28 +26,23 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.http.HttpService;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticationService;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authentication.framework.AuthenticationDataPublisher;
 import org.wso2.carbon.identity.application.authentication.framework.FederatedApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.LocalApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.RequestPathApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.exception.FrameworkException;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.FrameworkLoginResponseFactory;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.FrameworkLogoutResponseFactory;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.HttpIdentityRequestFactory;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.HttpIdentityResponseFactory;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.IdentityProcessor;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.IdentityServlet;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.CommonInboundAuthenticationServlet;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationRequestBuilder;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationRequestProcessor;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationResponseProcessor;
 import org.wso2.carbon.identity.application.authentication.framework.listener.AuthenticationEndpointTenantActivityListener;
 import org.wso2.carbon.identity.application.authentication.framework.servlet.CommonAuthenticationServlet;
 import org.wso2.carbon.identity.application.authentication.framework.store.SessionDataStore;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.ApplicationAuthenticatorService;
 import org.wso2.carbon.identity.application.common.model.FederatedAuthenticatorConfig;
 import org.wso2.carbon.identity.application.common.model.LocalAuthenticatorConfig;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.application.common.model.RequestPathAuthenticatorConfig;
-import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.stratos.common.listeners.TenantMgtListener;
@@ -55,6 +50,7 @@ import org.wso2.carbon.user.core.service.RealmService;
 
 import javax.servlet.Servlet;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -79,22 +75,18 @@ import java.util.List;
  * @scr.reference name="identityCoreInitializedEventService"
  * interface="org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent" cardinality="1..1"
  * policy="dynamic" bind="setIdentityCoreInitializedEventService" unbind="unsetIdentityCoreInitializedEventService"
- * @scr.reference name="identity.processor"
- * interface="org.wso2.carbon.identity.application.authentication.framework.inbound.IdentityProcessor"
- * cardinality="0..n" policy="dynamic" bind="addIdentityProcessor"
- * unbind="removeIdentityProcessor"
- * @scr.reference name="identity.request.factory"
- * interface="org.wso2.carbon.identity.application.authentication.framework.inbound.HttpIdentityRequestFactory"
- * cardinality="0..n" policy="dynamic" bind="addHttpIdentityRequestFactory"
- * unbind="removeHttpIdentityRequestFactory"
- * @scr.reference name="identity.response.factory"
- * interface="org.wso2.carbon.identity.application.authentication.framework.inbound.HttpIdentityResponseFactory"
- * cardinality="0..n" policy="dynamic" bind="addHttpIdentityResponseFactory"
- * unbind="removeHttpIdentityResponseFactory"
- * @scr.reference name="identity.authentication.data.publisher"
- * interface="org.wso2.carbon.identity.application.authentication.framework.AuthenticationDataPublisher"
- * cardinality="0..n" policy="dynamic" bind="setAuthenticationDataPublisher"
- * unbind="unsetAuthenticationDataPublisher"
+ * @scr.reference name="application.requestprocessor"
+ * interface="org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationRequestProcessor"
+ * cardinality="0..n" policy="dynamic" bind="setInboundRequestProcessor"
+ * unbind="unsetInboundRequestProcessor"
+ * @scr.reference name="application.responseprocessor"
+ * interface="org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationResponseProcessor"
+ * cardinality="0..n" policy="dynamic" bind="setInboundResponseProcessor"
+ * unbind="unsetInboundResponseProcessor"
+ * @scr.reference name="application.requestbuilder"
+ * interface="org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationRequestBuilder"
+ * cardinality="0..n" policy="dynamic" bind="setInboundRequestBuilder"
+ * unbind="unsetInboundRequestBuilder"
  */
 
 
@@ -102,7 +94,7 @@ import java.util.List;
 public class FrameworkServiceComponent {
 
     public static final String COMMON_SERVLET_URL = "/commonauth";
-    private static final String IDENTITY_SERVLET_URL = "/identity";
+    private static final String COMMON_INBOUND_SERVLET_URL = "/authentication";
     private static final Log log = LogFactory.getLog(FrameworkServiceComponent.class);
 
     private HttpService httpService;
@@ -155,47 +147,46 @@ public class FrameworkServiceComponent {
         if (tenantDropdownEnabled) {
             // Register the tenant management listener for tracking changes to tenants
             bundleContext.registerService(TenantMgtListener.class.getName(),
-                    new AuthenticationEndpointTenantActivityListener(), null);
+                                          new AuthenticationEndpointTenantActivityListener(), null);
 
             if (log.isDebugEnabled()) {
                 log.debug("AuthenticationEndpointTenantActivityListener is registered. Tenant Domains Dropdown is " +
-                        "enabled.");
+                          "enabled.");
             }
         }
 
         // Register Common servlet
-        Servlet commonAuthServlet = new ContextPathServletAdaptor(new CommonAuthenticationServlet(),
+        Servlet commonServlet = new ContextPathServletAdaptor(
+                new CommonAuthenticationServlet(),
                 COMMON_SERVLET_URL);
 
-        Servlet identityServlet = new ContextPathServletAdaptor(new IdentityServlet(),
-                IDENTITY_SERVLET_URL);
+        Servlet commonInboundServlet = new ContextPathServletAdaptor(
+                new CommonInboundAuthenticationServlet(),
+                COMMON_INBOUND_SERVLET_URL);
         try {
-            httpService.registerServlet(COMMON_SERVLET_URL, commonAuthServlet, null, null);
-            httpService.registerServlet(IDENTITY_SERVLET_URL, identityServlet, null, null);
+            httpService.registerServlet(COMMON_SERVLET_URL, commonServlet,
+                                        null, null);
+            httpService.registerServlet(COMMON_INBOUND_SERVLET_URL, commonInboundServlet,
+                    null, null);
         } catch (Exception e) {
-            String errMsg = "Error when registering servlets via the HttpService.";
+            String errMsg = "Error when registering Common Servlet via the HttpService.";
             log.error(errMsg, e);
             throw new RuntimeException(errMsg, e);
         }
 
         FrameworkServiceDataHolder.getInstance().setBundleContext(bundleContext);
-        FrameworkServiceDataHolder.getInstance().getHttpIdentityRequestFactories().add(new HttpIdentityRequestFactory());
-        FrameworkServiceDataHolder.getInstance().getHttpIdentityResponseFactories().add(new
-                FrameworkLoginResponseFactory());
-        FrameworkServiceDataHolder.getInstance().getHttpIdentityResponseFactories().add(new
-                FrameworkLogoutResponseFactory());
 
         //this is done to load SessionDataStore class and start the cleanup tasks.
         SessionDataStore.getInstance();
 
         if (log.isDebugEnabled()) {
-            log.debug("Application Authentication Framework bundle is activated");
+            log.info("Application Authentication Framework bundle is activated");
         }
     }
 
     protected void deactivate(ComponentContext ctxt) {
         if (log.isDebugEnabled()) {
-            log.debug("Application Authentication Framework bundle is deactivated");
+            log.info("Application Authentication Framework bundle is deactivated");
         }
 
         FrameworkServiceDataHolder.getInstance().setBundleContext(null);
@@ -238,7 +229,7 @@ public class FrameworkServiceComponent {
         Property[] configProperties = null;
 
         if (authenticator.getConfigurationProperties() != null
-                && !authenticator.getConfigurationProperties().isEmpty()) {
+            && !authenticator.getConfigurationProperties().isEmpty()) {
             configProperties = authenticator.getConfigurationProperties().toArray(new Property[0]);
         }
 
@@ -293,63 +284,71 @@ public class FrameworkServiceComponent {
 
     }
 
-    protected void addIdentityProcessor(IdentityProcessor requestProcessor) {
+    protected void setInboundRequestProcessor(InboundAuthenticationRequestProcessor requestProcessor) {
 
-        FrameworkServiceDataHolder.getInstance().getIdentityProcessors().add(requestProcessor);
-        Collections.sort(FrameworkServiceDataHolder.getInstance().getIdentityProcessors(),
-                new HandlerComparator());
-        Collections.reverse(FrameworkServiceDataHolder.getInstance().getIdentityProcessors());
+        FrameworkServiceDataHolder.getInstance().getInboundAuthenticationRequestProcessors().add(requestProcessor);
+        Collections.sort(FrameworkServiceDataHolder.getInstance().getInboundAuthenticationRequestProcessors(),
+                inboundRequestProcessor);
+
         if (log.isDebugEnabled()) {
-            log.debug("Added IdentityProcessor : " + requestProcessor.getName());
+            log.debug("Added application inbound request processor : " + requestProcessor.getName());
         }
     }
 
-    protected void removeIdentityProcessor(IdentityProcessor requestProcessor) {
+    protected void unsetInboundRequestProcessor(InboundAuthenticationRequestProcessor requestProcessor) {
 
-        FrameworkServiceDataHolder.getInstance().getIdentityProcessors().remove(requestProcessor);
+        FrameworkServiceDataHolder.getInstance().getInboundAuthenticationRequestProcessors().remove(requestProcessor);
+
 
         if (log.isDebugEnabled()) {
-            log.debug("Removed IdentityProcessor : " + requestProcessor.getName());
+            log.debug("Removed application inbound request processor : " + requestProcessor.getName());
         }
     }
 
-    protected void addHttpIdentityRequestFactory(HttpIdentityRequestFactory factory) {
+    protected void setInboundResponseProcessor(InboundAuthenticationResponseProcessor responseProcessor) {
 
-        FrameworkServiceDataHolder.getInstance().getHttpIdentityRequestFactories().add(factory);
-        Collections.sort(FrameworkServiceDataHolder.getInstance().getHttpIdentityRequestFactories(),
-                new HandlerComparator());
-        Collections.reverse(FrameworkServiceDataHolder.getInstance().getIdentityProcessors());
+        FrameworkServiceDataHolder.getInstance().getInboundAuthenticationResponseProcessors().add(responseProcessor);
+        Collections
+                .sort(FrameworkServiceDataHolder.getInstance().getInboundAuthenticationResponseProcessors(),
+                        inboundResponseBuilder);
+
         if (log.isDebugEnabled()) {
-            log.debug("Added HttpIdentityRequestFactory : " + factory.getName());
+            log.debug("Added application inbound response builder : " + responseProcessor.getName());
         }
     }
 
-    protected void removeHttpIdentityRequestFactory(HttpIdentityRequestFactory factory) {
+    protected void unsetInboundResponseProcessor(InboundAuthenticationResponseProcessor responseProcessor) {
 
-        FrameworkServiceDataHolder.getInstance().getHttpIdentityRequestFactories().remove(factory);
+        FrameworkServiceDataHolder.getInstance().getInboundAuthenticationResponseProcessors().remove(responseProcessor);
+
         if (log.isDebugEnabled()) {
-            log.debug("Removed HttpIdentityRequestFactory : " + factory.getName());
+            log.debug("Removed application inbound response builder : " + responseProcessor.getName());
+        }
+
+    }
+
+    protected void setInboundRequestBuilder(InboundAuthenticationRequestBuilder requestBuilder) {
+
+        FrameworkServiceDataHolder.getInstance().getInboundAuthenticationRequestBuilders().add(requestBuilder);
+        Collections
+                .sort(FrameworkServiceDataHolder.getInstance().getInboundAuthenticationRequestBuilders(), inboundRequestBuilder);
+
+        if (log.isDebugEnabled()) {
+            log.debug("Added application inbound request builder : " + requestBuilder.getName());
         }
     }
 
-    protected void addHttpIdentityResponseFactory(HttpIdentityResponseFactory factory) {
+    protected void unsetInboundRequestBuilder(InboundAuthenticationRequestBuilder requestBuilder) {
 
-        FrameworkServiceDataHolder.getInstance().getHttpIdentityResponseFactories().add(factory);
-        Collections.sort(FrameworkServiceDataHolder.getInstance().getHttpIdentityResponseFactories(),
-                new HandlerComparator());
-        Collections.reverse(FrameworkServiceDataHolder.getInstance().getIdentityProcessors());
+        FrameworkServiceDataHolder.getInstance().getInboundAuthenticationRequestBuilders().remove(requestBuilder);
+
         if (log.isDebugEnabled()) {
-            log.debug("Added HttpIdentityResponseFactory : " + factory.getName());
+            log.debug("Removed application inbound request builder : " + requestBuilder.getName());
         }
+
     }
 
-    protected void removeHttpIdentityResponseFactory(HttpIdentityResponseFactory factory) {
 
-        FrameworkServiceDataHolder.getInstance().getHttpIdentityResponseFactories().remove(factory);
-        if (log.isDebugEnabled()) {
-            log.debug("Removed HttpIdentityResponseFactory : " + factory.getName());
-        }
-    }
 
     protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
         /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
@@ -361,17 +360,53 @@ public class FrameworkServiceComponent {
          is started */
     }
 
-    protected void setAuthenticationDataPublisher(AuthenticationDataPublisher publisher) {
-        if (FrameworkConstants.AnalyticsAttributes.AUTHN_DATA_PUBLISHER_PROXY.equalsIgnoreCase(publisher.getName())
-                && publisher.isEnabled(null)) {
-            FrameworkServiceDataHolder.getInstance().setAuthnDataPublisherProxy(publisher);
-        }
-    }
+    private static Comparator<InboundAuthenticationRequestProcessor> inboundRequestProcessor =
+            new Comparator<InboundAuthenticationRequestProcessor>() {
 
-    protected void unsetAuthenticationDataPublisher(AuthenticationDataPublisher publisher) {
-        if (FrameworkConstants.AnalyticsAttributes.AUTHN_DATA_PUBLISHER_PROXY.equalsIgnoreCase(publisher.getName())
-                && publisher.isEnabled(null)) {
-            FrameworkServiceDataHolder.getInstance().setAuthnDataPublisherProxy(null);
-        }
-    }
+                @Override
+                public int compare(InboundAuthenticationRequestProcessor inboundRequestProcessor1,
+                        InboundAuthenticationRequestProcessor inboundRequestProcessor2) {
+
+                    if (inboundRequestProcessor1.getPriority() > inboundRequestProcessor2.getPriority()) {
+                        return 1;
+                    } else if (inboundRequestProcessor1.getPriority() < inboundRequestProcessor2.getPriority()) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+            };
+    private static Comparator<InboundAuthenticationResponseProcessor> inboundResponseBuilder =
+            new Comparator<InboundAuthenticationResponseProcessor>() {
+
+                @Override
+                public int compare(InboundAuthenticationResponseProcessor inboundResponseBuilder1,
+                        InboundAuthenticationResponseProcessor inboundResponseBuilder2) {
+
+                    if (inboundResponseBuilder1.getPriority() > inboundResponseBuilder2.getPriority()) {
+                        return 1;
+                    } else if (inboundResponseBuilder1.getPriority() < inboundResponseBuilder2.getPriority()) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+            };
+
+    private static Comparator<InboundAuthenticationRequestBuilder> inboundRequestBuilder =
+            new Comparator<InboundAuthenticationRequestBuilder>() {
+
+                @Override
+                public int compare(InboundAuthenticationRequestBuilder inboundRequestBuilder1,
+                        InboundAuthenticationRequestBuilder inboundRequestBuilder2) {
+
+                    if (inboundRequestBuilder1.getPriority() > inboundRequestBuilder2.getPriority()) {
+                        return 1;
+                    } else if (inboundRequestBuilder1.getPriority() < inboundRequestBuilder2.getPriority()) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+            };
 }

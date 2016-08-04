@@ -24,7 +24,6 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedIdPData;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticationRequest;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
@@ -35,7 +34,7 @@ import java.util.Map;
  * This class is used for holding data about the
  * authentication request sent from a servlet.
  */
-public class AuthenticationContext extends MessageContext implements Serializable {
+public class AuthenticationContext implements Serializable {
 
     private static final long serialVersionUID = 6438291349985653301L;
 
@@ -51,6 +50,7 @@ public class AuthenticationContext extends MessageContext implements Serializabl
     private SequenceConfig sequenceConfig;
     private HttpServletRequest currentRequest;
     private ExternalIdPConfig externalIdP;
+    private Map<String, Object> properties = new HashMap<String, Object>();
     private boolean rememberMe;
     private String tenantDomain;
     private int retryCount;
@@ -193,19 +193,19 @@ public class AuthenticationContext extends MessageContext implements Serializabl
     }
 
     public Map<String, Object> getProperties() {
-        return parameters;
+        return properties;
     }
 
     public void setProperties(Map<String, Object> properties) {
-        this.parameters = properties;
+        this.properties = properties;
     }
 
     public void setProperty(String key, Object value) {
-        parameters.put(key, value);
+        properties.put(key, value);
     }
 
     public Object getProperty(String key) {
-        return parameters.get(key);
+        return properties.get(key);
     }
 
     public ExternalIdPConfig getExternalIdP() {
