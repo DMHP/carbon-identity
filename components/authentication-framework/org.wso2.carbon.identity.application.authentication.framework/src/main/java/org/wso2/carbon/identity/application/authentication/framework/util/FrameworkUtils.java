@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.application.authentication.framework.util;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
@@ -25,6 +26,7 @@ import org.wso2.carbon.claim.mgt.ClaimManagementException;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
+import org.wso2.carbon.identity.application.authentication.framework.AuthenticationDataPublisher;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.cache.AuthenticationContextCache;
 import org.wso2.carbon.identity.application.authentication.framework.cache.AuthenticationContextCacheEntry;
@@ -46,7 +48,6 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.context.SessionContext;
-import org.wso2.carbon.identity.application.authentication.framework.cookie.CookieBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.exception.FrameworkException;
 import org.wso2.carbon.identity.application.authentication.framework.handler.claims.ClaimHandler;
 import org.wso2.carbon.identity.application.authentication.framework.handler.claims.impl.DefaultClaimHandler;
@@ -69,6 +70,7 @@ import org.wso2.carbon.identity.application.authentication.framework.handler.ste
 import org.wso2.carbon.identity.application.authentication.framework.internal.FrameworkServiceComponent;
 import org.wso2.carbon.identity.application.authentication.framework.internal.FrameworkServiceDataHolder;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedIdPData;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticationFrameworkWrapper;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticationRequest;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticationResult;
@@ -77,6 +79,8 @@ import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.model.FederatedAuthenticatorConfig;
 import org.wso2.carbon.identity.application.common.model.IdentityProvider;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.model.CookieBuilder;
+import org.wso2.carbon.identity.core.model.IdentityCookieConfig;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
@@ -90,6 +94,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -162,7 +167,7 @@ public class FrameworkUtils {
      * @return
      */
     public static HttpServletRequest getCommonAuthReqWithParams(HttpServletRequest request,
-                                                                AuthenticationRequestCacheEntry cacheEntry) {
+            AuthenticationRequestCacheEntry cacheEntry) {
 
         // add this functionality as a constructor
         Map<String, String[]> modifiableParameters = new TreeMap<String, String[]>();
@@ -176,24 +181,24 @@ public class FrameworkUtils {
             // Adding field variables to wrapper
             if (authenticationRequest.getType() != null) {
                 modifiableParameters.put(FrameworkConstants.RequestParams.TYPE,
-                                         new String[]{authenticationRequest.getType()});
+                        new String[]{authenticationRequest.getType()});
             }
             if (authenticationRequest.getCommonAuthCallerPath() != null) {
                 modifiableParameters.put(FrameworkConstants.RequestParams.CALLER_PATH,
-                                         new String[]{authenticationRequest.getCommonAuthCallerPath()});
+                        new String[]{authenticationRequest.getCommonAuthCallerPath()});
             }
             if (authenticationRequest.getRelyingParty() != null) {
                 modifiableParameters.put(FrameworkConstants.RequestParams.ISSUER,
-                                         new String[]{authenticationRequest.getRelyingParty()});
+                        new String[]{authenticationRequest.getRelyingParty()});
             }
             if (authenticationRequest.getTenantDomain() != null) {
                 modifiableParameters.put(FrameworkConstants.RequestParams.TENANT_DOMAIN,
-                                         new String[]{authenticationRequest.getTenantDomain()});
+                        new String[]{authenticationRequest.getTenantDomain()});
             }
             modifiableParameters.put(FrameworkConstants.RequestParams.FORCE_AUTHENTICATE,
-                                     new String[]{String.valueOf(authenticationRequest.getForceAuth())});
+                    new String[]{String.valueOf(authenticationRequest.getForceAuth())});
             modifiableParameters.put(FrameworkConstants.RequestParams.PASSIVE_AUTHENTICATION,
-                                     new String[]{String.valueOf(authenticationRequest.getPassiveAuth())});
+                    new String[]{String.valueOf(authenticationRequest.getPassiveAuth())});
 
             if (log.isDebugEnabled()) {
                 StringBuilder queryStringBuilder = new StringBuilder("");
@@ -216,7 +221,7 @@ public class FrameworkUtils {
             }
 
             return new AuthenticationFrameworkWrapper(request, modifiableParameters,
-                                                      authenticationRequest.getRequestHeaders());
+                    authenticationRequest.getRequestHeaders());
         }
         return request;
     }
@@ -451,6 +456,7 @@ public class FrameworkUtils {
                     cookie.setMaxAge(0);
                     cookie.setHttpOnly(true);
                     cookie.setSecure(true);
+                    cookie.setPath("/");
                     resp.addCookie(cookie);
                     break;
                 }
@@ -477,50 +483,51 @@ public class FrameworkUtils {
 
         CookieBuilder cookieBuilder = new CookieBuilder(FrameworkConstants.COMMONAUTH_COOKIE, id);
 
-        String commonAuthCookieElement = FrameworkConstants.Config.ELEM_COOKIES + "."
-                                         + FrameworkConstants.COMMONAUTH_COOKIE;
+        IdentityCookieConfig commonAuthIdCookieConfig = IdentityUtil.getIdentityCookieConfig(FrameworkConstants.COMMONAUTH_COOKIE);
 
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_DOMAIN) != null)   {
-            cookieBuilder.setDomain(IdentityUtil.getProperty(commonAuthCookieElement + "."
-                                                             + FrameworkConstants.Config.ELEM_DOMAIN));
+        if (commonAuthIdCookieConfig != null) {
+            if (commonAuthIdCookieConfig.getDomain() != null) {
+                cookieBuilder.setDomain(commonAuthIdCookieConfig.getDomain());
+            }
+
+            if (commonAuthIdCookieConfig.getPath() != null) {
+                cookieBuilder.setPath(commonAuthIdCookieConfig.getPath());
+            }
+
+            if (commonAuthIdCookieConfig.getComment() != null) {
+                cookieBuilder.setComment(commonAuthIdCookieConfig.getComment());
+            }
+
+            if (commonAuthIdCookieConfig.getMaxAge() > 0) {
+                cookieBuilder.setMaxAge(commonAuthIdCookieConfig.getMaxAge());
+            } else if (age != null) {
+                cookieBuilder.setMaxAge(age);
+            }
+
+            if (commonAuthIdCookieConfig.getVersion() > 0) {
+                cookieBuilder.setVersion(commonAuthIdCookieConfig.getVersion());
+            }
+
+            if (commonAuthIdCookieConfig.isHttpOnly()) {
+                cookieBuilder.setHttpOnly(commonAuthIdCookieConfig.isHttpOnly());
+            }
+
+            if (commonAuthIdCookieConfig.isSecure()) {
+                cookieBuilder.setSecure(commonAuthIdCookieConfig.isSecure());
+            }
+
+        } else {
+
+            cookieBuilder.setSecure(true);
+            cookieBuilder.setHttpOnly(true);
+            cookieBuilder.setPath("/");
+
+            if (age != null) {
+                cookieBuilder.setMaxAge(age);
+            }
         }
 
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY) != null){
-            cookieBuilder.setHttpOnly(Boolean.valueOf(IdentityUtil.getProperty(
-                    commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_HTTP_ONLY)));
-        }
-
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_MAX_AGE) != null)  {
-            cookieBuilder.setMaxAge(Integer.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "."
-                                                                             + FrameworkConstants.Config.ELEM_MAX_AGE)));
-        } else if (age != null) {
-            cookieBuilder.setMaxAge(age);
-        }
-
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_PATH) != null)   {
-            cookieBuilder.setPath(IdentityUtil.getProperty(commonAuthCookieElement + "."
-                                                           + FrameworkConstants.Config.ELEM_PATH));
-        }
-
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_SECURE) != null)   {
-            cookieBuilder.setSecure(Boolean.valueOf(IdentityUtil.getProperty(commonAuthCookieElement + "."
-                                                                             + FrameworkConstants.Config.ELEM_SECURE)));
-        }
-
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_COMMENT) != null)  {
-            cookieBuilder.setComment(IdentityUtil.getProperty(commonAuthCookieElement + "."
-                                                              + FrameworkConstants.Config.ELEM_COMMENT));
-        }
-
-        if (IdentityUtil.getProperty(commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION) != null)  {
-            cookieBuilder.setVersion(Integer.valueOf(IdentityUtil.getProperty(
-                    commonAuthCookieElement + "." + FrameworkConstants.Config.ELEM_VERSION)));
-        }
-
-        Cookie authCookie = cookieBuilder.build();
-
-        resp.addCookie(authCookie);
-
+        resp.addCookie(cookieBuilder.build());
     }
 
     /**
@@ -605,7 +612,12 @@ public class FrameworkUtils {
                 }
             }
         }
-
+        Object authenticatedUserObj = sessionContext.getProperty(FrameworkConstants.AUTHENTICATED_USER);
+        sessionContext.addProperty(FrameworkConstants.AUTHENTICATED_USER, null);
+        if (authenticatedUserObj != null && authenticatedUserObj instanceof AuthenticatedUser) {
+            AuthenticatedUser authenticatedUser = (AuthenticatedUser) authenticatedUserObj;
+            cacheEntry.setLoggedInUser(authenticatedUser.getAuthenticatedSubjectIdentifier());
+        }
         cacheEntry.setContext(sessionContext);
         SessionContextCache.getInstance().addToCache(cacheKey, cacheEntry);
     }
@@ -730,7 +742,7 @@ public class FrameworkUtils {
                 continue;
             }
             claimMap.put(ClaimMapping.build(entry.getKey(), entry.getKey(), null, false),
-                         entry.getValue());
+                    entry.getValue());
         }
 
         return claimMap;
@@ -761,7 +773,7 @@ public class FrameworkUtils {
      * @return
      */
     public static Map<String, String> getClaimMappings(ClaimMapping[] claimMappings,
-                                                       boolean useLocalDialectAsKey) {
+            boolean useLocalDialectAsKey) {
 
         Map<String, String> remoteToLocalClaimMap = new HashMap<String, String>();
 
@@ -783,7 +795,7 @@ public class FrameworkUtils {
      * @return
      */
     public static Map<String, String> getClaimMappings(Map<ClaimMapping, String> claimMappings,
-                                                       boolean useLocalDialectAsKey) {
+            boolean useLocalDialectAsKey) {
 
         Map<String, String> remoteToLocalClaimMap = new HashMap<String, String>();
 
@@ -813,7 +825,7 @@ public class FrameworkUtils {
     }
 
     public static String getQueryStringWithFrameworkContextId(String originalQueryStr,
-                                                              String callerContextId, String frameworkContextId) {
+            String callerContextId, String frameworkContextId) {
 
         String queryParams = originalQueryStr;
 
@@ -843,7 +855,7 @@ public class FrameworkUtils {
     }
 
     public static List<String> getAuthenticatedStepIdPs(List<String> stepIdPs,
-                                                        List<String> authenticatedIdPs) {
+            List<String> authenticatedIdPs) {
 
         List<String> idps = new ArrayList<String>();
 
@@ -860,7 +872,7 @@ public class FrameworkUtils {
     }
 
     public static Map<String, AuthenticatorConfig> getAuthenticatedStepIdPs(StepConfig stepConfig,
-                                                                            Map<String, AuthenticatedIdPData> authenticatedIdPs) {
+            Map<String, AuthenticatedIdPData> authenticatedIdPs) {
 
         if (log.isDebugEnabled()) {
             log.debug("Finding already authenticated IdPs of the Step");
@@ -879,7 +891,7 @@ public class FrameworkUtils {
                             .get(authenticatorIdp);
 
                     if (authenticatedIdPData != null
-                        && authenticatedIdPData.getIdpName().equals(authenticatorIdp)) {
+                            && authenticatedIdPData.getIdpName().equals(authenticatorIdp)) {
                         idpAuthenticatorMap.put(authenticatorIdp, authenticatorConfig);
                         break;
                     }
@@ -947,7 +959,7 @@ public class FrameworkUtils {
 
         if (configAvailable) {
             if (action != null
-                && action.equals(FrameworkConstants.AUTH_ENDPOINT_QUERY_PARAMS_ACTION_EXCLUDE)) {
+                    && action.equals(FrameworkConstants.AUTH_ENDPOINT_QUERY_PARAMS_ACTION_EXCLUDE)) {
                 if (reqParamMap != null) {
                     for (Map.Entry<String, String[]> entry : reqParamMap.entrySet()) {
                         String paramName = entry.getKey();
@@ -1037,18 +1049,18 @@ public class FrameworkUtils {
 
         if (authenticatedSubject == null || authenticatedSubject.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid argument. authenticatedSubject : "
-                                               + authenticatedSubject);
+                    + authenticatedSubject);
         }
         if (!authenticatedSubject.contains(CarbonConstants.DOMAIN_SEPARATOR)) {
             if (UserCoreUtil.getDomainFromThreadLocal() != null
-                && !UserCoreUtil.getDomainFromThreadLocal().isEmpty()) {
+                    && !UserCoreUtil.getDomainFromThreadLocal().isEmpty()) {
                 authenticatedSubject = UserCoreUtil.getDomainFromThreadLocal()
-                                       + CarbonConstants.DOMAIN_SEPARATOR + authenticatedSubject;
+                        + CarbonConstants.DOMAIN_SEPARATOR + authenticatedSubject;
             }
         } else if (authenticatedSubject.indexOf(CarbonConstants.DOMAIN_SEPARATOR) == 0) {
             throw new IllegalArgumentException("Invalid argument. authenticatedSubject : "
-                                               + authenticatedSubject + " begins with \'" + CarbonConstants.DOMAIN_SEPARATOR
-                                               + "\'");
+                    + authenticatedSubject + " begins with \'" + CarbonConstants.DOMAIN_SEPARATOR
+                    + "\'");
         }
         return authenticatedSubject;
     }
@@ -1057,7 +1069,7 @@ public class FrameworkUtils {
      * Find the Subject identifier among federated claims
      */
     public static String getFederatedSubjectFromClaims(IdentityProvider identityProvider,
-                                                       Map<ClaimMapping, String> claimMappings) {
+            Map<ClaimMapping, String> claimMappings) {
 
         String userIdClaimURI = identityProvider.getClaimConfig().getUserClaimURI();
         ClaimMapping claimMapping = new ClaimMapping();
@@ -1083,7 +1095,7 @@ public class FrameworkUtils {
             Map<String, String> mappedAttrs = null;
             try {
                 mappedAttrs = ClaimManagerHandler.getInstance().getMappingsMapFromOtherDialectToCarbon(otherDialect,
-                                                                                                       extAttributesValueMap.keySet(), context.getTenantDomain(), true);
+                        extAttributesValueMap.keySet(), context.getTenantDomain(), true);
             } catch (ClaimManagementException e) {
                 throw new FrameworkException("Error while loading claim mappings.", e);
             }
@@ -1146,4 +1158,53 @@ public class FrameworkUtils {
                 .getNanoTimeReference());
         return currentStandardNano;
     }
+
+    /**
+     * Append a query param to the URL (URL may already contain query params)
+     */
+    public static String appendQueryParamsStringToUrl(String url, String queryParamString) {
+        String queryAppendedUrl = url;
+        // check whether param string to append is blank
+        if (StringUtils.isNotEmpty(queryParamString)) {
+            // check whether the URL already contains query params
+            String appender;
+            if (url.contains("?")) {
+                appender = "&";
+            } else{
+                appender = "?";
+            }
+
+            // remove leading anchor or question mark in query params
+            if (queryParamString.startsWith("?") || queryParamString.startsWith("&")) {
+                queryParamString = queryParamString.substring(1);
+            }
+
+            queryAppendedUrl += appender + queryParamString;
+        }
+
+        return queryAppendedUrl;
+    }
+
+    public static void publishSessionEvent(String sessionId, HttpServletRequest request, AuthenticationContext
+            context, SessionContext sessionContext, AuthenticatedUser user, String status) {
+        AuthenticationDataPublisher authnDataPublisherProxy = FrameworkServiceDataHolder.getInstance()
+                .getAuthnDataPublisherProxy();
+        if (authnDataPublisherProxy != null && authnDataPublisherProxy.isEnabled(context)) {
+            Map<String, Object> paramMap = new HashMap<>();
+            paramMap.put(FrameworkConstants.AnalyticsAttributes.USER, user);
+            paramMap.put(FrameworkConstants.AnalyticsAttributes.SESSION_ID, sessionId);
+            Map<String, Object> unmodifiableParamMap = Collections.unmodifiableMap(paramMap);
+            if (FrameworkConstants.AnalyticsAttributes.SESSION_CREATE.equalsIgnoreCase(status)) {
+                authnDataPublisherProxy.publishSessionCreation(request, context, sessionContext,
+                        unmodifiableParamMap);
+            } else if (FrameworkConstants.AnalyticsAttributes.SESSION_UPDATE.equalsIgnoreCase(status)) {
+                authnDataPublisherProxy.publishSessionUpdate(request, context, sessionContext,
+                        unmodifiableParamMap);
+            } else if (FrameworkConstants.AnalyticsAttributes.SESSION_TERMINATE.equalsIgnoreCase(status)) {
+                authnDataPublisherProxy.publishSessionTermination(request, context, sessionContext,
+                        unmodifiableParamMap);
+            }
+        }
+    }
 }
+
