@@ -39,13 +39,13 @@ import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.core.util.Utils;
+import org.wso2.carbon.identity.base.CarbonEntityResolver;
 import org.wso2.carbon.identity.base.IdentityConstants;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.internal.IdentityCoreServiceComponent;
 import org.wso2.carbon.identity.core.model.IdentityCacheConfig;
 import org.wso2.carbon.identity.core.model.IdentityCacheConfigKey;
-import org.wso2.carbon.identity.core.model.IdentityCookieConfig;
 import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
 import org.wso2.carbon.identity.core.model.IdentityEventListenerConfig;
 import org.wso2.carbon.identity.core.model.IdentityEventListenerConfigKey;
@@ -61,7 +61,6 @@ import org.xml.sax.SAXException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.HttpServletRequest;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -69,10 +68,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.SocketException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -85,29 +81,30 @@ import java.util.regex.Pattern;
 
 public class IdentityUtil {
 
-    public static final ThreadLocal<Map<String, Object>> threadLocalProperties = new
-            ThreadLocal<Map<String, Object>>() {
-                @Override
-                protected Map<String, Object> initialValue() {
-                    return new HashMap<>();
-                }
-            };
+    public static final ThreadLocal<HashMap<String, Object>> threadLocalProperties = new
+            ThreadLocal<HashMap<String, Object>>() {
+        @Override
+        protected HashMap<String, Object> initialValue() {
+            return new HashMap<String, Object>();
+        }
+    };
     private static final String HMAC_SHA1_ALGORITHM = "HmacSHA1";
     private final static char[] ppidDisplayCharMap = new char[]{'Q', 'L', '2', '3', '4', '5',
-                                                                '6', '7', '8', '9', 'A', 'B', 'C',
-                                                                'D', 'E', 'F', 'G', 'H', 'J', 'K',
-                                                                'M', 'N', 'P', 'R', 'S', 'T', 'U',
-                                                                'V', 'W', 'X', 'Y', 'Z'};
+            '6', '7', '8', '9', 'A', 'B', 'C',
+            'D', 'E', 'F', 'G', 'H', 'J', 'K',
+            'M', 'N', 'P', 'R', 'S', 'T', 'U',
+            'V', 'W', 'X', 'Y', 'Z'};
     public static final String DEFAULT_FILE_NAME_REGEX = "^(?!(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\\.[^.]*)?$)" +
-            "[^<>:\"/\\\\|?*\\x00-\\x1F]*[^<>:\"/\\\\|?*\\x00-\\x1F\\ .]$";
+                                                         "[^<>:\"/\\\\|?*\\x00-\\x1F]*[^<>:\"/\\\\|?*\\x00-\\x1F\\ .]$";
     private static Log log = LogFactory.getLog(IdentityUtil.class);
     private static Map<String, Object> configuration = new HashMap<String, Object>();
     private static Map<IdentityEventListenerConfigKey, IdentityEventListenerConfig> eventListenerConfiguration = new
             HashMap<>();
     private static Map<IdentityCacheConfigKey, IdentityCacheConfig> identityCacheConfigurationHolder = new HashMap<>();
-    private static Map<String, IdentityCookieConfig> identityCookiesConfigurationHolder = new HashMap<>();
     private static Document importerDoc = null;
     private static ThreadLocal<IdentityErrorMsgContext> IdentityError = new ThreadLocal<IdentityErrorMsgContext>();
+    private static final String SECURITY_MANAGER_PROPERTY = Constants.XERCES_PROPERTY_PREFIX +
+            Constants.SECURITY_MANAGER_PROPERTY;
     private static final int ENTITY_EXPANSION_LIMIT = 0;
 
     /**
@@ -170,19 +167,10 @@ public class IdentityUtil {
         return identityCacheConfig;
     }
 
-    public static IdentityCookieConfig getIdentityCookieConfig(String cookieName)   {
-        return identityCookiesConfigurationHolder.get(cookieName);
-    }
-
-    public static Map<String, IdentityCookieConfig> getIdentityCookiesConfigurationHolder() {
-        return identityCookiesConfigurationHolder;
-    }
-
     public static void populateProperties() {
         configuration = IdentityConfigParser.getInstance().getConfiguration();
         eventListenerConfiguration = IdentityConfigParser.getInstance().getEventListenerConfiguration();
         identityCacheConfigurationHolder = IdentityConfigParser.getInstance().getIdentityCacheConfigurationHolder();
-        identityCookiesConfigurationHolder = IdentityConfigParser.getIdentityCookieConfigurationHolder();
     }
 
     public static String getPPIDDisplayValue(String value) throws Exception {
@@ -326,7 +314,7 @@ public class IdentityUtil {
         if (mgtTransportPort <= 0) {
             mgtTransportPort = CarbonUtils.getTransportPort(axisConfiguration, mgtTransport);
         }
-        StringBuilder serverUrl = new StringBuilder(mgtTransport).append("://").append(hostName.toLowerCase());
+        StringBuilder serverUrl = new StringBuilder(mgtTransport + "://" + hostName.toLowerCase());
         // If it's well known HTTPS port, skip adding port
         if (mgtTransportPort != IdentityCoreConstants.DEFAULT_HTTPS_PORT) {
             serverUrl.append(":").append(mgtTransportPort);
@@ -396,8 +384,17 @@ public class IdentityUtil {
     public static XMLObject unmarshall(String xmlString) throws IdentityException {
 
         try {
-            DocumentBuilderFactory documentBuilderFactory = getSecuredDocumentBuilderFactory();
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            documentBuilderFactory.setNamespaceAware(true);
+
+            documentBuilderFactory.setExpandEntityReferences(false);
+            documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            org.apache.xerces.util.SecurityManager securityManager = new SecurityManager();
+            securityManager.setEntityExpansionLimit(ENTITY_EXPANSION_LIMIT);
+            documentBuilderFactory.setAttribute(SECURITY_MANAGER_PROPERTY, securityManager);
+
             DocumentBuilder docBuilder = documentBuilderFactory.newDocumentBuilder();
+            docBuilder.setEntityResolver(new CarbonEntityResolver());
             Document document = docBuilder.parse(new ByteArrayInputStream(xmlString.trim().getBytes(Charsets.UTF_8)));
             Element element = document.getDocumentElement();
             UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
@@ -410,39 +407,6 @@ public class IdentityUtil {
     }
 
     /**
-     * Create DocumentBuilderFactory with the XXE and XEE prevention measurements.
-     *
-     * @return DocumentBuilderFactory instance
-     */
-    public static DocumentBuilderFactory getSecuredDocumentBuilderFactory() {
-
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        dbf.setNamespaceAware(true);
-        dbf.setXIncludeAware(false);
-        dbf.setExpandEntityReferences(false);
-        try {
-            dbf.setFeature(Constants.SAX_FEATURE_PREFIX + Constants.EXTERNAL_GENERAL_ENTITIES_FEATURE, false);
-            dbf.setFeature(Constants.SAX_FEATURE_PREFIX + Constants.EXTERNAL_PARAMETER_ENTITIES_FEATURE, false);
-            dbf.setFeature(Constants.XERCES_FEATURE_PREFIX + Constants.LOAD_EXTERNAL_DTD_FEATURE, false);
-            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-
-        } catch (ParserConfigurationException e) {
-            log.error("Failed to load XML Processor Feature " + Constants.EXTERNAL_GENERAL_ENTITIES_FEATURE + " or " +
-                    Constants.EXTERNAL_PARAMETER_ENTITIES_FEATURE + " or " + Constants.LOAD_EXTERNAL_DTD_FEATURE +
-                    " or secure-processing." );
-        }
-
-        SecurityManager securityManager = new SecurityManager();
-        securityManager.setEntityExpansionLimit(ENTITY_EXPANSION_LIMIT);
-        dbf.setAttribute(Constants.XERCES_PROPERTY_PREFIX + Constants.SECURITY_MANAGER_PROPERTY, securityManager);
-
-        return dbf;
-
-    }
-
-    /**
-     * Check the case sensitivity of the user store in which the user is in.
-     *
      * @param username Full qualified username
      * @return
      */
@@ -463,8 +427,6 @@ public class IdentityUtil {
     }
 
     /**
-     * Check the case sensitivity of the user store in which the user is in.
-     *
      * @param username user name with user store domain
      * @param tenantId tenant id of the user
      * @return
@@ -475,8 +437,6 @@ public class IdentityUtil {
     }
 
     /**
-     * Check the case sensitivity of the user store.
-     *
      * @param userStoreDomain user store domain
      * @param tenantId        tenant id of the user store
      * @return
@@ -505,8 +465,6 @@ public class IdentityUtil {
     }
 
     /**
-     * Check the case sensitivity of the user store.
-     *
      * @param userStoreManager
      * @return
      */
@@ -542,7 +500,7 @@ public class IdentityUtil {
         }
     }
 
-    public static long getCleanUpTimeout() {
+    public static int getCleanUpTimeout() {
 
         String cleanUpTimeout = IdentityUtil.getProperty(IdentityConstants.ServerConfig.CLEAN_UP_TIMEOUT);
         if (StringUtils.isBlank(cleanUpTimeout)) {
@@ -550,10 +508,10 @@ public class IdentityUtil {
         } else if (!StringUtils.isNumeric(cleanUpTimeout)) {
             cleanUpTimeout = IdentityConstants.ServerConfig.CLEAN_UP_TIMEOUT_DEFAULT;
         }
-        return Long.parseLong(cleanUpTimeout);
+        return Integer.parseInt(cleanUpTimeout);
     }
 
-    public static long getCleanUpPeriod(String tenantDomain) {
+    public static int getCleanUpPeriod(String tenantDomain) {
 
         String cleanUpPeriod = IdentityUtil.getProperty(IdentityConstants.ServerConfig.CLEAN_UP_PERIOD);
         if (StringUtils.isBlank(cleanUpPeriod)) {
@@ -561,29 +519,7 @@ public class IdentityUtil {
         } else if (!StringUtils.isNumeric(cleanUpPeriod)) {
             cleanUpPeriod = IdentityConstants.ServerConfig.CLEAN_UP_PERIOD_DEFAULT;
         }
-        return Long.parseLong(cleanUpPeriod);
-    }
-
-    public static long getOperationCleanUpTimeout() {
-
-        String cleanUpTimeout = IdentityUtil.getProperty(IdentityConstants.ServerConfig.OPERATION_CLEAN_UP_TIMEOUT);
-        if (StringUtils.isBlank(cleanUpTimeout)) {
-            cleanUpTimeout = IdentityConstants.ServerConfig.OPERATION_CLEAN_UP_TIMEOUT_DEFAULT;
-        } else if (!StringUtils.isNumeric(cleanUpTimeout)) {
-            cleanUpTimeout = IdentityConstants.ServerConfig.OPERATION_CLEAN_UP_TIMEOUT_DEFAULT;
-        }
-        return Long.parseLong(cleanUpTimeout);
-    }
-
-    public static long getOperationCleanUpPeriod(String tenantDomain) {
-
-        String cleanUpPeriod = IdentityUtil.getProperty(IdentityConstants.ServerConfig.OPERATION_CLEAN_UP_PERIOD);
-        if (StringUtils.isBlank(cleanUpPeriod)) {
-            cleanUpPeriod = IdentityConstants.ServerConfig.OPERATION_CLEAN_UP_PERIOD_DEFAULT;
-        } else if (!StringUtils.isNumeric(cleanUpPeriod)) {
-            cleanUpPeriod = IdentityConstants.ServerConfig.OPERATION_CLEAN_UP_PERIOD_DEFAULT;
-        }
-        return Long.parseLong(cleanUpPeriod);
+        return Integer.parseInt(cleanUpPeriod);
     }
 
     public static String extractDomainFromName(String nameWithDomain) {
@@ -635,7 +571,7 @@ public class IdentityUtil {
         }
 
         Pattern pattern = Pattern.compile(fileNameRegEx, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE |
-                Pattern.COMMENTS);
+                                                                   Pattern.COMMENTS);
         Matcher matcher = pattern.matcher(fileName);
         return matcher.matches();
     }
@@ -780,63 +716,6 @@ public class IdentityUtil {
      */
     public static String getHostName() {
 
-        String hostName = ServerConfiguration.getInstance().getFirstProperty(IdentityCoreConstants.HOST_NAME);
-        if (hostName == null) {
-            try {
-                hostName = NetworkUtils.getLocalHostname();
-            } catch (SocketException e) {
-                throw IdentityRuntimeException.error("Error while trying to read hostname.", e);
-            }
-        }
-        return hostName;
-    }
-
-    public static String buildQueryString(Map<String, String[]> parameterMap) throws UnsupportedEncodingException {
-
-        StringBuilder queryString = new StringBuilder("?");
-        boolean isFirst = true;
-        for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
-            for(String paramValue : entry.getValue()) {
-                if (isFirst) {
-                    isFirst = false;
-                } else {
-                    queryString.append("&");
-                }
-                queryString.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8.name()));
-                queryString.append("=");
-                queryString.append(URLEncoder.encode(paramValue, StandardCharsets.UTF_8.name()));
-
-            }
-        }
-        return queryString.toString();
-    }
-
-    /**
-     * Get client IP address from the http request
-     *
-     * @param request http servlet request
-     * @return IP address of the initial client
-     */
-    public static String getClientIpAddress(HttpServletRequest request) {
-        for (String header : IdentityConstants.HEADERS_WITH_IP) {
-            String ip = request.getHeader(header);
-            if (ip != null && ip.length() != 0 && !IdentityConstants.UNKNOWN.equalsIgnoreCase(ip)) {
-                return getFirstIP(ip);
-            }
-        }
-        return request.getRemoteAddr();
-    }
-
-    /**
-     * Get the first IP from a comma separated list of IPs
-     *
-     * @param commaSeparatedIPs String which contains comma+space separated IPs
-     * @return First IP
-     */
-    public static String getFirstIP(String commaSeparatedIPs) {
-        if (StringUtils.isNotEmpty(commaSeparatedIPs) && commaSeparatedIPs.contains(",")) {
-            return commaSeparatedIPs.split(",")[0];
-        }
-        return commaSeparatedIPs;
+        return ServerConfiguration.getInstance().getFirstProperty(IdentityCoreConstants.HOST_NAME);
     }
 }

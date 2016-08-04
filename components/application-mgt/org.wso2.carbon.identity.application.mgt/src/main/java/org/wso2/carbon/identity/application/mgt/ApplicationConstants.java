@@ -35,8 +35,6 @@ public class ApplicationConstants {
     public static final String AUTH_TYPE_LOCAL = "local";
     public static final String AUTH_TYPE_FEDERATED = "federated";
     public static final String AUTH_TYPE_FLOW = "flow";
-    public static final String STANDARD_APPLICATION = "standardAPP";
-    public static final String WELLKNOWN_APPLICATION_TYPE = "appType";
 
     public static final String IDP_NAME = "idpName";
     public static final String IDP_AUTHENTICATOR_NAME = "authenticatorName";

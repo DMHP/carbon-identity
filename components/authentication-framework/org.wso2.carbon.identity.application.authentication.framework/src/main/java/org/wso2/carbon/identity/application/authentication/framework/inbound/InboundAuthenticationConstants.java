@@ -15,10 +15,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.wso2.carbon.identity.application.authentication.framework.inbound;
 
-public class InboundConstants {
+public final class InboundAuthenticationConstants {
+
+    public final static String HTTP_PATH_PARAM_REQUEST = "/request";
+    public final static String HTTP_PATH_PARAM_RESPONSE = "/response";
+
+    public static class StatusCode {
+
+        public static final int SUCCESS = 200;
+        public static final int REDIRECT = 302;
+        public static final int ERROR = 500;
+
+        private StatusCode() {
+        }
+    }
 
     public static class RequestProcessor {
 
@@ -26,15 +38,9 @@ public class InboundConstants {
         public static final String CALL_BACK_PATH = "CallbackURI";
         public static final String AUTH_NAME = "Name";
         public static final String AUTH_TYPE = "type";
-        // Rename constant value to "contextkey"
-        public static final String CONTEXT_KEY = "sessionDataKey";
-        public static final String AUTHENTICATION_RESULT = "AuthenticationResult";
+        public static final String SESSION_DATA_KEY = "sessionDataKey";
 
         private RequestProcessor() {
         }
     }
-
-    public static final String LOGGED_IN_IDPS = "LoggedInIDPs";
-    public static final String PassiveAuth = "passiveAuth";
-    public static final String ForceAuth = "forceAuth";
 }

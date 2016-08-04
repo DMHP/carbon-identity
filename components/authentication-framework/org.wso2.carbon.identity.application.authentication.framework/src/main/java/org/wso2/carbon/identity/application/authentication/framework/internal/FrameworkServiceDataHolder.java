@@ -20,10 +20,9 @@ package org.wso2.carbon.identity.application.authentication.framework.internal;
 
 import org.osgi.framework.BundleContext;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authentication.framework.AuthenticationDataPublisher;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.HttpIdentityRequestFactory;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.HttpIdentityResponseFactory;
-import org.wso2.carbon.identity.application.authentication.framework.inbound.IdentityProcessor;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationRequestBuilder;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationRequestProcessor;
+import org.wso2.carbon.identity.application.authentication.framework.inbound.InboundAuthenticationResponseProcessor;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.user.core.service.RealmService;
 
@@ -39,10 +38,9 @@ public class FrameworkServiceDataHolder {
     private List<ApplicationAuthenticator> authenticators = new ArrayList<>();
     private long nanoTimeReference = 0;
     private long unixTimeReference = 0;
-    private List<IdentityProcessor> identityProcessors = new ArrayList<IdentityProcessor>();
-    private List<HttpIdentityRequestFactory> httpIdentityRequestFactories = new ArrayList<HttpIdentityRequestFactory>();
-    private List<HttpIdentityResponseFactory> httpIdentityResponseFactories = new ArrayList<>();
-    private AuthenticationDataPublisher authnDataPublisherProxy = null;
+    private List<InboundAuthenticationRequestProcessor> inboundAuthenticationRequestProcessors = new ArrayList<InboundAuthenticationRequestProcessor>();
+    private List<InboundAuthenticationRequestBuilder> inboundAuthenticationRequestBuilders = new ArrayList<InboundAuthenticationRequestBuilder>();
+    private List<InboundAuthenticationResponseProcessor> inboundAuthenticationResponseProcessors = new ArrayList<InboundAuthenticationResponseProcessor>();
 
     private FrameworkServiceDataHolder() {
         setNanoTimeReference(System.nanoTime());
@@ -97,24 +95,30 @@ public class FrameworkServiceDataHolder {
         this.unixTimeReference = unixTimeReference;
     }
 
-    public List<HttpIdentityRequestFactory> getHttpIdentityRequestFactories() {
-        return httpIdentityRequestFactories;
+    public List<InboundAuthenticationRequestBuilder> getInboundAuthenticationRequestBuilders() {
+        return inboundAuthenticationRequestBuilders;
     }
 
-    public List<IdentityProcessor> getIdentityProcessors() {
-        return identityProcessors;
+    public void setInboundAuthenticationRequestBuilders(
+            List<InboundAuthenticationRequestBuilder> inboundAuthenticationRequestBuilders) {
+        this.inboundAuthenticationRequestBuilders = inboundAuthenticationRequestBuilders;
     }
 
-    public List<HttpIdentityResponseFactory> getHttpIdentityResponseFactories() {
-        return httpIdentityResponseFactories;
+    public List<InboundAuthenticationRequestProcessor> getInboundAuthenticationRequestProcessors() {
+        return inboundAuthenticationRequestProcessors;
     }
 
-    public AuthenticationDataPublisher getAuthnDataPublisherProxy() {
-        return authnDataPublisherProxy;
+    public void setInboundAuthenticationRequestProcessors(
+            List<InboundAuthenticationRequestProcessor> inboundAuthenticationRequestProcessors) {
+        this.inboundAuthenticationRequestProcessors = inboundAuthenticationRequestProcessors;
     }
 
-    public void setAuthnDataPublisherProxy(AuthenticationDataPublisher authnDataPublisherProxy) {
-        this.authnDataPublisherProxy = authnDataPublisherProxy;
+    public List<InboundAuthenticationResponseProcessor> getInboundAuthenticationResponseProcessors() {
+        return inboundAuthenticationResponseProcessors;
     }
 
+    public void setInboundAuthenticationResponseProcessors(
+            List<InboundAuthenticationResponseProcessor> inboundAuthenticationResponseProcessors) {
+        this.inboundAuthenticationResponseProcessors = inboundAuthenticationResponseProcessors;
+    }
 }
