@@ -93,7 +93,7 @@ public class HttpIdentityRequestFactory extends AbstractIdentityHandler {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                builder.addCookie(cookie.getName(), cookie);
+                builder.addCookie(cookie);
             }
         }
         String requestURI = request.getRequestURI();

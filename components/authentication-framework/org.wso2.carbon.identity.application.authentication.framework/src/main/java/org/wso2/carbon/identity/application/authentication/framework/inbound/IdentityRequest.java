@@ -36,7 +36,7 @@ public class IdentityRequest implements Serializable {
     private static final long serialVersionUID = 5418537216546873566L;
 
     protected Map<String, String> headers = new HashMap<>();
-    protected Map<String, Cookie> cookies = new HashMap<>();
+    protected Map<CookieKey, Cookie> cookies = new HashMap<>();
     protected Map<String, String[]> parameters = new HashMap<>();
     protected String tenantDomain;
     protected String contextPath;
@@ -72,7 +72,7 @@ public class IdentityRequest implements Serializable {
         return headers.get(name);
     }
 
-    public Map<String, Cookie> getCookieMap() {
+    public Map<CookieKey, Cookie> getCookieMap() {
         return Collections.unmodifiableMap(cookies);
     }
 
@@ -162,7 +162,7 @@ public class IdentityRequest implements Serializable {
         private HttpServletRequest request;
         private HttpServletResponse response;
         private Map<String, String> headers = new HashMap<>();
-        private Map<String, Cookie> cookies = new HashMap<>();
+        private Map<CookieKey, Cookie> cookies = new HashMap<>();
         private Map<String, String[]> parameters = new HashMap<>();
         private String tenantDomain;
         private String contextPath;
@@ -210,22 +210,23 @@ public class IdentityRequest implements Serializable {
             return this;
         }
 
-        public IdentityRequestBuilder setCookies(Map<String, Cookie> cookies) {
+        public IdentityRequestBuilder setCookies(Map<CookieKey, Cookie> cookies) {
             this.cookies = cookies;
             return this;
         }
 
-        public IdentityRequestBuilder addCookie(String name, Cookie value) {
-            if (this.cookies.containsKey(name)) {
+        public IdentityRequestBuilder addCookie(Cookie cookie) {
+            CookieKey cookieKey = new CookieKey(cookie.getName(), cookie.getPath());
+            if (this.cookies.containsKey(cookieKey)) {
                 throw FrameworkRuntimeException.error("Cookies map trying to override existing " +
-                        "cookie " + name);
+                        "cookie " + cookie.getName());
             }
-            this.cookies.put(name, value);
+            this.cookies.put(cookieKey, cookie);
             return this;
         }
 
-        public IdentityRequestBuilder addCookies(Map<String, Cookie> cookies) {
-            for (Map.Entry<String, Cookie> cookie : cookies.entrySet()) {
+        public IdentityRequestBuilder addCookies(Map<CookieKey, Cookie> cookies) {
+            for (Map.Entry<CookieKey, Cookie> cookie : cookies.entrySet()) {
                 if (this.cookies.containsKey(cookie.getKey())) {
                     throw FrameworkRuntimeException.error("Cookies map trying to override existing " +
                             "cookie " + cookie.getKey());
@@ -324,5 +325,51 @@ public class IdentityRequest implements Serializable {
         }
 
 
+    }
+
+    public static class CookieKey {
+
+        private String name;
+        private String path;
+
+        public CookieKey(String name, String path) {
+            this.name = name;
+            this.path = path;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = path;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if ( this == o ) return true;
+            if ( o == null || getClass() != o.getClass() ) return false;
+
+            CookieKey cookieKey = (CookieKey) o;
+
+            if ( name != null ? !name.equals(cookieKey.name) : cookieKey.name != null ) return false;
+            return !(path != null ? !path.equals(cookieKey.path) : cookieKey.path != null);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (path != null ? path.hashCode() : 0);
+            return result;
+        }
     }
 }
