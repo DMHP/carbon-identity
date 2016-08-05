@@ -1709,15 +1709,21 @@ public class ApplicationDAOImpl implements ApplicationDAO {
             IdentityApplicationManagementUtil.closeStatement(getClientInfo);
             IdentityApplicationManagementUtil.closeResultSet(resultSet);
         }
-        Map<String, AbstractInboundAuthenticatorConfig> allCustomAuthenticators = new HashMap<>
-                (ApplicationManagementServiceComponentHolder.getAllInboundAuthenticatorConfig());
-        for (Map.Entry<String, InboundAuthenticationRequestConfig> entry : inboundAuthenticationRequestConfigMap
-                .entrySet()) {
-            InboundAuthenticationRequestConfig inboundAuthenticationRequestConfig = entry.getValue();
-            if(isCustomInboundAuthType(inboundAuthenticationRequestConfig.getInboundAuthType())) {
-                AbstractInboundAuthenticatorConfig inboundAuthenticatorConfig = allCustomAuthenticators.remove(wellKnownApplicationType);
-                if (inboundAuthenticatorConfig != null && inboundAuthenticationRequestConfig != null) {
-                    Property[] sources = inboundAuthenticatorConfig.getConfigurationProperties();
+
+        Map<String, AbstractInboundAuthenticatorConfig> allCustomAuthenticators = new HashMap<>(
+                ApplicationManagementServiceComponentHolder.getAllInboundAuthenticatorConfig());
+        AbstractInboundAuthenticatorConfig inboundAuthenConfig = allCustomAuthenticators.get(wellKnownApplicationType);
+        //based on assumption that a service provider can have only one custom authenticator configured
+        if (inboundAuthenConfig != null) {
+            for (Map.Entry<String, InboundAuthenticationRequestConfig> entry : inboundAuthenticationRequestConfigMap
+                    .entrySet()) {
+                InboundAuthenticationRequestConfig inboundAuthenticationRequestConfig = entry.getValue();
+                if (inboundAuthenticationRequestConfig != null && StringUtils
+                        .equals(inboundAuthenConfig.getName(), inboundAuthenticationRequestConfig.getInboundAuthType())
+                        &&
+                        isCustomInboundAuthType(inboundAuthenticationRequestConfig.getInboundAuthType())) {
+                    allCustomAuthenticators.remove(wellKnownApplicationType);
+                    Property[] sources = inboundAuthenConfig.getConfigurationProperties();
                     Property[] destinations = inboundAuthenticationRequestConfig.getProperties();
                     Map<String, Property> destinationMap = new HashMap<>();
                     for (Property destination : destinations) {
@@ -1726,19 +1732,22 @@ public class ApplicationDAOImpl implements ApplicationDAO {
                     for (Property source : sources) {
                         Property property = destinationMap.get(source.getName());
                         if (property == null) {
-                            if (inboundAuthenticatorConfig.isRelyingPartyKeyConfigured()) {
-                                if (inboundAuthenticatorConfig.getAuthKey() == null && inboundAuthenticatorConfig
-                                        .getRelyingPartyKey().equals(source.getName())) {
+                            if (inboundAuthenConfig.isRelyingPartyKeyConfigured()) {
+                                if (inboundAuthenConfig.getAuthKey() == null && inboundAuthenConfig.getRelyingPartyKey()
+                                        .equals(source.getName())) {
                                     source.setValue(inboundAuthenticationRequestConfig.getInboundAuthKey());
                                 }
                             }
                             destinationMap.put(source.getName(), source);
                         }
                     }
-                    inboundAuthenticationRequestConfig.setProperties(destinationMap.values().toArray(new Property[destinationMap.size()]));
+                    inboundAuthenticationRequestConfig
+                            .setProperties(destinationMap.values().toArray(new Property[destinationMap.size()]));
+
                 }
             }
         }
+
         List<InboundAuthenticationRequestConfig> returnList =
                 new ArrayList<>(inboundAuthenticationRequestConfigMap.values());
 
