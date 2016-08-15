@@ -337,7 +337,7 @@ public class DefaultRequestCoordinator implements RequestCoordinator {
                     }
 
                     context.setPreviousSessionFound(true);
-                    sequenceConfig = previousAuthenticatedSeq;
+                    sequenceConfig = previousAuthenticatedSeq.cloneObject();
                     AuthenticatedUser authenticatedUser = sequenceConfig.getAuthenticatedUser();
                     String authenticatedUserTenantDomain = sequenceConfig.getAuthenticatedUser().getTenantDomain();
 
