@@ -37,6 +37,13 @@ public class IdentityEventListenerConfig {
         }
     }
 
+    public IdentityEventListenerConfig(String enable, int order, IdentityEventListenerConfigKey
+            identityEventListenerConfigKey) {
+        this.order = order;
+        this.enable = enable;
+        this.identityEventListenerConfigKey = identityEventListenerConfigKey;
+    }
+
     public int getOrder() {
         return order;
     }
