@@ -29,6 +29,7 @@ public class SCIMProviderConstants {
     public static final String ELEMENT_NAME_SCIM_AUTHENTICATORS = "SCIMAuthenticators";
     public static final String ELEMENT_NAME_AUTHENTICATOR = "Authenticator";
     public static final String ELEMENT_NAME_PROPERTY = "Property";
+    public static final String ELEMENT_SPECIAL_ROLES = "SpecialRoles";
 
     public static final String ATTRIBUTE_NAME_NAME = "name";
     public static final String ATTRIBUTE_NAME_CLASS = "class";

@@ -44,6 +44,7 @@ import org.wso2.carbon.identity.scim.common.utils.AttributeMapper;
 import org.wso2.carbon.identity.scim.common.utils.IdentitySCIMException;
 import org.wso2.carbon.identity.scim.common.utils.SCIMCommonConstants;
 import org.wso2.carbon.identity.scim.common.utils.SCIMCommonUtils;
+import org.wso2.carbon.identity.scim.provider.util.SCIMProviderConstants;
 import org.wso2.carbon.user.api.ClaimMapping;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.UserCoreConstants;
@@ -78,6 +79,7 @@ public class SCIMUserManager implements UserManager {
     public static final String SCIM_ENABLED =  "SCIMEnabled";
     public static final String APPLICATION_DOMAIN = "Application";
     public static final String INTERNAL_DOMAIN = "Internal";
+    private String standardRoleDomains;
     private static Log log = LogFactory.getLog(SCIMUserManager.class);
     private UserStoreManager carbonUM = null;
     private ClaimManager carbonClaimManager = null;
@@ -89,6 +91,8 @@ public class SCIMUserManager implements UserManager {
         carbonUM = carbonUserStoreManager;
         consumerName = userName;
         carbonClaimManager = claimManager;
+        standardRoleDomains = IdentityUtil.getProperty(SCIMProviderConstants.ELEMENT_NAME_SCIM + "." +
+                SCIMProviderConstants.ELEMENT_SPECIAL_ROLES);
     }
 
     @Override
@@ -852,7 +856,8 @@ public class SCIMUserManager implements UserManager {
                 String groupName = newGroup.getDisplayName();
                 String userStoreDomainForGroup = IdentityUtil.extractDomainFromName(groupName);
 
-                if (newGroup.getMembers() != null && !(newGroup.getMembers().isEmpty())) {
+                if (newGroup.getMembers() != null && !(newGroup.getMembers().isEmpty()) && (standardRoleDomains ==
+                        null || !UserCoreUtil.isContain(userStoreDomainForGroup, standardRoleDomains.split(",")))) {
                     newGroup = addDomainToUserMembers(newGroup, userStoreDomainForGroup);
                 }
 
@@ -880,7 +885,9 @@ public class SCIMUserManager implements UserManager {
                             throw new IdentitySCIMException(
                                     "User store domain is not indicated for user :" + userDisplayName);
                         }
-                        if (!userStoreDomainForGroup.equalsIgnoreCase(userStoreDomainForUser)) {
+                        if ((standardRoleDomains == null || !UserCoreUtil.isContain(userStoreDomainForGroup,
+                                standardRoleDomains.split(","))) && !userStoreDomainForGroup.equalsIgnoreCase
+                                (userStoreDomainForUser)) {
                             throw new IdentitySCIMException(
                                     userDisplayName + " does not " + "belongs to user store " + userStoreDomainForGroup);
                         }
@@ -1067,7 +1074,8 @@ public class SCIMUserManager implements UserManager {
                 String groupName = newGroup.getDisplayName();
                 String userStoreDomainForGroup = IdentityUtil.extractDomainFromName(groupName);
 
-                if (newGroup.getMembers() != null && !newGroup.getMembers().isEmpty()) {
+                if (newGroup.getMembers() != null && !newGroup.getMembers().isEmpty() && (standardRoleDomains == null
+                        || !UserCoreUtil.isContain(userStoreDomainForGroup, standardRoleDomains.split(",")))) {
                     newGroup = addDomainToUserMembers(newGroup, userStoreDomainForGroup);
                 }
 
@@ -1085,7 +1093,9 @@ public class SCIMUserManager implements UserManager {
                             throw new IdentitySCIMException(
                                     "User store domain is not indicated for user :" + userDisplayName);
                         }
-                        if (!userStoreDomainForGroup.equalsIgnoreCase(userStoreDomainForUser)) {
+                        if ((standardRoleDomains == null || !UserCoreUtil.isContain(userStoreDomainForGroup,
+                                standardRoleDomains.split(","))) && !userStoreDomainForGroup.equalsIgnoreCase
+                                (userStoreDomainForUser)) {
                             throw new IdentitySCIMException(
                                     userDisplayName + " does not " + "belongs to user store " + userStoreDomainForGroup);
                         }
