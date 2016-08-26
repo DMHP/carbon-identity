@@ -44,6 +44,10 @@
             <artifactId>org.wso2.carbon.identity.workflow.mgt.stub</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.carbon.identity</groupId>
+            <artifactId>org.wso2.carbon.identity.base</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.ws.commons.axiom.wso2</groupId>
             <artifactId>axiom</artifactId>
         </dependency>
@@ -90,6 +94,7 @@
                             org.wso2.carbon.identity.workflow.mgt.stub.mgt.*;version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.workflow.mgt.stub.metadata.*;version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.workflow.mgt.stub.metadata.bean.*;version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.base;version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.bpel.stub.upload; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.bpel.stub.upload.types;version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.humantask.stub.upload;version="${carbon.identity.package.import.version.range}",
