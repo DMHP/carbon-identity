@@ -94,8 +94,11 @@
     String cookie = (String) session.getAttribute(ServerConstants.ADMIN_SERVICE_COOKIE);
 
     String ruleId = request.getParameter("ruleId");
-    String returnPage = request.getParameter("returnPage");
-    if(returnPage == null || returnPage.trim().length() == 0){
+    String initiatedPage = request.getParameter("initiatedFrom");
+    String returnPage;
+    if (StringUtils.equals("create-policy-set", initiatedPage)) {
+        returnPage = "create-policy-set.jsp";
+    } else {
         returnPage = "policy-editor.jsp";
     }
     selectedFinderModule = request.getParameter("finderModule");

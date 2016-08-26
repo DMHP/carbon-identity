@@ -22,8 +22,8 @@
 <%
     String forwardTo = null;
     String ruleId = request.getParameter("ruleId");
-    String returnPage = request.getParameter("returnPage");
-    if(returnPage != null && returnPage.trim().length() > 0){
+    String initiatedPage = request.getParameter("initiatedFrom");
+    if(StringUtils.equals("basic-policy-editor", initiatedPage)){
         if(ruleId != null && ruleId.trim().length() > 0){
             entitlementPolicyBean.removeBasicRuleElement(ruleId);
         }
