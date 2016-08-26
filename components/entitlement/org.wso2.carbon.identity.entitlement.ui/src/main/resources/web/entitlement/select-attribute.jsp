@@ -34,7 +34,6 @@
         import="java.io.IOException" %>
 <%@ page import="java.util.ResourceBundle" %>
 <%@ page import="java.util.Set" %>
-<%@ page import="org.apache.commons.lang.StringUtils" %>
 <jsp:useBean id="entitlementPolicyBean" type="org.wso2.carbon.identity.entitlement.ui.EntitlementPolicyBean"
              class="org.wso2.carbon.identity.entitlement.ui.EntitlementPolicyBean" scope="session"/>
 <jsp:setProperty name="entitlementPolicyBean" property="*" />
@@ -97,7 +96,7 @@
     String ruleId = request.getParameter("ruleId");
     String initiatedPage = request.getParameter("initiatedFrom");
     String returnPage;
-    if (StringUtils.equals("create-policy-set", initiatedPage)) {
+    if ("create-policy-set".equals(initiatedPage)) {
         returnPage = "create-policy-set.jsp";
     } else {
         returnPage = "policy-editor.jsp";
