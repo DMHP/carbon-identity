@@ -91,8 +91,7 @@ public class SCIMUserManager implements UserManager {
         carbonUM = carbonUserStoreManager;
         consumerName = userName;
         carbonClaimManager = claimManager;
-        standardRoleDomains = IdentityUtil.getProperty(SCIMProviderConstants.ELEMENT_NAME_SCIM + "." +
-                SCIMProviderConstants.ELEMENT_SPECIAL_ROLES);
+        standardRoleDomains = APPLICATION_DOMAIN + "," + INTERNAL_DOMAIN ;
     }
 
     @Override
