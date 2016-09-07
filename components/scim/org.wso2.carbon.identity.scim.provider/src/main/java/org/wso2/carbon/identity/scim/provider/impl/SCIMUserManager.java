@@ -79,7 +79,6 @@ public class SCIMUserManager implements UserManager {
     public static final String SCIM_ENABLED =  "SCIMEnabled";
     public static final String APPLICATION_DOMAIN = "Application";
     public static final String INTERNAL_DOMAIN = "Internal";
-    private String standardRoleDomains;
     private static Log log = LogFactory.getLog(SCIMUserManager.class);
     private UserStoreManager carbonUM = null;
     private ClaimManager carbonClaimManager = null;
@@ -91,7 +90,6 @@ public class SCIMUserManager implements UserManager {
         carbonUM = carbonUserStoreManager;
         consumerName = userName;
         carbonClaimManager = claimManager;
-        standardRoleDomains = APPLICATION_DOMAIN + "," + INTERNAL_DOMAIN ;
     }
 
     @Override
@@ -855,8 +853,8 @@ public class SCIMUserManager implements UserManager {
                 String groupName = newGroup.getDisplayName();
                 String userStoreDomainForGroup = IdentityUtil.extractDomainFromName(groupName);
 
-                if (newGroup.getMembers() != null && !(newGroup.getMembers().isEmpty()) && (standardRoleDomains ==
-                        null || !UserCoreUtil.isContain(userStoreDomainForGroup, standardRoleDomains.split(",")))) {
+                if (newGroup.getMembers() != null && !(newGroup.getMembers().isEmpty()) &&
+                        !isInternalOrApplicationGroup(userStoreDomainForGroup)) {
                     newGroup = addDomainToUserMembers(newGroup, userStoreDomainForGroup);
                 }
 
@@ -879,13 +877,7 @@ public class SCIMUserManager implements UserManager {
                     for (String userDisplayName : userDisplayNames) {
                         String userStoreDomainForUser =
                                 IdentityUtil.extractDomainFromName(userDisplayName);
-                        if (!(primaryDomain.equals(userStoreDomainForGroup)) &&
-                                (primaryDomain.equals(userStoreDomainForUser))) {
-                            throw new IdentitySCIMException(
-                                    "User store domain is not indicated for user :" + userDisplayName);
-                        }
-                        if ((standardRoleDomains == null || !UserCoreUtil.isContain(userStoreDomainForGroup,
-                                standardRoleDomains.split(","))) && !userStoreDomainForGroup.equalsIgnoreCase
+                        if (!isInternalOrApplicationGroup(userStoreDomainForGroup) && !userStoreDomainForGroup.equalsIgnoreCase
                                 (userStoreDomainForUser)) {
                             throw new IdentitySCIMException(
                                     userDisplayName + " does not " + "belongs to user store " + userStoreDomainForGroup);
@@ -990,8 +982,8 @@ public class SCIMUserManager implements UserManager {
         //if operating in dumb mode, do not persist the operation, only provision to providers
 
         String userStoreDomainName = IdentityUtil.extractDomainFromName(oldGroup.getDisplayName());
-        if(!isInternalOrApplicationGroup(userStoreDomainName) && StringUtils.isNotBlank(userStoreDomainName) &&
-                !isSCIMEnabled(userStoreDomainName)){
+        if(StringUtils.isNotBlank(userStoreDomainName) && !isSCIMEnabled(userStoreDomainName) &&
+                !isInternalOrApplicationGroup(userStoreDomainName)){
             throw new CharonException("Cannot retrieve group through scim to user store " + ". SCIM is not " +
                     "enabled for user store " + userStoreDomainName);
         }
@@ -1073,8 +1065,8 @@ public class SCIMUserManager implements UserManager {
                 String groupName = newGroup.getDisplayName();
                 String userStoreDomainForGroup = IdentityUtil.extractDomainFromName(groupName);
 
-                if (newGroup.getMembers() != null && !newGroup.getMembers().isEmpty() && (standardRoleDomains == null
-                        || !UserCoreUtil.isContain(userStoreDomainForGroup, standardRoleDomains.split(",")))) {
+                if (newGroup.getMembers() != null && !newGroup.getMembers().isEmpty() &&
+                        !isInternalOrApplicationGroup(userStoreDomainForGroup) ) {
                     newGroup = addDomainToUserMembers(newGroup, userStoreDomainForGroup);
                 }
 
@@ -1087,13 +1079,7 @@ public class SCIMUserManager implements UserManager {
                     for (String userDisplayName : userDisplayNames) {
                         String userStoreDomainForUser =
                                 IdentityUtil.extractDomainFromName(userDisplayName);
-                        if (!(UserCoreConstants.PRIMARY_DEFAULT_DOMAIN_NAME.equals(userStoreDomainForGroup)) &&
-                                (UserCoreConstants.PRIMARY_DEFAULT_DOMAIN_NAME.equals(userStoreDomainForUser))) {
-                            throw new IdentitySCIMException(
-                                    "User store domain is not indicated for user :" + userDisplayName);
-                        }
-                        if ((standardRoleDomains == null || !UserCoreUtil.isContain(userStoreDomainForGroup,
-                                standardRoleDomains.split(","))) && !userStoreDomainForGroup.equalsIgnoreCase
+                        if (!isInternalOrApplicationGroup(userStoreDomainForGroup) && !userStoreDomainForGroup.equalsIgnoreCase
                                 (userStoreDomainForUser)) {
                             throw new IdentitySCIMException(
                                     userDisplayName + " does not " + "belongs to user store " + userStoreDomainForGroup);
@@ -1191,7 +1177,8 @@ public class SCIMUserManager implements UserManager {
                     }
                 }
 
-                if (newGroup.getDisplayName() != null && ((CollectionUtils.isNotEmpty(addedMembers)) || (CollectionUtils.isNotEmpty(deletedMembers)))) {
+                if (newGroup.getDisplayName() != null && ((CollectionUtils.isNotEmpty(addedMembers))
+                        || (CollectionUtils.isNotEmpty(deletedMembers)))) {
                     carbonUM.updateUserListOfRole(newGroup.getDisplayName(),
                             deletedMembers.toArray(new String[deletedMembers.size()]),
                             addedMembers.toArray(new String[addedMembers.size()]));
