@@ -131,6 +131,7 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
     private static final int ENTITY_EXPANSION_LIMIT = 0;
     private static final String SIGN_AUTH2_SAML_USING_SUPER_TENANT = "SignAuth2SAMLUsingSuperTenant";
     private static final String NAMEID_TYPE = "NameIDType";
+    private static final String NAMEID_SP_NAME_QUALIFIER = "NameIDSPNameQualifier";
     private static Log log = LogFactory.getLog(DefaultSAML2SSOManager.class);
     private static Log AUDIT_LOG = CarbonConstants.AUDIT_LOG;
     private static boolean bootStrapped = false;
@@ -603,6 +604,7 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
                 .get(IdentityApplicationConstants.Authenticator.SAML2SSO.INCLUDE_NAME_ID_POLICY);
         if (StringUtils.isEmpty(includeNameIDPolicyProp) || Boolean.parseBoolean(includeNameIDPolicyProp)) {
             String nameIDType = properties.get(NAMEID_TYPE);
+            String nameIDSPNameQualifier = properties.get(NAMEID_SP_NAME_QUALIFIER);
             NameIDPolicyBuilder nameIdPolicyBuilder = new NameIDPolicyBuilder();
             NameIDPolicy nameIdPolicy = nameIdPolicyBuilder.buildObject();
             if (StringUtils.isNotBlank(nameIDType)) {
@@ -610,8 +612,8 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
             } else {
                 nameIdPolicy.setFormat(NameIDType.UNSPECIFIED);
             }
-            if (spEntityId != null && !spEntityId.isEmpty()) {
-                nameIdPolicy.setSPNameQualifier(spEntityId);
+            if (StringUtils.isNotBlank(nameIDSPNameQualifier)) {
+                nameIdPolicy.setSPNameQualifier(nameIDSPNameQualifier);
             }
             //nameIdPolicy.setSPNameQualifier(issuer);
             nameIdPolicy.setAllowCreate(true);
