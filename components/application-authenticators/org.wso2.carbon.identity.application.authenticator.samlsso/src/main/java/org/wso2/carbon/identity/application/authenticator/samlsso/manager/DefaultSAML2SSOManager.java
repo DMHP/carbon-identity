@@ -105,6 +105,12 @@ import org.wso2.carbon.identity.application.common.util.IdentityApplicationManag
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.xml.sax.SAXException;
 
+import javax.crypto.SecretKey;
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -117,12 +123,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
-import javax.crypto.SecretKey;
-import javax.servlet.http.HttpServletRequest;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 public class DefaultSAML2SSOManager implements SAML2SSOManager {
 
@@ -130,6 +130,8 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
             Constants.SECURITY_MANAGER_PROPERTY;
     private static final int ENTITY_EXPANSION_LIMIT = 0;
     private static final String SIGN_AUTH2_SAML_USING_SUPER_TENANT = "SignAuth2SAMLUsingSuperTenant";
+    private static final String NAMEID_TYPE = "NameIDType";
+    private static final String NAMEID_SP_NAME_QUALIFIER = "NameIDSPNameQualifier";
     private static Log log = LogFactory.getLog(DefaultSAML2SSOManager.class);
     private static Log AUDIT_LOG = CarbonConstants.AUDIT_LOG;
     private static boolean bootStrapped = false;
@@ -601,10 +603,19 @@ public class DefaultSAML2SSOManager implements SAML2SSOManager {
         String includeNameIDPolicyProp = properties
                 .get(IdentityApplicationConstants.Authenticator.SAML2SSO.INCLUDE_NAME_ID_POLICY);
         if (StringUtils.isEmpty(includeNameIDPolicyProp) || Boolean.parseBoolean(includeNameIDPolicyProp)) {
+            String nameIDType = properties.get(NAMEID_TYPE);
+            String nameIDSPNameQualifier = properties.get(NAMEID_SP_NAME_QUALIFIER);
             NameIDPolicyBuilder nameIdPolicyBuilder = new NameIDPolicyBuilder();
             NameIDPolicy nameIdPolicy = nameIdPolicyBuilder.buildObject();
-            nameIdPolicy.setFormat(NameIDType.UNSPECIFIED);
-            //nameIdPolicy.setSPNameQualifier("Issuer");
+            if (StringUtils.isNotBlank(nameIDType)) {
+                nameIdPolicy.setFormat(nameIDType);
+            } else {
+                nameIdPolicy.setFormat(NameIDType.UNSPECIFIED);
+            }
+            if (StringUtils.isNotBlank(nameIDSPNameQualifier)) {
+                nameIdPolicy.setSPNameQualifier(nameIDSPNameQualifier);
+            }
+            //nameIdPolicy.setSPNameQualifier(issuer);
             nameIdPolicy.setAllowCreate(true);
             authRequest.setNameIDPolicy(nameIdPolicy);
         }
