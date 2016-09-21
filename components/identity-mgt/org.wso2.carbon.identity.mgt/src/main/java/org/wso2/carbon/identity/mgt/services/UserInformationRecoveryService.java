@@ -31,9 +31,9 @@ import org.wso2.carbon.identity.core.IdentityClaimManager;
 import org.wso2.carbon.identity.core.model.IdentityEventListenerConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.mgt.IdentityMgtEventListener;
 import org.wso2.carbon.identity.mgt.ChallengeQuestionProcessor;
 import org.wso2.carbon.identity.mgt.IdentityMgtConfig;
+import org.wso2.carbon.identity.mgt.IdentityMgtEventListener;
 import org.wso2.carbon.identity.mgt.IdentityMgtServiceException;
 import org.wso2.carbon.identity.mgt.RecoveryProcessor;
 import org.wso2.carbon.identity.mgt.beans.VerificationBean;
@@ -56,8 +56,8 @@ import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.user.core.listener.UserOperationEventListener;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.tenant.TenantManager;
-import org.wso2.carbon.user.mgt.UserMgtConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
+import org.wso2.carbon.user.mgt.UserMgtConstants;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -854,8 +854,14 @@ public class UserInformationRecoveryService {
                         new String[]{userName});
             }
 
+            String listenerClassName = IdentityMgtConfig.getInstance().getProperty
+                    (IdentityMgtConstants.PropertyConfig.IDENTITY_MGT_LISTENER_CLASS);
+            if(StringUtils.isBlank(listenerClassName)) {
+                listenerClassName = IdentityMgtEventListener.class.getName();
+            }
+
             IdentityEventListenerConfig identityEventListenerConfig = IdentityUtil.readEventListenerProperty
-                    (UserOperationEventListener.class.getName(), IdentityMgtEventListener.class.getName());
+                    (UserOperationEventListener.class.getName(), listenerClassName);
 
             boolean isListenerEnable = true;
 
@@ -972,8 +978,14 @@ public class UserInformationRecoveryService {
             }
 
             try {
+                String listenerClassName = IdentityMgtConfig.getInstance().getProperty
+                        (IdentityMgtConstants.PropertyConfig.IDENTITY_MGT_LISTENER_CLASS);
+                if(StringUtils.isBlank(listenerClassName)) {
+                    listenerClassName = IdentityMgtEventListener.class.getName();
+                }
+
                 IdentityEventListenerConfig identityEventListenerConfig = IdentityUtil.readEventListenerProperty
-                        (UserOperationEventListener.class.getName(), IdentityMgtEventListener.class.getName());
+                        (UserOperationEventListener.class.getName(), listenerClassName);
 
                 boolean isListenerEnable = true;
 
