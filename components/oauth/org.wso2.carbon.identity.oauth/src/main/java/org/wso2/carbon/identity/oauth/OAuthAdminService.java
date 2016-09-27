@@ -210,15 +210,23 @@ public class OAuthAdminService extends AbstractAdmin {
                     app.setOauthConsumerKey(application.getOauthConsumerKey());
                     app.setOauthConsumerSecret(application.getOauthConsumerSecret());
                 }
+
+                AuthenticatedUser user = new AuthenticatedUser();
+                user.setUserName(UserCoreUtil.removeDomainFromName(userName));
+                user.setTenantDomain(tenantDomain);
+                user.setUserStoreDomain(IdentityUtil.extractDomainFromName(userName));
+
                 String applicationUser = application.getUsername();
-                if (applicationUser != null && applicationUser.trim().length() > 0) {
+
+                if (StringUtils.isNotBlank(applicationUser)) {
                     try {
                         if (CarbonContext.getThreadLocalCarbonContext().getUserRealm().
-                                getUserStoreManager().isExistingUser(application.getUsername())) {
-                            tenantUser = applicationUser;
+                                getUserStoreManager().isExistingUser(applicationUser)) {
+                            user.setUserName(UserCoreUtil.removeDomainFromName(applicationUser));
+                            user.setUserStoreDomain(IdentityUtil.extractDomainFromName(applicationUser));
                         } else {
                             log.warn("OAuth application registrant user name " + applicationUser +
-                                    " does not exist in the user store. Using logged-in user name " + tenantUser +
+                                    " does not exist in the user store. Using logged-in user name " + userName +
                                     " as registrant name");
                         }
                     } catch (UserStoreException e) {
@@ -226,10 +234,6 @@ public class OAuthAdminService extends AbstractAdmin {
                     }
 
                 }
-                AuthenticatedUser user = new AuthenticatedUser();
-                user.setUserName(UserCoreUtil.removeDomainFromName(tenantUser));
-                user.setTenantDomain(tenantDomain);
-                user.setUserStoreDomain(IdentityUtil.extractDomainFromName(userName));
                 app.setUser(user);
                 if (application.getOAuthVersion() != null) {
                     app.setOauthVersion(application.getOAuthVersion());
