@@ -25,6 +25,9 @@ import org.apache.oltu.oauth2.common.message.types.GrantType;
 import org.wso2.carbon.core.AbstractAdmin;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.oauth.cache.CacheEntry;
+import org.wso2.carbon.identity.oauth.cache.OAuthCache;
+import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
 import org.wso2.carbon.identity.oauth.common.OAuth2ErrorCodes;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
@@ -262,19 +265,30 @@ public class OAuth2Service extends AbstractAdmin {
                     }
 
                 } else {
-                    accessTokenDO = tokenMgtDAO.retrieveAccessToken(revokeRequestDTO.getToken(), true);
+                    if (OAuthServerConfiguration.getInstance().isCacheEnabled()) {
+                        OAuthCache oauthCache = OAuthCache.getInstance();
+                        OAuthCacheKey cacheKey = new OAuthCacheKey(revokeRequestDTO.getToken());
+                        CacheEntry result = oauthCache.getValueFromCache(cacheKey);
+                        // cache hit, do the type check.
+                        if (result instanceof AccessTokenDO) {
+                            accessTokenDO = (AccessTokenDO) result;
+                        }
+                    }
                     if (accessTokenDO == null) {
+                        accessTokenDO = tokenMgtDAO.retrieveAccessToken(revokeRequestDTO.getToken(), true);
+                        if (accessTokenDO == null) {
 
-                        refreshTokenDO = tokenMgtDAO
-                                .validateRefreshToken(revokeRequestDTO.getConsumerKey(), revokeRequestDTO.getToken());
+                            refreshTokenDO = tokenMgtDAO.validateRefreshToken(revokeRequestDTO.getConsumerKey(),
+                                    revokeRequestDTO.getToken());
 
-                        if (refreshTokenDO == null ||
-                                StringUtils.isEmpty(refreshTokenDO.getRefreshTokenState()) ||
-                                !(OAuthConstants.TokenStates.TOKEN_STATE_ACTIVE
-                                        .equals(refreshTokenDO.getRefreshTokenState()) ||
-                                        OAuthConstants.TokenStates.TOKEN_STATE_EXPIRED
-                                                .equals(refreshTokenDO.getRefreshTokenState()))) {
-                            return revokeResponseDTO;
+                            if (refreshTokenDO == null ||
+                                    StringUtils.isEmpty(refreshTokenDO.getRefreshTokenState()) ||
+                                    !(OAuthConstants.TokenStates.TOKEN_STATE_ACTIVE
+                                            .equals(refreshTokenDO.getRefreshTokenState()) ||
+                                            OAuthConstants.TokenStates.TOKEN_STATE_EXPIRED
+                                                    .equals(refreshTokenDO.getRefreshTokenState()))) {
+                                return revokeResponseDTO;
+                            }
                         }
                     }
                 }
@@ -323,7 +337,11 @@ public class OAuth2Service extends AbstractAdmin {
                         org.wso2.carbon.identity.oauth.OAuthUtil
                                 .clearOAuthCache(revokeRequestDTO.getConsumerKey(), accessTokenDO.getAuthzUser());
                         org.wso2.carbon.identity.oauth.OAuthUtil.clearOAuthCache(revokeRequestDTO.getToken());
-                        tokenMgtDAO.revokeTokens(new String[] { revokeRequestDTO.getToken() });
+                        String scope = OAuth2Util.buildScopeString(accessTokenDO.getScope());
+                        String authorizedUser = accessTokenDO.getAuthzUser().toString();
+                    synchronized ((revokeRequestDTO.getConsumerKey() + ":" + authorizedUser + ":" + scope).intern()) {
+                        tokenMgtDAO.revokeTokens(new String[]{revokeRequestDTO.getToken()});
+                    }
                         addRevokeResponseHeaders(revokeResponseDTO,
                                 revokeRequestDTO.getToken(),
                                 accessTokenDO.getRefreshToken(),
