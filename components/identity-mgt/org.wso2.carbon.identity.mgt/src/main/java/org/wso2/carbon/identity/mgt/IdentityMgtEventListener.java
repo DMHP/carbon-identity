@@ -560,6 +560,9 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
 
                 if (config.isEnableUserAccountVerification() && IdentityUtil.threadLocalProperties.get().containsKey(EMPTY_PASSWORD_USED)) {
 
+                    // remove thread local property 'EMPTY_PASSWORD_USED'
+                    IdentityUtil.threadLocalProperties.get().remove(EMPTY_PASSWORD_USED);
+
                     // empty password account creation
                     String domainName = ((org.wso2.carbon.user.core.UserStoreManager) userStoreManager)
                             .getRealmConfiguration().getUserStoreProperty(
