@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.oauth2.token.handlers.grant;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
@@ -234,9 +235,14 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
                     }
                     if (cacheEnabled) {
                         oauthCache.addToCache(cacheKey, existingAccessTokenDO);
+                        // Add new access token to the AccessTokenCache
+                        OAuthCacheKey accessTokenCacheKey = new OAuthCacheKey(existingAccessTokenDO.getAccessToken());
+                        oauthCache.addToCache(accessTokenCacheKey, existingAccessTokenDO);
                         if (log.isDebugEnabled()) {
                             log.debug("Access Token info was added to the cache for the cache key : " +
                                     cacheKey.getCacheKeyString());
+                            log.debug("Access token was added to OAuthCache for cache key : " + accessTokenCacheKey
+                                    .getCacheKeyString());
                         }
                     }
 
@@ -367,6 +373,11 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
             // Persist the access token in database
             storeAccessToken(oAuth2AccessTokenReqDTO, userStoreDomain, newAccessTokenDO, newAccessToken,
                     existingAccessTokenDO);
+            if (!newAccessToken.equals(newAccessTokenDO.getAccessToken())) {
+                // Using latest active token.
+                newAccessToken = newAccessTokenDO.getAccessToken();
+                refreshToken = newAccessTokenDO.getRefreshToken();
+            }
 
             if (log.isDebugEnabled()) {
                 log.debug("Persisted Access Token for " +
@@ -381,9 +392,13 @@ public abstract class AbstractAuthorizationGrantHandler implements Authorization
             //update cache with newly added token
             if (cacheEnabled) {
                 oauthCache.addToCache(cacheKey, newAccessTokenDO);
+                // Adding AccessTokenDO to improve validation performance
+                OAuthCacheKey accessTokenCacheKey = new OAuthCacheKey(newAccessToken);
+                oauthCache.addToCache(accessTokenCacheKey, newAccessTokenDO);
                 if (log.isDebugEnabled()) {
-                    log.debug("Access token was added to OAuthCache for cache key : " +
-                            cacheKey.getCacheKeyString());
+                    log.debug("Access token was added to OAuthCache for cache key : " + cacheKey.getCacheKeyString());
+                    log.debug("Access token was added to OAuthCache for cache key : " + accessTokenCacheKey
+                            .getCacheKeyString());
                 }
             }
 

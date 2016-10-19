@@ -94,7 +94,6 @@ public class PasswordGrantHandler extends AbstractAuthorizationGrantHandler {
         try {
             userStoreManager = realmService.getTenantUserRealm(tenantId).getUserStoreManager();
             authStatus = userStoreManager.authenticate(tenantAwareUserName, oAuth2AccessTokenReqDTO.getResourceOwnerPassword());
-
             if (log.isDebugEnabled()) {
                 log.debug("Token request with Password Grant Type received. " +
                         "Username : " + username +

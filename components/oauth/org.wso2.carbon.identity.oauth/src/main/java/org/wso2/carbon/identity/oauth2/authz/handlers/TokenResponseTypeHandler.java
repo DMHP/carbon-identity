@@ -316,6 +316,11 @@ public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
             try {
                 tokenMgtDAO.storeAccessToken(accessToken, authorizationReqDTO.getConsumerKey(),
                                              newAccessTokenDO, existingAccessTokenDO, userStoreDomain);
+                if (!accessToken.equals(newAccessTokenDO.getAccessToken())) {
+                    // Using latest active token.
+                    accessToken = newAccessTokenDO.getAccessToken();
+                    refreshToken = newAccessTokenDO.getRefreshToken();
+                }
             } catch (IdentityException e) {
                 throw new IdentityOAuth2Exception(
                                 "Error occurred while storing new access token : " + accessToken, e);
@@ -336,9 +341,13 @@ public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
             // Add the access token to the cache.
             if (cacheEnabled) {
                 oauthCache.addToCache(cacheKey, newAccessTokenDO);
+                // Adding AccessTokenDO to improve validation performance
+                OAuthCacheKey accessTokenCacheKey = new OAuthCacheKey(accessToken);
+                oauthCache.addToCache(accessTokenCacheKey, newAccessTokenDO);
                 if (log.isDebugEnabled()) {
-                    log.debug("Access Token was added to OAuthCache for " +
-                            "cache key : " + cacheKey.getCacheKeyString());
+                    log.debug("Access Token was added to OAuthCache for cache key : " + cacheKey.getCacheKeyString());
+                    log.debug("Access Token was added to OAuthCache for cache key : " + accessTokenCacheKey
+                            .getCacheKeyString());
                 }
             }
 
