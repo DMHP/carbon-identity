@@ -37,11 +37,16 @@
     String BUNDLE = "org.wso2.carbon.idp.mgt.ui.i18n.Resources";
     ResourceBundle resourceBundle = ResourceBundle.getBundle(BUNDLE, request.getLocale());
     String callback = request.getParameter("callback");
+
+    final String trustedCallbackEdit = "idp-mgt-edit.jsp";
+    final String trustedCallbackList = "idp-mgt-list.jsp";
+
     if (StringUtils.isBlank(callback) || !IdentityValidationUtil
             .isValidOverBlackListPatterns(callback, IdentityValidationUtil.ValidatorPattern.URI_RESERVED_EXISTS
-                .name())) {
+                .name()) || !(trustedCallbackEdit.equals(callback) || trustedCallbackList.equals(callback))) {
         callback = "idp-mgt-list.jsp";
     }
+    
     try {
         String cookie = (String) session.getAttribute(ServerConstants.ADMIN_SERVICE_COOKIE);
         String backendServerURL = CarbonUIUtil.getServerURL(config.getServletContext(), session);
