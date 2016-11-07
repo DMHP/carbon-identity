@@ -43,13 +43,17 @@ public class ArtifactDeleteThread implements Runnable {
     private String userName = null;
     private String secretKeyPath = null;
     private int tenantId = -1234;
+    private boolean isDeleteAll = false;
 
-    public ArtifactDeleteThread(Registry registry, String userName, String secretKeyPath, int tenantId) {
+    public ArtifactDeleteThread(Registry registry, String userName, String secretKeyPath, int tenantId, boolean
+            isDeleteAll) {
 
         this.registry = registry;
         this.userName = userName;
         this.secretKeyPath = secretKeyPath;
         this.tenantId = tenantId;
+        this.isDeleteAll = isDeleteAll;
+
     }
 
     @Override
@@ -93,8 +97,14 @@ public class ArtifactDeleteThread implements Runnable {
                     if (splittedResource.length == 3) {
                         //PRIMARY USER STORE
                         if (resource.contains("___" + userNameToValidate.toLowerCase() + "___")) {
-                            //add resources belong to particular user to a list
-                            userResources.add(registry.get(resource));
+                            if(!isDeleteAll) {
+                                //add resources belong to particular user to a list
+                                userResources.add(registry.get(resource));
+                            } else {
+                                //if caller is updatePassword method need to delete all resources
+                                deleteResource(registry.get(resource).getPath());
+                            }
+
                         }
                     } else if (splittedResource.length == 2) {
                         //SECONDARY USER STORE. Resource is a collection.
@@ -102,20 +112,22 @@ public class ArtifactDeleteThread implements Runnable {
                     }
                 }
 
-                //sort resource list ascending order by expireTime property
-                Collections.sort(userResources, new Comparator<Resource>() {
+                if(!isDeleteAll) {
+                    //sort resource list ascending order by expireTime property
+                    Collections.sort(userResources, new Comparator<Resource>() {
 
-                    public int compare(Resource r1, Resource r2) {
+                        public int compare(Resource r1, Resource r2) {
 
-                        return ((Long) Long.parseLong(r1.getProperty("expireTime")))
-                                .compareTo((Long) Long.parseLong(r2.getProperty("expireTime")));
+                            return ((Long) Long.parseLong(r1.getProperty("expireTime")))
+                                    .compareTo((Long) Long.parseLong(r2.getProperty("expireTime")));
 
+                        }
+                    });
+
+                    //delete all resources except finally created resource
+                    for (int i = 0; i < userResources.size() - 1; i++) {
+                        deleteResource(userResources.get(i).getPath());
                     }
-                });
-
-                //delete all resources except finally created resource
-                for (int i = 0; i < userResources.size() - 1; i++) {
-                    deleteResource(userResources.get(i).getPath());
                 }
             }
         } catch (RegistryException e) {
