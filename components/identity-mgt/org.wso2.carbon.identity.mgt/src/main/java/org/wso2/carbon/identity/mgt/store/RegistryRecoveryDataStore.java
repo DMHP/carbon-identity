@@ -226,7 +226,13 @@ public class RegistryRecoveryDataStore implements UserRecoveryDataStore {
         try {
             registry = IdentityMgtServiceComponent.getRegistryService().
                     getConfigSystemRegistry(PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId());
-            deleteOldResourcesIfFound(registry, userId, IdentityMgtConstants.IDENTITY_MANAGEMENT_DATA);
+            if(IdentityMgtConfig.getInstance().getPoolSize() <= 0) {
+                deleteOldResourcesIfFound(registry, userId, IdentityMgtConstants.IDENTITY_MANAGEMENT_DATA);
+            } else {
+                ArtifactDeleteThread artifactDeleteThread = new ArtifactDeleteThread(registry, userId,
+                        IdentityMgtConstants.IDENTITY_MANAGEMENT_DATA, tenantId);
+                IdentityMgtConfig.getInstance().getExecutors().submit(artifactDeleteThread);
+            }
         } catch (RegistryException e) {
             throw IdentityException.error("Error while deleting the old confirmation code.", e);
         }

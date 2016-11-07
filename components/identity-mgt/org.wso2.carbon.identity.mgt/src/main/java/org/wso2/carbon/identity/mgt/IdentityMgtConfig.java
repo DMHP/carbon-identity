@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.mgt;
 
+import org.apache.commons.lang.NumberUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -48,6 +49,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -102,6 +105,17 @@ public class IdentityMgtConfig {
      * Eg. Password.policy.extensions.1.min.length=6
      */
     private Pattern propertyPattern = Pattern.compile("(\\.\\d\\.)");
+    private int poolSize = 0;
+    private ExecutorService executors = null;
+
+
+    public ExecutorService getExecutors() {
+        return executors;
+    }
+
+    public int getPoolSize() {
+        return poolSize;
+    }
 
     public IdentityMgtConfig(RealmConfiguration configuration) {
 
@@ -129,6 +143,17 @@ public class IdentityMgtConfig {
         }
 
         try {
+            String strPoolSize = properties.getProperty(IdentityMgtConstants.PropertyConfig.
+                    ARTIFACT_DELETE_THREAD_POOL_SIZE);
+
+            if (NumberUtils.isNumber(strPoolSize)) {
+
+                poolSize = Integer.parseInt(strPoolSize);
+                if (poolSize > 0) {
+                    executors = Executors.newFixedThreadPool(poolSize);
+                }
+
+            }
             String notificationInternallyManagedProperty = properties.
                     getProperty(IdentityMgtConstants.PropertyConfig.NOTIFICATION_SEND_INTERNALLY);
             if (notificationInternallyManagedProperty != null) {
