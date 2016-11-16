@@ -338,7 +338,12 @@ public class SCIMUserOperationListener extends AbstractIdentityUserOperationEven
     @Override
     public boolean doPreDeleteRole(String roleName, UserStoreManager userStoreManager)
             throws UserStoreException {
+        return true;
+    }
 
+    @Override
+    public boolean doPostDeleteRole(String roleName, UserStoreManager userStoreManager)
+            throws UserStoreException {
         try {
             if (!isEnable() || !userStoreManager.isSCIMEnabled()) {
                 return true;
@@ -348,33 +353,32 @@ public class SCIMUserOperationListener extends AbstractIdentityUserOperationEven
         }
 
         try {
+
             SCIMGroupHandler scimGroupHandler = new SCIMGroupHandler(userStoreManager.getTenantId());
 
             String domainName = UserCoreUtil.getDomainName(userStoreManager.getRealmConfiguration());
             if (domainName == null) {
                 domainName = UserCoreConstants.PRIMARY_DEFAULT_DOMAIN_NAME;
             }
-            String roleNameWithDomain = IdentityUtil.addDomainToName(roleName, domainName);
+            String roleNameWithDomain = UserCoreUtil.addDomainToName(roleName, domainName);
+            // UserCore Util functionality does not append primary
+            roleNameWithDomain = SCIMCommonUtils.getGroupNameWithDomain(roleNameWithDomain);
+
+            //query role name from identity table
             try {
-                //delete group attributes - no need to check existence here,
-                //since it is checked in below method.
-                scimGroupHandler.deleteGroupAttributes(roleNameWithDomain);
+                if (scimGroupHandler.isGroupExisting(roleNameWithDomain)) {
+                    //remove SCIM attributes for the group added via mgt console, not via SCIM endpoint
+                    scimGroupHandler.deleteGroupAttributes(roleNameWithDomain);
+                }
             } catch (IdentitySCIMException e) {
                 throw new UserStoreException("Error retrieving group information from SCIM Tables.", e);
             }
+
             return true;
 
         } catch (org.wso2.carbon.user.api.UserStoreException e) {
             throw new UserStoreException(e);
         }
-
-
-    }
-
-    @Override
-    public boolean doPostDeleteRole(String roleName, UserStoreManager userStoreManager)
-            throws UserStoreException {
-        return true;
     }
 
     @Override
