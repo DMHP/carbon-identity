@@ -359,16 +359,12 @@ public class SCIMUserOperationListener extends AbstractIdentityUserOperationEven
             if (domainName == null) {
                 domainName = UserCoreConstants.PRIMARY_DEFAULT_DOMAIN_NAME;
             }
-            String roleNameWithDomain = UserCoreUtil.addDomainToName(roleName, domainName);
-            // UserCore Util functionality does not append primary
-            roleNameWithDomain = SCIMCommonUtils.getGroupNameWithDomain(roleNameWithDomain);
+            String roleNameWithDomain = IdentityUtil.addDomainToName(roleName, domainName);
 
-            //query role name from identity table
             try {
-                if (scimGroupHandler.isGroupExisting(roleNameWithDomain)) {
-                    //remove SCIM attributes for the group added via mgt console, not via SCIM endpoint
-                    scimGroupHandler.deleteGroupAttributes(roleNameWithDomain);
-                }
+                //delete group attributes - no need to check existence here, since it is checked in below method.
+                //remove SCIM attributes for the group added via mgt console, not via SCIM endpoint
+                scimGroupHandler.deleteGroupAttributes(roleNameWithDomain);
             } catch (IdentitySCIMException e) {
                 throw new UserStoreException("Error retrieving group information from SCIM Tables.", e);
             }
