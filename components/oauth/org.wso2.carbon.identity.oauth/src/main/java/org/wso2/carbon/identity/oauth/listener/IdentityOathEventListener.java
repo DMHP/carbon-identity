@@ -23,7 +23,6 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.core.AbstractIdentityUserOperationEventListener;
-import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.OAuthUtil;
@@ -49,6 +48,7 @@ import java.util.Set;
  */
 public class IdentityOathEventListener extends AbstractIdentityUserOperationEventListener {
     private static final Log log = LogFactory.getLog(IdentityOathEventListener.class);
+    private static final String USER_ACCOUNT_STATE = "UserAccountState";
 
     /**
      * Bundle execution order id.
@@ -110,11 +110,12 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
         return revokeTokensOfLockedUser(userName, userStoreManager);
     }
 
-    private boolean revokeTokensOfLockedUser(String userName, UserStoreManager userStoreManager){
+    private boolean revokeTokensOfLockedUser(String userName, UserStoreManager userStoreManager) {
 
-        IdentityErrorMsgContext errorContext = IdentityUtil.getIdentityErrorMsg();
+        String errorCode = (String) IdentityUtil.threadLocalProperties.get().get(USER_ACCOUNT_STATE);
 
-        if (errorContext != null && errorContext.getErrorCode() == UserCoreConstants.ErrorCode.USER_IS_LOCKED){
+        if (errorCode != null && (UserCoreConstants.ErrorCode.USER_IS_LOCKED.equalsIgnoreCase(errorCode))) {
+            IdentityUtil.threadLocalProperties.get().remove(USER_ACCOUNT_STATE);
             return revokeTokens(userName, userStoreManager);
         }
         return true;
