@@ -92,6 +92,7 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
     private static final String DO_PRE_SET_USER_CLAIM_VALUES = "doPreSetUserClaimValues";
     private static final String DO_POST_UPDATE_CREDENTIAL = "doPostUpdateCredential";
     private static final String ASK_PASSWORD_FEATURE_IS_DISABLED = "Ask Password Feature is disabled";
+    private static final String USER_ACCOUNT_STATE = "UserAccountState";
 
 
     public IdentityMgtEventListener() {
@@ -390,6 +391,11 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
                             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(UserCoreConstants.ErrorCode.USER_IS_LOCKED,
                                     userIdentityDTO.getFailAttempts(), config.getAuthPolicyMaxLoginAttempts());
                             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
+
+                            // This thread local can be used to check account lock status of a user.
+                            IdentityUtil.threadLocalProperties.get().remove(USER_ACCOUNT_STATE);
+                            IdentityUtil.threadLocalProperties.get().put(USER_ACCOUNT_STATE, UserCoreConstants
+                                        .ErrorCode.USER_IS_LOCKED);
 
                             if (log.isDebugEnabled()) {
                                 log.debug("Username :" + userName + "Exceeded the maximum login attempts. User locked, ErrorCode :" + UserCoreConstants.ErrorCode.USER_IS_LOCKED);
@@ -798,10 +804,9 @@ public class IdentityMgtEventListener extends AbstractIdentityUserOperationEvent
         }
         boolean accountLocked = Boolean.parseBoolean(claims.get(UserIdentityDataStore.ACCOUNT_LOCK));
         if (accountLocked) {
-            IdentityUtil.clearIdentityErrorMsg();
-            IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(UserCoreConstants
+            IdentityUtil.threadLocalProperties.get().remove(USER_ACCOUNT_STATE);
+            IdentityUtil.threadLocalProperties.get().put(USER_ACCOUNT_STATE, UserCoreConstants
                     .ErrorCode.USER_IS_LOCKED);
-            IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
         }
 
         // Top level try and finally blocks are used to unset thread local variables
