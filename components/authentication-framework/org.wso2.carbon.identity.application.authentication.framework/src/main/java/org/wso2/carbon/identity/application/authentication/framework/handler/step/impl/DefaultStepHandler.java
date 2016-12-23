@@ -44,14 +44,13 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.core.UserCoreConstants;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 public class DefaultStepHandler implements StepHandler {
 
@@ -576,8 +575,10 @@ public class DefaultStepHandler implements StepHandler {
             String errorCode = errorContext != null ? errorContext.getErrorCode() : null;
             if (errorCode != null && UserCoreConstants.ErrorCode.USER_IS_LOCKED.equals(errorCode)) {
                 String redirectURL;
-                redirectURL = response.encodeRedirectURL(loginPage + ("?" + context.getContextIdIncludedQueryParams()
-                )) + "&failedUsername=" + URLEncoder.encode(request.getParameter("username"), "UTF-8") +
+                redirectURL = response.encodeRedirectURL(loginPage + ("?" + context.getContextIdIncludedQueryParams()))
+                        + "&failedUsername=" + URLEncoder
+                        .encode(request.getParameter("username") != null ? request.getParameter("username") : "",
+                                "UTF-8") +
                         "&authenticators=" + authenticatorNames + ":" + FrameworkConstants.LOCAL + retryParam;
                 return redirectURL;
 
