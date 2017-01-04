@@ -271,19 +271,6 @@ public class OAuth2AuthzEndpoint {
                     }
 
                     String redirectURL = handleUserConsent(request, consent, oauth2Params, sessionDataCacheEntry);
-
-                    String authenticatedIdPs = sessionDataCacheEntry.getAuthenticatedIdPs();
-
-                    if (authenticatedIdPs != null && !authenticatedIdPs.isEmpty()) {
-                        try {
-                            redirectURL = redirectURL + "&AuthenticatedIdPs=" + URLEncoder.encode(authenticatedIdPs
-                                    , "UTF-8");
-                        } catch (UnsupportedEncodingException e) {
-                            //this exception should not occur
-                            log.error("Error while encoding the url", e);
-                        }
-                    }
-
                     return Response.status(HttpServletResponse.SC_FOUND).location(new URI(redirectURL)).build();
                 } else {
                     String appName = sessionDataCacheEntry.getoAuth2Parameters().getApplicationName();
@@ -454,6 +441,7 @@ public class OAuth2AuthzEndpoint {
             }
             String redirectURL = authzRespDTO.getCallbackURI();
             oauthResponse = builder.location(redirectURL).buildQueryMessage();
+            return appendAuthenticatedIDPs(sessionDataCacheEntry, oauthResponse.getLocationUri());
 
         } else if (authzRespDTO != null && authzRespDTO.getErrorCode() != null) {
             // Authorization failure due to various reasons
@@ -932,4 +920,21 @@ public class OAuth2AuthzEndpoint {
         return null;
     }
 
+    private String appendAuthenticatedIDPs(SessionDataCacheEntry sessionDataCacheEntry, String redirectURL) {
+        if (sessionDataCacheEntry != null) {
+            String authenticatedIdPs = sessionDataCacheEntry.getAuthenticatedIdPs();
+
+            if (authenticatedIdPs != null && !authenticatedIdPs.isEmpty()) {
+                try {
+                    String IDPAppendedRedirectURL = redirectURL + "&AuthenticatedIdPs=" + URLEncoder.encode
+                            (authenticatedIdPs, "UTF-8");
+                    return IDPAppendedRedirectURL;
+                } catch (UnsupportedEncodingException e) {
+                    //this exception should not occur
+                    log.error("Error while encoding the url", e);
+                }
+            }
+        }
+        return redirectURL;
+    }
 }
