@@ -39,7 +39,7 @@
 		</parameter>
 		<parameter name="adminService" locked="true">true</parameter>
 		<parameter name="hiddenService" locked="false">true</parameter>
-		<parameter name="AuthorizationAction" locked="true">/permission/admin/login</parameter>
+		<parameter name="AuthorizationAction" locked="true">/permission/admin/configure/security</parameter>
 	</service>
 
     <service name="UserIdentityManagementAdminService" scope="transportsession">
