@@ -49,9 +49,7 @@ public class SQLQueries {
                                                                 "TOKEN_ID=?";
 
     public static final String UPDATE_NEW_TOKEN_AGAINST_AUTHZ_CODE = "UPDATE IDN_OAUTH2_AUTHORIZATION_CODE SET " +
-                                                                 "TOKEN_ID=? WHERE AUTHORIZATION_CODE= (SELECT " +
-                                                                     "AUTHORIZATION_CODE FROM " +
-                                                                     "IDN_OAUTH2_AUTHORIZATION_CODE WHERE TOKEN_ID=? )";
+            "TOKEN_ID=? WHERE TOKEN_ID=?";
 
     public static final String UPDATE_NEW_TOKEN_AGAINST_AUTHZ_CODE_MYSQL = "UPDATE IDN_OAUTH2_AUTHORIZATION_CODE SET " +
             "TOKEN_ID=? WHERE AUTHORIZATION_CODE= (SELECT AUTHORIZATION_CODE FROM(SELECT AUTHORIZATION_CODE FROM " +
