@@ -1755,13 +1755,8 @@ public class TokenMgtDAO {
             connection) throws IdentityOAuth2Exception {
         PreparedStatement prepStmt = null;
         try {
-            String updateNewTokenAgaintAuthzCodeSql;
-            if (connection.getMetaData().getDriverName().contains("MySQL")){
-                updateNewTokenAgaintAuthzCodeSql = SQLQueries.UPDATE_NEW_TOKEN_AGAINST_AUTHZ_CODE_MYSQL;
-            }else{
-                updateNewTokenAgaintAuthzCodeSql = SQLQueries.UPDATE_NEW_TOKEN_AGAINST_AUTHZ_CODE;
-            }
-            prepStmt = connection.prepareStatement(updateNewTokenAgaintAuthzCodeSql);
+            String updateNewTokenAgainstAuthzCodeSql = SQLQueries.UPDATE_NEW_TOKEN_AGAINST_AUTHZ_CODE;
+            prepStmt = connection.prepareStatement(updateNewTokenAgainstAuthzCodeSql);
             prepStmt.setString(1, newAccessTokenId);
             prepStmt.setString(2, oldAccessTokenId);
             prepStmt.executeUpdate();
