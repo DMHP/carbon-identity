@@ -48,6 +48,8 @@ public class AuthorizationHandlerManager {
 
     private AppInfoCache appInfoCache;
 
+    private static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
+
     private AuthorizationHandlerManager() throws IdentityOAuth2Exception {
         responseHandlers = OAuthServerConfiguration.getInstance().getSupportedResponseTypes();
         appInfoCache = AppInfoCache.getInstance();
@@ -95,6 +97,9 @@ public class AuthorizationHandlerManager {
         OAuthAppDO oAuthAppDO = getAppInformation(authzReqDTO);
 
         authzReqMsgCtx.addProperty("OAuthAppDO", oAuthAppDO);
+
+        //Setting spTenantDomain property
+        authzReqMsgCtx.addProperty(ATTR_SP_TENANT_DOMAIN, authzReqDTO.getProperty(ATTR_SP_TENANT_DOMAIN));
 
         boolean accessDelegationAuthzStatus = authzHandler.validateAccessDelegation(authzReqMsgCtx);
         if(authzReqMsgCtx.getProperty("ErrorCode") != null){
