@@ -26,6 +26,7 @@
 <%@ page import="org.apache.axis2.context.ConfigurationContext" %>
 <%@ page import="org.wso2.carbon.CarbonConstants" %>
 <%@ page import="java.util.ResourceBundle" %>
+<%@ page import="org.owasp.encoder.Encode" %>
 
 <%@ page import="org.wso2.carbon.identity.workflow.impl.stub.bean.BPSProfile" %>
 <script type="text/javascript" src="extensions/js/vui.js"></script>
@@ -106,7 +107,7 @@
                     <tr>
                         <td width="30%"><fmt:message key='workflow.bps.profile.name'/></td>
                         <td><input readonly type="text" name="<%=WorkflowUIConstants.PARAM_BPS_PROFILE_NAME%>"
-                                   value="<%=bpsProfile.getProfileName()%>"  style="width:30%" class="text-box-big"/></td>
+                                   value='<%=Encode.forHtmlContent(bpsProfile.getProfileName())%>'  style="width:30%" class="text-box-big"/></td>
                     </tr>
                     </tbody>
                 </table>
@@ -120,7 +121,7 @@
                     <tr>
                         <td width="30%"><fmt:message key='workflow.bps.profile.manager.host'/></td>
                         <td>
-                            <input type="text" name="<%=WorkflowUIConstants.PARAM_BPS_MANAGER_HOST%>" value="<%=bpsProfile.getManagerHostURL()%>"
+                            <input type="text" name="<%=WorkflowUIConstants.PARAM_BPS_MANAGER_HOST%>" value='<%=Encode.forHtmlContent(bpsProfile.getManagerHostURL())%>'
                                    style="width:30%" class="text-box-big"/>
                             <div class="sectionHelp">
                                 <fmt:message key='help.desc.manager'/>
@@ -128,7 +129,7 @@
                         </td></tr>
                     <tr>
                         <td width="30%"><fmt:message key='workflow.bps.profile.worker.host'/></td>
-                        <td><input type="text" name="<%=WorkflowUIConstants.PARAM_BPS_WORKER_HOST%>" value="<%=bpsProfile.getWorkerHostURL()%>"
+                        <td><input type="text" name="<%=WorkflowUIConstants.PARAM_BPS_WORKER_HOST%>" value='<%=Encode.forHtmlContent(bpsProfile.getWorkerHostURL())%>'
                                    style="width:30%" class="text-box-big"/>
                             <div class="sectionHelp">
                                 <fmt:message key='help.desc.worker'/>
@@ -137,7 +138,7 @@
                     </tr>
                     <tr>
                         <td width="30%"><fmt:message key='workflow.bps.profile.auth.user'/></td>
-                        <td><input type="text" name="<%=WorkflowUIConstants.PARAM_BPS_AUTH_USER%>" value="<%=bpsProfile.getUsername()%>"
+                        <td><input type="text" name="<%=WorkflowUIConstants.PARAM_BPS_AUTH_USER%>" value='<%=Encode.forHtmlContent(bpsProfile.getUsername())%>'
                                    style="width:30%" class="text-box-big"/></td>
                     </tr>
                     <tr>

@@ -10,6 +10,8 @@
 <%@ page import="org.wso2.carbon.utils.ServerConstants" %>
 <%@ page import="java.util.ResourceBundle" %>
 <%@ page import="org.wso2.carbon.identity.workflow.impl.stub.bean.BPSProfile" %>
+<%@ page import="org.owasp.encoder.Encode" %>
+
 <%--
   ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
   ~
@@ -145,13 +147,13 @@
 
                 %>
                 <tr>
-                    <td><%=profile.getProfileName()%>
+                    <td><%=Encode.forHtmlContent(profile.getProfileName())%>
                     </td>
-                    <td><%=profile.getManagerHostURL()%>
+                    <td><%=Encode.forHtmlContent(profile.getManagerHostURL())%>
                     </td>
-                    <td><%=profile.getWorkerHostURL()%>
+                    <td><%=Encode.forHtmlContent(profile.getWorkerHostURL())%>
                     </td>
-                    <td><%=profile.getUsername()%>
+                    <td><%=Encode.forHtmlContent(profile.getUsername())%>
                     </td>
                     <td>
                         <%
@@ -159,13 +161,13 @@
                                 if (CarbonUIUtil.isUserAuthorized(request,"/permission/admin/manage/identity/workflow/profile/update")){
                         %>
                         <a title="<fmt:message key='workflow.bps.profile.edit.title'/>"
-                           onclick="editProfile('<%=profile.getProfileName()%>');return false;"
+                           onclick="editProfile('<%=Encode.forHtmlContent(profile.getProfileName())%>');return false;"
                            href="#" style="background-image: url(images/edit.gif);"
                            class="icon-link"><fmt:message key='edit'/></a>
                         <%}
                         if(CarbonUIUtil.isUserAuthorized(request,"/permission/admin/manage/identity/workflow/profile/delete")) { %>
                         <a title="<fmt:message key='workflow.bps.profile.delete.title'/>"
-                           onclick="removeProfile('<%=profile.getProfileName()%>');return false;"
+                           onclick="removeProfile('<%=Encode.forHtmlContent(profile.getProfileName())%>');return false;"
                            href="#" style="background-image: url(images/delete.gif);"
                            class="icon-link"><fmt:message key='delete'/></a>
                         <%
