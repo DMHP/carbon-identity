@@ -161,13 +161,13 @@
                                 if (CarbonUIUtil.isUserAuthorized(request,"/permission/admin/manage/identity/workflow/profile/update")){
                         %>
                         <a title="<fmt:message key='workflow.bps.profile.edit.title'/>"
-                           onclick="editProfile('<%=Encode.forHtmlContent(profile.getProfileName())%>');return false;"
+                           onclick="editProfile('<%=Encode.forJavaScript(profile.getProfileName())%>');return false;"
                            href="#" style="background-image: url(images/edit.gif);"
                            class="icon-link"><fmt:message key='edit'/></a>
                         <%}
                         if(CarbonUIUtil.isUserAuthorized(request,"/permission/admin/manage/identity/workflow/profile/delete")) { %>
                         <a title="<fmt:message key='workflow.bps.profile.delete.title'/>"
-                           onclick="removeProfile('<%=Encode.forHtmlContent(profile.getProfileName())%>');return false;"
+                           onclick="removeProfile('<%=Encode.forJavaScript(profile.getProfileName())%>');return false;"
                            href="#" style="background-image: url(images/delete.gif);"
                            class="icon-link"><fmt:message key='delete'/></a>
                         <%
