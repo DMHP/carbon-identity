@@ -37,6 +37,8 @@ public class FacebookAuthenticatorConstants {
     public static final String FB_TOKEN_URL = "AuthTokenEndpoint";
     public static final String FB_USER_INFO_URL = "UserInfoEndpoint";
 
+    public static final String FB_ACCESS_TOKEN = "access_token";
+
     private FacebookAuthenticatorConstants() {
     }
 }

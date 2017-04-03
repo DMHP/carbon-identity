@@ -37,11 +37,9 @@ import org.wso2.carbon.identity.application.authentication.framework.util.Framew
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationConstants;
 import org.wso2.carbon.identity.base.IdentityConstants;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.core.util.IdentityIOStreamUtils;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -52,6 +50,8 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 public class FacebookAuthenticator extends AbstractApplicationAuthenticator implements
         FederatedApplicationAuthenticator {
@@ -245,9 +245,12 @@ public class FacebookAuthenticator extends AbstractApplicationAuthenticator impl
             tokenRequest =
                     buidTokenRequest(tokenEndPoint, clientId, clientSecret, callbackurl,
                             code);
-            token = sendRequest(tokenRequest.getLocationUri());
-            if (token.startsWith("{")) {
-                throw new ApplicationAuthenticatorException("Received access token is invalid.");
+            String tokenResponse = sendRequest(tokenRequest.getLocationUri());
+            Map<String, Object> jsonObject = JSONUtils.parseJSON(tokenResponse);
+            token = (String) jsonObject.get(FacebookAuthenticatorConstants.FB_ACCESS_TOKEN);
+
+            if (StringUtils.isEmpty(token)) {
+                throw new ApplicationAuthenticatorException("Could not receive a valid access token from FB");
             }
         } catch (MalformedURLException e) {
             if (log.isDebugEnabled()) {
@@ -283,9 +286,9 @@ public class FacebookAuthenticator extends AbstractApplicationAuthenticator impl
         String userInfoString;
         try {
             if (StringUtils.isBlank(userInfoFields)) {
-                userInfoString = sendRequest(String.format("%s?%s", fbAuthUserInfoUrl, token));
+                userInfoString = sendRequest(String.format("%s?access_token=%s", fbAuthUserInfoUrl, token));
             } else {
-                userInfoString = sendRequest(String.format("%s?fields=%s&%s", fbAuthUserInfoUrl, userInfoFields, token));
+                userInfoString = sendRequest(String.format("%s?fields=%s&access_token=%s", fbAuthUserInfoUrl, userInfoFields, token));
             }
         } catch (MalformedURLException e) {
             if (log.isDebugEnabled()) {
