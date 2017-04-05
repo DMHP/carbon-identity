@@ -4715,7 +4715,7 @@ function doValidation() {
                 <div id="showHideButtonDivId" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
                     <input id="cust_auth_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>"
                            name="cust_auth_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>" type="password"
-                           autocomplete="false" value="<%=prop.getValue()%>"
+                           autocomplete="false" value="<%=Encode.forHtmlAttribute(prop.getValue())%>"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
        												<span id="showHideButtonId"
                                                           style=" float: right; padding-right: 5px;"> 
@@ -5457,7 +5457,7 @@ function doValidation() {
                 <div id="showHideButtonDivId" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
                     <input id="cust_pro_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>"
                            name="cust_pro_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>" type="password"
-                           autocomplete="false" value="<%=prop.getValue()%>"
+                           autocomplete="false" value="<%=Encode.forHtmlAttribute(prop.getValue())%>"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
        												<span id="showHideButtonId"
                                                           style=" float: right; padding-right: 5px;"> 
