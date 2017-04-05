@@ -4312,7 +4312,7 @@ function doValidation() {
             <td class="leftCol-med labelField"><fmt:message key='client.secret'/>:<span class="required">*</span></td>
             <td>
                 <div id="showHideButtonDivIdOauth" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
-                    <input id="clientSecret" name="clientSecret" type="password" autocomplete="false"
+                    <input id="clientSecret" name="clientSecret" type="password" autocomplete="off"
                            value="<%=Encode.forHtmlAttribute(clientSecret)%>"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
 	                            <span id="showHideButtonIdOauth" style=" float: right; padding-right: 5px;">
@@ -4541,7 +4541,7 @@ function doValidation() {
             <td class="leftCol-med labelField"><fmt:message key='client.secret'/>:<span class="required">*</span></td>
             <td>
                 <div id="showHideButtonDivId" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
-                    <input id="fbClientSecret" name="fbClientSecret" type="password" autocomplete="false"
+                    <input id="fbClientSecret" name="fbClientSecret" type="password" autocomplete="off"
                            value="<%=Encode.forHtmlAttribute(fbClientSecret)%>"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
        							<span id="showHideButtonId" style=" float: right; padding-right: 5px;"> 
@@ -4715,7 +4715,7 @@ function doValidation() {
                 <div id="showHideButtonDivId" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
                     <input id="cust_auth_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>"
                            name="cust_auth_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>" type="password"
-                           autocomplete="false" value="<%=Encode.forHtmlAttribute(prop.getValue())%>"
+                           autocomplete="off" value="<%=Encode.forHtmlAttribute(prop.getValue())%>"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
        												<span id="showHideButtonId"
                                                           style=" float: right; padding-right: 5px;"> 
@@ -4728,7 +4728,7 @@ function doValidation() {
                 <div id="showHideButtonDivId" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
                     <input id="cust_auth_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>"
                            name="cust_auth_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>" type="password"
-                           autocomplete="false"
+                           autocomplete="off"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
        												<span id="showHideButtonId"
                                                           style=" float: right; padding-right: 5px;"> 
@@ -5126,7 +5126,7 @@ function doValidation() {
                     key='sf.provisioning.client.secret'/>:<span
                     class="required">*</span></td>
             <td><input class="text-box-big" id="sf-client-secret"
-                       name="sf-client-secret" type="password" autocomplete="false"
+                       name="sf-client-secret" type="password" autocomplete="off"
                        value=<%=Encode.forHtmlAttribute(sfClientSecret) %>></td>
         </tr>
         <tr>
@@ -5141,7 +5141,7 @@ function doValidation() {
                     key='sf.provisioning.password'/>:<span
                     class="required">*</span></td>
             <td><input class="text-box-big" id="sf-password"
-                       name="sf-password" type="password" autocomplete="false"
+                       name="sf-password" type="password" autocomplete="off"
                        value=<%=Encode.forHtmlAttribute(sfPassword) %>></td>
         </tr>
         <tr>
@@ -5253,7 +5253,8 @@ function doValidation() {
                     key='scim.provisioning.user.password'/>:<span
                     class="required">*</span></td>
             <td><input class="text-box-big" id="scim-password"
-                       name="scim-password" type="password" autocomplete="false" value=<%=Encode.forHtmlAttribute(scimPassword) %>></td>
+                       name="scim-password" type="password" autocomplete="off"
+                       value=<%=Encode.forHtmlAttribute(scimPassword) %>></td>
         </tr>
         <tr>
             <td class="leftCol-med labelField"><fmt:message
@@ -5358,7 +5359,7 @@ function doValidation() {
             <td class="leftCol-med labelField"><fmt:message
                     key='spml.provisioning.user.password'/>:</td>
             <td><input class="text-box-big" id="spml-password"
-                       name="spml-password" type="password" autocomplete="false"
+                       name="spml-password" type="password" autocomplete="off"
                        value=<%=Encode.forHtmlAttribute(spmlPassword) %>></td>
         </tr>
         <tr>
@@ -5457,7 +5458,7 @@ function doValidation() {
                 <div id="showHideButtonDivId" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
                     <input id="cust_pro_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>"
                            name="cust_pro_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>" type="password"
-                           autocomplete="false" value="<%=Encode.forHtmlAttribute(prop.getValue())%>"
+                           autocomplete="off" value="<%=Encode.forHtmlAttribute(prop.getValue())%>"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
        												<span id="showHideButtonId"
                                                           style=" float: right; padding-right: 5px;"> 
@@ -5470,7 +5471,7 @@ function doValidation() {
                 <div id="showHideButtonDivId" style="border:1px solid rgb(88, 105, 125);" class="leftCol-med">
                     <input id="cust_pro_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>"
                            name="cust_pro_prop_<%=fedConfig.getName()%>#<%=prop.getName()%>" type="password"
-                           autocomplete="false"
+                           autocomplete="off"
                            style="  outline: none; border: none; min-width: 175px; max-width: 180px;"/>
        												<span id="showHideButtonId"
                                                           style=" float: right; padding-right: 5px;">
