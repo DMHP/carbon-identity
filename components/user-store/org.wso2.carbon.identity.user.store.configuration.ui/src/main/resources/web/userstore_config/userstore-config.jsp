@@ -912,7 +912,7 @@
                 var successMsg = new RegExp("true");
                 if (msg.search(successMsg) == -1) //if match failed
                 {
-                    CARBON.showErrorDialog((msg));
+                    CARBON.showErrorDialog(msg);
                 } else {
                     CARBON.showInfoDialog("Connection is healthy");
                 }
