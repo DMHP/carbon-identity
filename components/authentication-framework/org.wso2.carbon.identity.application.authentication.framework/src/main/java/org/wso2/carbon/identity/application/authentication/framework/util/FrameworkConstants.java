@@ -61,7 +61,8 @@ public abstract class FrameworkConstants {
     public static final String SHOW_AUTHFAILURE_RESON_CONFIG = "showAuthFailureReason";
     public static final String AUTHENTICATED_USER = "AuthenticatedUser";
     public static final String CREATED_TIMESTAMP = "CreatedTimestamp";
-
+      public static final String DISABLE_RETRY_ON_FIDP_AS_PARAM = "MultiStepAuthentication.DisableRetryOnFIDPasParameter";
+    public static final String IS_FIDP_PARAM_IN_FIREST_REQURST = "fidpInFirstRequest";
     private FrameworkConstants() {
 
     }

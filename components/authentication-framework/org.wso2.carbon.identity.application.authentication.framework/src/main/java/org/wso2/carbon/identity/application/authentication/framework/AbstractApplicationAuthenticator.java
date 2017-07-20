@@ -30,6 +30,7 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.A
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
 import javax.servlet.http.HttpServletRequest;
@@ -80,6 +81,13 @@ public abstract class AbstractApplicationAuthenticator implements ApplicationAut
                 } catch (AuthenticationFailedException e) {
                     Map<Integer, StepConfig> stepMap = context.getSequenceConfig().getStepMap();
                     boolean stepHasMultiOption = false;
+                    boolean isFIDPParamInFirstStep = false;
+                    if (context.getProperty(FrameworkConstants.IS_FIDP_PARAM_IN_FIREST_REQURST) != null) {
+                        isFIDPParamInFirstStep = Boolean.parseBoolean(context.getProperty(FrameworkConstants
+                                .IS_FIDP_PARAM_IN_FIREST_REQURST).toString());
+                    }
+                    boolean isDisableRetryOnFIDPasParameter = Boolean.parseBoolean(IdentityUtil.
+                            getProperty(FrameworkConstants.DISABLE_RETRY_ON_FIDP_AS_PARAM));
 
                     if (stepMap != null && !stepMap.isEmpty()) {
                         StepConfig stepConfig = stepMap.get(context.getCurrentStep());
@@ -88,8 +96,15 @@ public abstract class AbstractApplicationAuthenticator implements ApplicationAut
                             stepHasMultiOption = stepConfig.isMultiOption();
                         }
                     }
+                    boolean skipMultiOptionStep = false;
+                    // if the step contains multiple login options, we should give the user to retry
+                    // authentication
 
-                    if (retryAuthenticationEnabled() && !stepHasMultiOption) {
+                    if (isFIDPParamInFirstStep && isDisableRetryOnFIDPasParameter) {
+                        skipMultiOptionStep = true;
+                    }
+
+                    if (retryAuthenticationEnabled() && !stepHasMultiOption && !skipMultiOptionStep) {
                         context.setRetrying(true);
                         context.setCurrentAuthenticator(getName());
                         initiateAuthenticationRequest(request, response, context);
