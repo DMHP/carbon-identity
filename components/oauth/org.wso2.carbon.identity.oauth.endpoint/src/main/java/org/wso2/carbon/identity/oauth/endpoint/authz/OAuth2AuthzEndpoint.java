@@ -235,7 +235,7 @@ public class OAuth2AuthzEndpoint {
                         if (authError != null && authError instanceof OAuthProblemException) {
                             oauthException = (OAuthProblemException) authError;
                         } else {
-                            oauthException = OAuthProblemException.error(OAuth2ErrorCodes.LOGIN_REQUIRED,
+                            oauthException = OAuthProblemException.error(OAuth2ErrorCodes.ACCESS_DENIED,
                                     "Authentication required");
                         }
                         redirectURL = OAuthASResponse.errorResponse(HttpServletResponse.SC_FOUND)
