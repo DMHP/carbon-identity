@@ -92,6 +92,7 @@ public class OAuth2AuthzEndpoint {
     private static final String NONE = "none";
     private static final String ATTR_SP_TENANT_DOMAIN = "spTenantDomain";
     private static final String REDIRECT_URI = "redirect_uri";
+    private static final String AUTHENTICATION_RESULT_ERROR_PARAM_KEY = "AuthenticationError";
 
     @GET
     @Path("/")
@@ -228,8 +229,15 @@ public class OAuth2AuthzEndpoint {
 
                     } else {
 
-                        OAuthProblemException oauthException = OAuthProblemException.error(
-                                OAuth2ErrorCodes.ACCESS_DENIED, "Authentication required");
+                        OAuthProblemException oauthException;
+                        Object authError =
+                                authnResult.getProperty(AUTHENTICATION_RESULT_ERROR_PARAM_KEY);
+                        if (authError != null && authError instanceof OAuthProblemException) {
+                            oauthException = (OAuthProblemException) authError;
+                        } else {
+                            oauthException = OAuthProblemException.error(OAuth2ErrorCodes.LOGIN_REQUIRED,
+                                    "Authentication required");
+                        }
                         redirectURL = OAuthASResponse.errorResponse(HttpServletResponse.SC_FOUND)
                                 .error(oauthException).location(oauth2Params.getRedirectURI())
                                 .setState(oauth2Params.getState()).buildQueryMessage()
