@@ -1554,4 +1554,33 @@ public class SAMLSSOUtil {
         return null;
     }
 
+    /**
+     * Append a query param to the URL (URL may already contain query params)
+     * @param url
+     * @param queryParamString
+     * @return
+     */
+    public static String appendQueryParamsStringToUrl(String url, String queryParamString) {
+        String queryAppendedUrl = url;
+        // check whether param string to append is blank
+        if (StringUtils.isNotEmpty(queryParamString)) {
+            // check whether the URL already contains query params
+            String appender;
+            if (url.contains("?")) {
+                appender = "&";
+            } else{
+                appender = "?";
+            }
+
+            // remove leading anchor or question mark in query params
+            if (queryParamString.startsWith("?") || queryParamString.startsWith("&")) {
+                queryParamString = queryParamString.substring(1);
+            }
+
+            queryAppendedUrl += appender + queryParamString;
+        }
+
+        return queryAppendedUrl;
+    }
+
 }

@@ -276,8 +276,25 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         if (acUrl != null) {
             queryParams += "&" + SAMLSSOConstants.ASSRTN_CONSUMER_URL + "=" + URLEncoder.encode(acUrl, "UTF-8");
         }
+        String relayState = req.getParameter(SAMLSSOConstants.RELAY_STATE);
+        // If the request doesn't have a relay state, get it from the session.
+        if (StringUtils.isEmpty(relayState)) {
+            String sessionDataKey = getSessionDataKey(req);
+            SAMLSSOSessionDTO sessionDTO = null;
+            if(StringUtils.isNotEmpty(sessionDataKey)) {
+                sessionDTO = getSessionDataFromCache(sessionDataKey);
+            }
+            if(sessionDTO != null) {
+                relayState = sessionDTO.getRelayState();
+            }
+        }
+        if (StringUtils.isNotEmpty(relayState)) {
+            queryParams += "&" + SAMLSSOConstants.RELAY_STATE + "=" +
+                    URLEncoder.encode(relayState, SAMLSSOConstants.ENCODING_FORMAT);
+        }
 
-        resp.sendRedirect(redirectURL + queryParams);
+        String queryAppendedUrl = SAMLSSOUtil.appendQueryParamsStringToUrl(redirectURL, queryParams);
+        resp.sendRedirect(queryAppendedUrl);
     }
 
     private void handleIdPInitSSO(HttpServletRequest req, HttpServletResponse resp, String relayState,
