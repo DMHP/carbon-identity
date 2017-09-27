@@ -92,6 +92,7 @@ import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.registry.core.service.TenantRegistryLoader;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
@@ -1581,6 +1582,15 @@ public class SAMLSSOUtil {
         }
 
         return queryAppendedUrl;
+    }
+
+    public static String splitAppendedTenantDomain(String issuer) {
+
+        if (issuer.contains(UserCoreConstants.TENANT_DOMAIN_COMBINER)) {
+            issuer = issuer.substring(0, issuer.lastIndexOf(UserCoreConstants.TENANT_DOMAIN_COMBINER));
+        }
+
+        return issuer;
     }
 
 }
