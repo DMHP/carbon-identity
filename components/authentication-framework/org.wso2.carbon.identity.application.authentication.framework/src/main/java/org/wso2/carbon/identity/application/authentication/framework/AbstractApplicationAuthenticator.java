@@ -79,8 +79,6 @@ public abstract class AbstractApplicationAuthenticator implements ApplicationAut
                     request.setAttribute(FrameworkConstants.REQ_ATTR_HANDLED, true);
                     return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
                 } catch (AuthenticationFailedException e) {
-                    Map<Integer, StepConfig> stepMap = context.getSequenceConfig().getStepMap();
-                    boolean stepHasMultiOption = false;
                     boolean isFIDPParamInFirstStep = false;
                     if (context.getProperty(FrameworkConstants.IS_FIDP_PARAM_IN_FIREST_REQURST) != null) {
                         isFIDPParamInFirstStep = Boolean.parseBoolean(context.getProperty(FrameworkConstants
@@ -89,13 +87,6 @@ public abstract class AbstractApplicationAuthenticator implements ApplicationAut
                     boolean isDisableRetryOnFIDPasParameter = Boolean.parseBoolean(IdentityUtil.
                             getProperty(FrameworkConstants.DISABLE_RETRY_ON_FIDP_AS_PARAM));
 
-                    if (stepMap != null && !stepMap.isEmpty()) {
-                        StepConfig stepConfig = stepMap.get(context.getCurrentStep());
-
-                        if (stepConfig != null) {
-                            stepHasMultiOption = stepConfig.isMultiOption();
-                        }
-                    }
                     boolean skipMultiOptionStep = false;
                     // if the step contains multiple login options, we should give the user to retry
                     // authentication
@@ -104,7 +95,7 @@ public abstract class AbstractApplicationAuthenticator implements ApplicationAut
                         skipMultiOptionStep = true;
                     }
 
-                    if (retryAuthenticationEnabled() && !stepHasMultiOption && !skipMultiOptionStep) {
+                    if (retryAuthenticationEnabled() && !skipMultiOptionStep) {
                         context.setRetrying(true);
                         context.setCurrentAuthenticator(getName());
                         initiateAuthenticationRequest(request, response, context);
