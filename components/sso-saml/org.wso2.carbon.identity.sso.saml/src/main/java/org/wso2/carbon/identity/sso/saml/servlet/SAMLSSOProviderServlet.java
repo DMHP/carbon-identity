@@ -70,6 +70,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This is the entry point for authentication process in an SSO scenario. This servlet is registered
@@ -925,6 +926,19 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         authnReqDTO.setIdPInitSLOEnabled(sessionDTO.isIdPInitSLO());
         if (!(sessionDTO.getAttributeConsumingServiceIndex() < 1)) {
             authnReqDTO.setAttributeConsumingServiceIndex(sessionDTO.getAttributeConsumingServiceIndex());
+        }
+
+        if (authResult.getProperty(SAMLSSOConstants.AUTHEN_CONTEXT_PROPERTIES) != null) {
+            List<Map<String, Object>> authenticationContextProperties = (List<Map<String, Object>>) authResult
+                    .getProperty(SAMLSSOConstants.AUTHEN_CONTEXT_PROPERTIES);
+
+            for (Map<String, Object> authenticationContextProperty : authenticationContextProperties) {
+                if (SAMLSSOConstants.AUTHN_CONTEXT_CLASS_REF.equals(authenticationContextProperty.get
+                        (SAMLSSOConstants.PASS_THROUGH_DATA_TYPE))) {
+                    authnReqDTO.addIdpAuthenticationContextProperty(SAMLSSOConstants.AUTHN_CONTEXT_CLASS_REF,
+                            authenticationContextProperty);
+                }
+            }
         }
 
         SAMLSSOUtil.setIsSaaSApplication(authResult.isSaaSApp());

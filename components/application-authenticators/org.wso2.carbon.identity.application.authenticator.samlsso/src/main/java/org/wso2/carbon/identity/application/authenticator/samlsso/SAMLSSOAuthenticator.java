@@ -46,13 +46,19 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SAMLSSOAuthenticator extends AbstractApplicationAuthenticator implements FederatedApplicationAuthenticator {
 
     private static final long serialVersionUID = -8097512332218044859L;
     public static final String AS_REQUEST = "AS_REQUEST";
+
+    private static final String AS_RESPONSE = "AS_RESPONSE";
+
+    private static final String RESPONSE_AUTHN_CONTEXT_CLASS_REF = "ResponseAuthnContextClassRef";
 
     private static Log log = LogFactory.getLog(SAMLSSOAuthenticator.class);
 
@@ -193,6 +199,29 @@ public class SAMLSSOAuthenticator extends AbstractApplicationAuthenticator imple
             stateInfoDO.setNameQualifier(nameQualifier);
             stateInfoDO.setSpNameQualifier(spNameQualifier);
             context.setStateInfo(stateInfoDO);
+
+            // Add AuthnContextClassRefs received with SAML2 Response to AuthenticationContext
+            if (AS_RESPONSE.equalsIgnoreCase(context.getAuthenticatorProperties()
+                    .get(RESPONSE_AUTHN_CONTEXT_CLASS_REF))) {
+                if (log.isDebugEnabled()) {
+                    log.debug("AuthnContextClassRefs received with SAML response is passed to service provider.");
+                }
+                if (request.getSession().getAttribute(SSOConstants.AUTHN_CONTEXT_CLASS_REF) != null) {
+                    Map<String, Object> authenticationContextProperty = (Map<String, Object>) request.getSession()
+                            .getAttribute(SSOConstants.AUTHN_CONTEXT_CLASS_REF);
+                    authenticationContextProperty.put(SSOConstants.IDP_NAME, context.getExternalIdP().getIdPName());
+
+                    List<Map<String, Object>> authenticationContextProperties;
+                    if (context.getProperty(SSOConstants.AUTHEN_CONTEXT_PROPERTIES) != null) {
+                        authenticationContextProperties = (List<Map<String, Object>>) context
+                                .getProperty(SSOConstants.AUTHEN_CONTEXT_PROPERTIES);
+                    } else {
+                        authenticationContextProperties = new ArrayList<>();
+                        context.setProperty(SSOConstants.AUTHEN_CONTEXT_PROPERTIES, authenticationContextProperties);
+                    }
+                    authenticationContextProperties.add(authenticationContextProperty);
+                }
+            }
 
             AuthenticatedUser authenticatedUser =
                     AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(subject);

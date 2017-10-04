@@ -73,6 +73,12 @@ public class SAMLSSOConstants {
     public static final String COM_PROTOCOL = "https";
     public static final String CRYPTO_PROTOCOL = "TLS";
 
+    public static final String AUTHN_CONTEXT_CLASS_REF = "AuthnContextClassRef";
+    public static final String AUTHEN_CONTEXT_PROPERTIES = "AuthenticationContextProperties";
+    public static final String IDP_NAME = "IdpName";
+    public static final String PASS_THROUGH_DATA =  "PassThroughData";
+    public static final String PASS_THROUGH_DATA_TYPE =  "PassThroughDataType";
+
     private SAMLSSOConstants() {
     }
 
