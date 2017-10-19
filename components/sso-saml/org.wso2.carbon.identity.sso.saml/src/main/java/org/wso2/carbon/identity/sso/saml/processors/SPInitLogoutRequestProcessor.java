@@ -339,7 +339,7 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
         reqValidationResponseDTO.setValid(false);
         try {
             reqValidationResponseDTO
-                    .setResponse(SAMLSSOUtil.compressResponse(SAMLSSOUtil.encode(SAMLSSOUtil.marshall(logoutResp))));
+                    .setResponse(SAMLSSOUtil.compressResponse(SAMLSSOUtil.marshall(logoutResp)));
         } catch (IOException e) {
             throw new IdentityException("Error in deflating the SAML response. Issuer : " + issuer, e);
         }
