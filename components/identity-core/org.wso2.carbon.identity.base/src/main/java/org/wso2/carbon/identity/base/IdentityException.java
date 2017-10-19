@@ -141,7 +141,7 @@ public class IdentityException extends Exception {
         super(errorDescription);
     }
 
-    protected IdentityException(String errorDescription, Throwable cause) {
+    public IdentityException(String errorDescription, Throwable cause) {
         super(errorDescription, cause);
     }
 
