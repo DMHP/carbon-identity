@@ -50,7 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProcessor{
+public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProcessor {
 
     private static Log log = LogFactory.getLog(SPInitLogoutRequestProcessor.class);
 
@@ -89,7 +89,15 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
                     issuer = logoutRequest.getIssuer().getValue();
                 }
 
-                if (StringUtils.isBlank(sessionId)) {
+                // Get the sessions from the SessionPersistenceManager and prepare
+                // the logout responses
+                SSOSessionPersistenceManager ssoSessionPersistenceManager = SSOSessionPersistenceManager
+                        .getPersistenceManager();
+
+                String sessionIndex = logoutRequest.getSessionIndexes().size() > 0 ? logoutRequest
+                        .getSessionIndexes().get(0).getSessionIndex() : null;
+
+                if (StringUtils.isBlank(sessionIndex)) {
                     String message = "Session was already Expired";
                     log.error("ssoTokenId cookie not found in the logout request");
                     return buildErrorResponse(logoutRequest.getID(), SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
@@ -97,16 +105,9 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
                             issuer);
                 }
 
-                // Get the sessions from the SessionPersistenceManager and prepare
-                // the logout responses
-                SSOSessionPersistenceManager ssoSessionPersistenceManager = SSOSessionPersistenceManager
-                        .getPersistenceManager();
-
-                String sessionIndex = ssoSessionPersistenceManager.getSessionIndexFromTokenId(sessionId);
-
                 if (StringUtils.isBlank(sessionIndex)) {
                     String message = "Error while retrieving the Session Index ";
-                    log.error("Error in retrieving Session Index from ssoTokenId cookie : " + sessionId);
+                    log.error("Error in retrieving Session Index from ssoTokenId cookie : " + sessionIndex);
                     return buildErrorResponse(logoutRequest.getID(), SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
                             message, logoutRequest.getDestination(), defaultSigningAlgoUri, defaultDigestAlgoUri,
                             issuer);
@@ -138,13 +139,13 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
                     String message = "No Established Sessions corresponding to Session Indexes provided.";
                     log.error(message);
                     reqValidationResponseDTO = buildErrorResponse(logoutRequest.getID(), SAMLSSOConstants.StatusCodes
-                            .REQUESTOR_ERROR, message, null, defaultSigningAlgoUri, defaultDigestAlgoUri,
+                                    .REQUESTOR_ERROR, message, null, defaultSigningAlgoUri, defaultDigestAlgoUri,
                             issuer);
                     reqValidationResponseDTO.setLogoutFromAuthFramework(true);
                     return reqValidationResponseDTO;
                 }
 
-                if(IdentityUtil.isBlank(SAMLSSOUtil.getTenantDomainFromThreadLocal())) {
+                if (IdentityUtil.isBlank(SAMLSSOUtil.getTenantDomainFromThreadLocal())) {
                     if (issuer.contains("@")) {
                         String tenantDomain = issuer.substring(issuer.lastIndexOf('@') + 1);
                         issuer = issuer.substring(0, issuer.lastIndexOf('@'));
@@ -181,7 +182,7 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
 
                     if (requestSessionIndex == null || !sessionIndex.equals(requestSessionIndex.getSessionIndex())) {
                         String message = "Session Index validation for Logout Request failed. " +
-                                         "Received: [" + (requestSessionIndex == null ? "null" : requestSessionIndex
+                                "Received: [" + (requestSessionIndex == null ? "null" : requestSessionIndex
                                 .getSessionIndex()) + "]." + " Expected: [" + sessionIndex + "]";
                         log.error(message);
                         return buildErrorResponse(logoutRequest.getID(), SAMLSSOConstants.StatusCodes
@@ -244,8 +245,8 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
 
                         LogoutRequest logoutReq = logoutMsgBuilder.buildLogoutRequest(sessionInfoData.getSubject(key)
                                 , sessionIndex, SAMLSSOConstants.SingleLogoutCodes.LOGOUT_USER, logoutReqDTO
-                                .getAssertionConsumerURL(), value.getNameIDFormat(), value.getTenantDomain(), value
-                                .getSigningAlgorithmUri(), value.getDigestAlgorithmUri());
+                                        .getAssertionConsumerURL(), value.getNameIDFormat(), value.getTenantDomain(), value
+                                        .getSigningAlgorithmUri(), value.getDigestAlgorithmUri());
                         String logoutReqString = SAMLSSOUtil.marshall(logoutReq);
                         logoutReqDTO.setLogoutResponse(logoutReqString);
                         logoutReqDTO.setRpSessionId(rpSessionsList.get(key));
@@ -315,6 +316,7 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
     /**
      * Builds the SAML error response and sets the compressed value to the reqValidationResponseDTO when the issuer is
      * known. Uses the issuer to find out the ACS URL and related information to be associated in the error response.
+     *
      * @param id
      * @param status
      * @param statMsg
@@ -326,7 +328,7 @@ public class SPInitLogoutRequestProcessor implements SPInitSSOLogoutRequestProce
      * @throws IdentityException
      */
     private SAMLSSOReqValidationResponseDTO buildErrorResponse(String id, String status, String statMsg,
-            String destination, String responseSigningAlgorithmUri, String responseDigestAlgorithmUri, String issuer)
+                                                               String destination, String responseSigningAlgorithmUri, String responseDigestAlgorithmUri, String issuer)
             throws IdentityException {
 
         SAMLSSOServiceProviderDO providerDO = getServiceProviderConfig(issuer);
