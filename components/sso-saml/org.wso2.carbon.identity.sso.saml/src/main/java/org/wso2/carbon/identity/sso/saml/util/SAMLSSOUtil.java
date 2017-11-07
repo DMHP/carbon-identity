@@ -92,6 +92,7 @@ import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.registry.core.service.TenantRegistryLoader;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
@@ -1552,6 +1553,44 @@ public class SAMLSSOUtil {
             }
         }
         return null;
+    }
+
+    /**
+     * Append a query param to the URL (URL may already contain query params)
+     * @param url
+     * @param queryParamString
+     * @return
+     */
+    public static String appendQueryParamsStringToUrl(String url, String queryParamString) {
+        String queryAppendedUrl = url;
+        // check whether param string to append is blank
+        if (StringUtils.isNotEmpty(queryParamString)) {
+            // check whether the URL already contains query params
+            String appender;
+            if (url.contains("?")) {
+                appender = "&";
+            } else{
+                appender = "?";
+            }
+
+            // remove leading anchor or question mark in query params
+            if (queryParamString.startsWith("?") || queryParamString.startsWith("&")) {
+                queryParamString = queryParamString.substring(1);
+            }
+
+            queryAppendedUrl += appender + queryParamString;
+        }
+
+        return queryAppendedUrl;
+    }
+
+    public static String splitAppendedTenantDomain(String issuer) {
+
+        if (issuer.contains(UserCoreConstants.TENANT_DOMAIN_COMBINER)) {
+            issuer = issuer.substring(0, issuer.lastIndexOf(UserCoreConstants.TENANT_DOMAIN_COMBINER));
+        }
+
+        return issuer;
     }
 
 }

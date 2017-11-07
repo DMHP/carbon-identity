@@ -21,6 +21,9 @@ import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SAMLSSOAuthnReqDTO implements Serializable {
@@ -64,6 +67,7 @@ public class SAMLSSOAuthnReqDTO implements Serializable {
     private String certAlias;
     private String signingAlgorithmUri;
     private String digestAlgorithmUri;
+    private Map<String, List<Map<String, Object>>> idpAuthenticationContextProperties;
 
     public String getDigestAlgorithmUri() {
         return digestAlgorithmUri;
@@ -418,5 +422,36 @@ public class SAMLSSOAuthnReqDTO implements Serializable {
 
     public void setSloRequestURL(String sloRequestURL) {
         this.sloRequestURL = sloRequestURL;
+    }
+
+    public Map<String, List<Map<String, Object>>> getIdpAuthenticationContextProperties() {
+
+        if(idpAuthenticationContextProperties == null) {
+            idpAuthenticationContextProperties = new HashMap<>();
+        }
+        return idpAuthenticationContextProperties;
+    }
+
+    public void setIdpAuthenticationContextProperties(Map<String, List<Map<String, Object>>>
+                                                              idpAuthenticationContextProperties) {
+
+        this.idpAuthenticationContextProperties = idpAuthenticationContextProperties;
+    }
+
+    public void addIdpAuthenticationContextProperty(String propertyName, Map<String, Object>
+            authenticationContextProperty) {
+
+        if (idpAuthenticationContextProperties == null) {
+            idpAuthenticationContextProperties = new HashMap<>();
+        }
+
+        List<Map<String, Object>> authenticationContextProperties;
+        if (idpAuthenticationContextProperties.get(propertyName) == null) {
+            authenticationContextProperties = new ArrayList<>();
+            idpAuthenticationContextProperties.put(propertyName, authenticationContextProperties);
+        } else {
+            authenticationContextProperties = idpAuthenticationContextProperties.get(propertyName);
+        }
+        authenticationContextProperties.add(authenticationContextProperty);
     }
 }

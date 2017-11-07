@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.owasp.encoder.Encode;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.CommonAuthenticationHandler;
 import org.wso2.carbon.identity.application.authentication.framework.cache.AuthenticationRequestCacheEntry;
@@ -34,9 +35,12 @@ import org.wso2.carbon.identity.application.authentication.framework.util.Framew
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.base.IdentityConstants;
 import org.wso2.carbon.identity.base.IdentityException;
+import org.wso2.carbon.identity.core.model.SAMLSSOServiceProviderDO;
+import org.wso2.carbon.identity.core.persistence.IdentityPersistenceManager;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOConstants;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOService;
+import org.wso2.carbon.identity.sso.saml.SSOServiceProviderConfigManager;
 import org.wso2.carbon.identity.sso.saml.cache.SessionDataCache;
 import org.wso2.carbon.identity.sso.saml.cache.SessionDataCacheEntry;
 import org.wso2.carbon.identity.sso.saml.cache.SessionDataCacheKey;
@@ -45,10 +49,12 @@ import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOReqValidationResponseDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSORespDTO;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOSessionDTO;
+import org.wso2.carbon.identity.sso.saml.exception.IdentitySAML2SSOException;
 import org.wso2.carbon.identity.sso.saml.internal.IdentitySAMLSSOServiceComponent;
 import org.wso2.carbon.identity.sso.saml.logout.LogoutRequestSender;
 import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
 import org.wso2.carbon.idp.mgt.util.IdPManagementUtil;
+import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.utils.UUIDGenerator;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
@@ -64,6 +70,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This is the entry point for authentication process in an SSO scenario. This servlet is registered
@@ -169,9 +176,28 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                 if (sessionDTO != null) {
                     SAMLSSOUtil.setTenantDomainInThreadLocal(sessionDTO.getTenantDomain());
                     if (sessionDTO.isInvalidLogout()) {
+                        String queryParams = "?" + SAMLSSOConstants.STATUS + "=" + URLEncoder.
+                                encode(SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
+                                        "UTF-8") + "&" + SAMLSSOConstants.STATUS_MSG + "=" + URLEncoder.encode
+                                ("Invalid Logout Request", "UTF-8");
+
+                        String errorResp = SAMLSSOUtil.buildErrorResponse(SAMLSSOConstants.StatusCodes
+                                .REQUESTOR_ERROR, "Invalid Logout Request", null);
+                        String acsUrl = sessionDTO.getAssertionConsumerURL();
+
+                        if (errorResp != null) {
+                            queryParams += "&" + SAMLSSOConstants.LOGOUT_RESP + "=" + URLEncoder.encode(errorResp,
+                                    "UTF-8");
+                        }
+
+                        if (acsUrl != null) {
+                            queryParams += "&" + SAMLSSOConstants.ASSRTN_CONSUMER_URL + "=" + URLEncoder.encode
+                                    (acsUrl, "UTF-8");
+                        }
+
                         log.warn("Redirecting to default logout page due to an invalid logout request");
                         String defaultLogoutLocation = SAMLSSOUtil.getDefaultLogoutEndpoint();
-                        resp.sendRedirect(defaultLogoutLocation);
+                        resp.sendRedirect(defaultLogoutLocation + queryParams);
                     } else if (sessionDTO.isLogoutReq()) {
                         handleLogoutResponseFromFramework(req, resp, sessionDTO);
                     } else {
@@ -273,11 +299,42 @@ public class SAMLSSOProviderServlet extends HttpServlet {
             queryParams += "&" + SAMLSSOConstants.SAML_RESP + "=" + URLEncoder.encode(errorResp, "UTF-8");
         }
 
-        if (acUrl != null) {
-            queryParams += "&" + SAMLSSOConstants.ASSRTN_CONSUMER_URL + "=" + URLEncoder.encode(acUrl, "UTF-8");
+        // If the assertion consumer url is null, get it from the session.
+        if (StringUtils.isBlank(acUrl)) {
+            String sessionDataKey = getSessionDataKey(req);
+            SAMLSSOSessionDTO sessionDTO = null;
+            if (StringUtils.isNotBlank(sessionDataKey)) {
+                sessionDTO = getSessionDataFromCache(sessionDataKey);
+            }
+            if (sessionDTO != null) {
+                acUrl = sessionDTO.getAssertionConsumerURL();
+            }
         }
 
-        resp.sendRedirect(redirectURL + queryParams);
+        if (StringUtils.isNotBlank(acUrl)) {
+            queryParams += "&" + SAMLSSOConstants.ASSRTN_CONSUMER_URL + "=" +
+                    URLEncoder.encode(acUrl, SAMLSSOConstants.ENCODING_FORMAT);
+        }
+
+        String relayState = req.getParameter(SAMLSSOConstants.RELAY_STATE);
+        // If the request doesn't have a relay state, get it from the session.
+        if (StringUtils.isEmpty(relayState)) {
+            String sessionDataKey = getSessionDataKey(req);
+            SAMLSSOSessionDTO sessionDTO = null;
+            if(StringUtils.isNotEmpty(sessionDataKey)) {
+                sessionDTO = getSessionDataFromCache(sessionDataKey);
+            }
+            if(sessionDTO != null) {
+                relayState = sessionDTO.getRelayState();
+            }
+        }
+        if (StringUtils.isNotEmpty(relayState)) {
+            queryParams += "&" + SAMLSSOConstants.RELAY_STATE + "=" +
+                    URLEncoder.encode(relayState, SAMLSSOConstants.ENCODING_FORMAT);
+        }
+
+        String queryAppendedUrl = SAMLSSOUtil.appendQueryParamsStringToUrl(redirectURL, queryParams);
+        resp.sendRedirect(queryAppendedUrl);
     }
 
     private void handleIdPInitSSO(HttpServletRequest req, HttpServletResponse resp, String relayState,
@@ -302,9 +359,28 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                 }
 
                 String errorResp = signInRespDTO.getResponse();
+                String acsUrl = signInRespDTO.getAssertionConsumerURL();
+                if (StringUtils.isBlank(acsUrl)) {
+                    String issuer = signInRespDTO.getIssuer();
+
+                    if (StringUtils.isBlank(issuer) && req.getParameter("spEntityID") != null) {
+                        issuer = req.getParameter("spEntityID");
+                    }
+                    if (StringUtils.isNotBlank(issuer)) {
+                        SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
+                                        .getTenantDomainFromThreadLocal(),
+                                SAMLSSOUtil.splitAppendedTenantDomain(issuer));
+                        //if acs is not found in the request, priority should be given to SLO response URL over
+                        // default ACS if specified in config.
+                        acsUrl = serviceProviderDO.getSloResponseURL();
+                        if (StringUtils.isBlank(acsUrl)) {
+                            acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                        }
+                    }
+                }
                 sendNotification(errorResp, SAMLSSOConstants.Notification.EXCEPTION_STATUS,
                                  SAMLSSOConstants.Notification.EXCEPTION_MESSAGE,
-                                 signInRespDTO.getAssertionConsumerURL(), req, resp);
+                                 acsUrl, req, resp);
             }
         } else {
             if(signInRespDTO.isValid()) {
@@ -318,9 +394,41 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                     sendToFrameworkForLogout(req, resp, null, null, sessionId, true, isPost);
                 } else {
                     String errorResp = signInRespDTO.getResponse();
+                    String acsUrl = signInRespDTO.getAssertionConsumerURL();
+                    if (StringUtils.isBlank(acsUrl)) {
+                        String issuer = signInRespDTO.getIssuer();
+                        String returnToUrl = signInRespDTO.getReturnToURL();
+
+                        if (StringUtils.isBlank(issuer) && req.getParameter("spEntityID") != null) {
+                            issuer = req.getParameter("spEntityID");
+                        }
+                        if (StringUtils.isBlank(returnToUrl) && req.getParameter("returnTo") != null) {
+                            returnToUrl = req.getParameter("returnTo");
+                        }
+                        if (StringUtils.isNotBlank(issuer)) {
+                            SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
+                                            .getTenantDomainFromThreadLocal(),
+                                    SAMLSSOUtil.splitAppendedTenantDomain(issuer));
+                            //for IDP init SLO, priority should be given to SLO response URL over default ACS if ACS
+                            // is not available in the request.
+                            acsUrl = serviceProviderDO.getSloResponseURL();
+                            if (StringUtils.isBlank(acsUrl)) {
+                                acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                            }
+
+                            //check whether ReturnToUrl query param is included in the configured Urls.
+                            if (StringUtils.isNotBlank(returnToUrl)) {
+                                List<String> returnToUrls = serviceProviderDO.getIdpInitSLOReturnToURLList();
+                                if (returnToUrls.contains(returnToUrl)) {
+                                    acsUrl += "&returnTo=" +
+                                            URLEncoder.encode(returnToUrl, SAMLSSOConstants.ENCODING_FORMAT);
+                                }
+                            }
+                        }
+                    }
                     sendNotification(errorResp, SAMLSSOConstants.Notification.INVALID_MESSAGE_STATUS,
                                      SAMLSSOConstants.Notification.EXCEPTION_MESSAGE,
-                                     signInRespDTO.getAssertionConsumerURL(), req, resp);
+                                     acsUrl, req, resp);
                 }
             }
         }
@@ -666,9 +774,16 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                     String errorResp = SAMLSSOUtil.buildCompressedErrorResponse(reqValidationDTO.getId(),
                                                                                 statusCodes, "User authentication " +
                                                                                              "failed", destination);
+                    String acsUrl = reqValidationDTO.getAssertionConsumerURL();
+                    if (StringUtils.isEmpty(acsUrl) && sessionDTO.getIssuer() != null) {
+                        SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
+                                        .getTenantDomainFromThreadLocal(),
+                                sessionDTO.getIssuer());
+                        acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                    }
                     sendNotification(errorResp, SAMLSSOConstants.Notification.EXCEPTION_STATUS,
                             SAMLSSOConstants.Notification.EXCEPTION_MESSAGE,
-                            reqValidationDTO.getAssertionConsumerURL(), req, resp);
+                            acsUrl, req, resp);
                     return;
                 }
 
@@ -683,9 +798,15 @@ public class SAMLSSOProviderServlet extends HttpServlet {
 
                     String errorResp = SAMLSSOUtil.buildCompressedErrorResponse(
                             reqValidationDTO.getId(), statusCodes, "User authentication failed", destination);
+                    String acsUrl = reqValidationDTO.getAssertionConsumerURL();
+                    if (StringUtils.isBlank(acsUrl) && sessionDTO.getIssuer() != null) {
+                        SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
+                                .getTenantDomainFromThreadLocal(), sessionDTO.getIssuer());
+                        acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                    }
                     sendNotification(errorResp, SAMLSSOConstants.Notification.EXCEPTION_STATUS,
                             SAMLSSOConstants.Notification.EXCEPTION_MESSAGE,
-                            reqValidationDTO.getAssertionConsumerURL(), req, resp);
+                            acsUrl, req, resp);
                     return;
                 } else {
                     throw IdentityException.error("Session data is not found for authenticated user");
@@ -721,10 +842,16 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                         authRespDTO.getAssertionConsumerURL(), authRespDTO.getSubject().getAuthenticatedSubjectIdentifier(),
                         authResult.getAuthenticatedIdPs(), sessionDTO.getTenantDomain());
             } else { // authentication FAILURE
+                String acsUrl = authRespDTO.getAssertionConsumerURL();
+                if (StringUtils.isEmpty(acsUrl) && sessionDTO.getIssuer() != null) {
+                    SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
+                            .getTenantDomainFromThreadLocal(), sessionDTO.getIssuer());
+                    acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                }
                 String errorResp = authRespDTO.getRespString();
                 sendNotification(errorResp, SAMLSSOConstants.Notification.EXCEPTION_STATUS,
                         SAMLSSOConstants.Notification.EXCEPTION_MESSAGE,
-                        authRespDTO.getAssertionConsumerURL(), req, resp);
+                        acsUrl, req, resp);
             }
         }
     }
@@ -757,13 +884,22 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                 log.error("Error when processing the logout request!", e);
             }
 
+            String acsUrl = sessionDTO.getAssertionConsumerURL();
+            if (StringUtils.isBlank(acsUrl) && sessionDTO.getIssuer() != null) {
+                SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil.getTenantDomainFromThreadLocal
+                        (), sessionDTO.getIssuer());
+                acsUrl = serviceProviderDO.getSloResponseURL();
+                if (StringUtils.isBlank(acsUrl)) {
+                    acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                }
+            }
             String errorResp = SAMLSSOUtil.buildErrorResponse(
                     SAMLSSOConstants.StatusCodes.REQUESTOR_ERROR,
                     "Invalid request",
-                    sessionDTO.getAssertionConsumerURL());
+                    acsUrl);
             sendNotification(errorResp, SAMLSSOConstants.Notification.INVALID_MESSAGE_STATUS,
                     SAMLSSOConstants.Notification.INVALID_MESSAGE_MESSAGE,
-                    sessionDTO.getAssertionConsumerURL(), request, response);
+                    acsUrl, request, response);
         }
     }
 
@@ -790,6 +926,19 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         authnReqDTO.setIdPInitSLOEnabled(sessionDTO.isIdPInitSLO());
         if (!(sessionDTO.getAttributeConsumingServiceIndex() < 1)) {
             authnReqDTO.setAttributeConsumingServiceIndex(sessionDTO.getAttributeConsumingServiceIndex());
+        }
+
+        if (authResult.getProperty(SAMLSSOConstants.AUTHEN_CONTEXT_PROPERTIES) != null) {
+            List<Map<String, Object>> authenticationContextProperties = (List<Map<String, Object>>) authResult
+                    .getProperty(SAMLSSOConstants.AUTHEN_CONTEXT_PROPERTIES);
+
+            for (Map<String, Object> authenticationContextProperty : authenticationContextProperties) {
+                if (SAMLSSOConstants.AUTHN_CONTEXT_CLASS_REF.equals(authenticationContextProperty.get
+                        (SAMLSSOConstants.PASS_THROUGH_DATA_TYPE))) {
+                    authnReqDTO.addIdpAuthenticationContextProperty(SAMLSSOConstants.AUTHN_CONTEXT_CLASS_REF,
+                            authenticationContextProperty);
+                }
+            }
         }
 
         SAMLSSOUtil.setIsSaaSApplication(authResult.isSaaSApp());
@@ -1056,6 +1205,54 @@ public class SAMLSSOProviderServlet extends HttpServlet {
         } else {
             requestWrapper.setAttribute(FrameworkConstants.RequestParams.FLOW_STATUS, AuthenticatorFlowStatus.UNKNOWN);
             doGet(requestWrapper, response);
+        }
+    }
+
+    /**
+     * Get service provider config.
+     *
+     * @param tenantDomain
+     * @param issuerName
+     * @return
+     * @throws IdentityException
+     */
+    private SAMLSSOServiceProviderDO getSPConfig(String tenantDomain, String issuerName) throws
+            IdentityException {
+
+        SSOServiceProviderConfigManager stratosIdpConfigManager = SSOServiceProviderConfigManager.getInstance();
+        SAMLSSOServiceProviderDO serviceProvider = stratosIdpConfigManager.getServiceProvider(issuerName);
+        if (serviceProvider != null) {
+            return serviceProvider;
+        }
+
+        int tenantId;
+        try {
+            if (StringUtils.isBlank(tenantDomain)) {
+                tenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+                tenantId = MultitenantConstants.SUPER_TENANT_ID;
+            } else {
+                tenantId = SAMLSSOUtil.getRealmService().getTenantManager().getTenantId(tenantDomain);
+            }
+        } catch (UserStoreException e) {
+            throw new IdentitySAML2SSOException("Error occurred while retrieving tenant id for the domain : " +
+                    tenantDomain, e);
+        }
+
+        try {
+            PrivilegedCarbonContext.startTenantFlow();
+            PrivilegedCarbonContext privilegedCarbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
+            privilegedCarbonContext.setTenantId(tenantId, true);
+
+            IdentityPersistenceManager persistenceManager = IdentityPersistenceManager.getPersistanceManager();
+            Registry registry = (Registry) privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_CONFIGURATION);
+            SAMLSSOServiceProviderDO spDO = persistenceManager.getServiceProvider(registry, issuerName);
+            return spDO;
+
+        } catch (IdentityException e) {
+            throw new IdentitySAML2SSOException("Error occurred while validating existence of SAML service provider " +
+                    "'" + issuerName + "' in the tenant domain '" + tenantDomain + "'", e);
+        } finally {
+            PrivilegedCarbonContext.endTenantFlow();
         }
     }
 }

@@ -132,6 +132,7 @@
     String fbAuthnEndpoint = null;
     String fbOauth2TokenEndpoint = null;
     String fbUserInfoEndpoint = null;
+    String responseAuthnContextClassRef = "default";
 
     // To check for existence of authenticator bundles
     boolean isOpenidAuthenticatorActive = false;
@@ -545,6 +546,14 @@
                         requestMethod = requestMethodProp.getValue();
                     } else {
                         requestMethod = "redirect";
+                    }
+
+                    Property responseAuthnContextClassRefProp = IdPManagementUIUtil.getProperty(fedAuthnConfig.getProperties(),
+                            IdPManagementUIUtil.RESPONSE_AUTHN_CONTEXT_CLASS_REF);
+                    if (responseAuthnContextClassRefProp != null) {
+                        responseAuthnContextClassRef = responseAuthnContextClassRefProp.getValue();
+                    } else {
+                        responseAuthnContextClassRef = "default";
                     }
 
                     Property isSAMLSSOUserIdInClaimsProp = IdPManagementUIUtil.getProperty(fedAuthnConfig.getProperties(),
@@ -4235,6 +4244,23 @@ function doValidation() {
 
                 <div class="sectionHelp" style="margin-top: 5px">
                     <fmt:message key='request.method.help'/>
+                </div>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="leftCol-med labelField"><fmt:message key='authn.context.class.ref'/>:</td>
+            <td>
+                <label>
+                    <input type="radio" name="ResponseAuthnContextClassRef" value="default"
+                           <% if(responseAuthnContextClassRef != null && responseAuthnContextClassRef.equals("default")){%>checked="checked"<%}%>/>Default
+                </label>
+                <label><input type="radio" name="ResponseAuthnContextClassRef" value="as_response"
+                              <% if(responseAuthnContextClassRef != null && responseAuthnContextClassRef.equals("as_response")){%>checked="checked"<%}%>/>As Per Response
+                </label>
+
+                <div class="sectionHelp" style="margin-top: 5px">
+                    <fmt:message key='authn.context.class.ref.help'/>
                 </div>
             </td>
         </tr>

@@ -30,6 +30,7 @@ import org.opensaml.saml2.core.AttributeStatement;
 import org.opensaml.saml2.core.AttributeValue;
 import org.opensaml.saml2.core.Audience;
 import org.opensaml.saml2.core.AudienceRestriction;
+import org.opensaml.saml2.core.AuthenticatingAuthority;
 import org.opensaml.saml2.core.AuthnContext;
 import org.opensaml.saml2.core.AuthnContextClassRef;
 import org.opensaml.saml2.core.AuthnStatement;
@@ -53,14 +54,17 @@ import org.opensaml.saml2.core.impl.SubjectConfirmationBuilder;
 import org.opensaml.saml2.core.impl.SubjectConfirmationDataBuilder;
 import org.opensaml.xml.schema.XSString;
 import org.opensaml.xml.schema.impl.XSStringBuilder;
+import org.wso2.carbon.identity.application.common.util.IdentityApplicationConstants;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.sso.saml.SAMLSSOConstants;
+import org.wso2.carbon.identity.sso.saml.builders.AuthenticatingAuthorityImpl;
 import org.wso2.carbon.identity.sso.saml.builders.SignKeyDataHolder;
 import org.wso2.carbon.identity.sso.saml.dto.SAMLSSOAuthnReqDTO;
 import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -127,18 +131,7 @@ public class DefaultSAMLAssertionBuilder implements SAMLAssertionBuilder {
 
             samlAssertion.setSubject(subject);
 
-            AuthnStatement authStmt = new AuthnStatementBuilder().buildObject();
-            authStmt.setAuthnInstant(new DateTime());
-
-            AuthnContext authContext = new AuthnContextBuilder().buildObject();
-            AuthnContextClassRef authCtxClassRef = new AuthnContextClassRefBuilder().buildObject();
-            authCtxClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX);
-            authContext.setAuthnContextClassRef(authCtxClassRef);
-            authStmt.setAuthnContext(authContext);
-            if (authReqDTO.isDoSingleLogout()) {
-                authStmt.setSessionIndex(sessionId);
-            }
-            samlAssertion.getAuthnStatements().add(authStmt);
+            addAuthStatement(authReqDTO, sessionId, samlAssertion);
 
             /*
                 * If <AttributeConsumingServiceIndex> element is in the <AuthnRequest> and according to
@@ -236,5 +229,86 @@ public class DefaultSAMLAssertionBuilder implements SAMLAssertionBuilder {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Add Authn Statement to the Assertion
+     *
+     * @param authReqDTO SAMLSSOAuthnReqDTO
+     * @param sessionId Session Id
+     * @param samlAssertion SAML Assertion
+     */
+    private void addAuthStatement(SAMLSSOAuthnReqDTO authReqDTO, String sessionId, Assertion samlAssertion) {
+
+        DateTime authnInstant = new DateTime();
+
+        if (authReqDTO.getIdpAuthenticationContextProperties().get(SAMLSSOConstants.AUTHN_CONTEXT_CLASS_REF) != null
+                && !authReqDTO.getIdpAuthenticationContextProperties().get(SAMLSSOConstants.AUTHN_CONTEXT_CLASS_REF)
+                .isEmpty()) {
+
+            List<Map<String, Object>> authenticationContextProperties = authReqDTO
+                    .getIdpAuthenticationContextProperties().get(SAMLSSOConstants.AUTHN_CONTEXT_CLASS_REF);
+
+            for (Map<String, Object> authenticationContextProperty : authenticationContextProperties) {
+                if (authenticationContextProperty.get(SAMLSSOConstants.PASS_THROUGH_DATA) != null) {
+                    List<String> authnContextClassRefList = (List<String>) authenticationContextProperty
+                            .get(SAMLSSOConstants.PASS_THROUGH_DATA);
+                    if (!authnContextClassRefList.isEmpty()) {
+                        String idpEntityId = null;
+                        if (authenticationContextProperty.get(IdentityApplicationConstants.Authenticator
+                                .SAML2SSO.IDP_ENTITY_ID) != null) {
+                            idpEntityId = (String) authenticationContextProperty.get(IdentityApplicationConstants
+                                    .Authenticator.SAML2SSO.IDP_ENTITY_ID);
+                        }
+                        for (String authnContextClassRef : authnContextClassRefList) {
+                            if (StringUtils.isNotBlank(authnContextClassRef)) {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Passing AuthnContextClassRef: " + authnContextClassRef + " and " +
+                                            "AuthenticatingAuthority:" + idpEntityId + " in the AuthnStatement");
+                                }
+                                samlAssertion.getAuthnStatements().add(getAuthnStatement(authReqDTO, sessionId,
+                                        authnContextClassRef, authnInstant, idpEntityId));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (samlAssertion.getAuthnStatements().isEmpty()) {
+            samlAssertion.getAuthnStatements().add(getAuthnStatement(authReqDTO, sessionId, AuthnContext
+                    .PASSWORD_AUTHN_CTX, authnInstant, null));
+        }
+    }
+
+    /**
+     * Build AuthnStatement
+     *
+     * @param authReqDTO SAMLSSOAuthnReqDTO
+     * @param sessionId session id
+     * @param authnContextClassRef AuthnContextClassRef
+     * @param authnInstant issue instance
+     * @param idPEntityId idp entity id
+     * @return AuthnStatement instance
+     */
+    private AuthnStatement getAuthnStatement(SAMLSSOAuthnReqDTO authReqDTO, String sessionId,
+                                             String authnContextClassRef, DateTime authnInstant, String idPEntityId) {
+
+        AuthnStatement authStmt = new AuthnStatementBuilder().buildObject();
+        authStmt.setAuthnInstant(authnInstant);
+        AuthnContext authContext = new AuthnContextBuilder().buildObject();
+        AuthnContextClassRef authCtxClassRef = new AuthnContextClassRefBuilder().buildObject();
+        authCtxClassRef.setAuthnContextClassRef(authnContextClassRef);
+        authContext.setAuthnContextClassRef(authCtxClassRef);
+        if (StringUtils.isNotBlank(idPEntityId)) {
+            AuthenticatingAuthority authenticatingAuthority = new AuthenticatingAuthorityImpl();
+            authenticatingAuthority.setURI(idPEntityId);
+            authContext.getAuthenticatingAuthorities().add(authenticatingAuthority);
+        }
+        authStmt.setAuthnContext(authContext);
+        if (authReqDTO.isDoSingleLogout()) {
+            authStmt.setSessionIndex(sessionId);
+        }
+        return authStmt;
     }
 }

@@ -61,6 +61,8 @@ public class IdPManagementUIUtil {
     private static final String ATTRIBUTE_CUSTOM_AUTHENTICATION_CONTEXT_CLASS = "CustomAuthnContextClassRef";
     public static final String CUSTOM_AUTHENTICATION_CONTEXT_CLASS_OPTION = "Custom Authentication Context Class";
 
+    public static final String RESPONSE_AUTHN_CONTEXT_CLASS_REF = "ResponseAuthnContextClassRef";
+
     /**
      * Validates an URI.
      *
@@ -1391,7 +1393,7 @@ public class IdPManagementUIUtil {
             fedIdp.setDefaultAuthenticatorConfig(saml2SSOAuthnConfig);
         }
 
-        Property[] properties = new Property[24];
+        Property[] properties = new Property[25];
         Property property = new Property();
         property.setName(IdentityApplicationConstants.Authenticator.SAML2SSO.IDP_ENTITY_ID);
         property.setValue(paramMap.get("idPEntityId"));
@@ -1572,6 +1574,11 @@ public class IdPManagementUIUtil {
             property.setValue("false");
         }
         properties[23] = property;
+
+        property = new Property();
+        property.setName(RESPONSE_AUTHN_CONTEXT_CLASS_REF);
+        property.setValue(paramMap.get(RESPONSE_AUTHN_CONTEXT_CLASS_REF));
+        properties[24] = property;
         
         saml2SSOAuthnConfig.setProperties(properties);
 
