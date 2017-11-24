@@ -20,20 +20,29 @@ package org.wso2.carbon.identity.oauth2.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.eclipse.equinox.http.helper.ContextPathServletAdaptor;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.http.HttpService;
 import org.wso2.carbon.identity.application.mgt.ApplicationManagementService;
 import org.wso2.carbon.identity.application.mgt.listener.ApplicationMgtListener;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth2.OAuth2Service;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
+import org.wso2.carbon.identity.openidconnect.session.servlet.OIDCLogoutServlet;
+import org.wso2.carbon.identity.openidconnect.session.servlet.OIDCSessionIFrameServlet;
 import org.wso2.carbon.identity.user.store.configuration.listener.UserStoreConfigListener;
 import org.wso2.carbon.stratos.common.listeners.TenantMgtListener;
 
+import javax.servlet.Servlet;
+
 /**
  * @scr.component name="identity.oauth2.component" immediate="true"
+ * @scr.reference name="osgi.httpservice" interface="org.osgi.service.http.HttpService"
+ * cardinality="1..1" policy="dynamic" bind="setHttpService"
+ * unbind="unsetHttpService"
  * @scr.reference name="identity.application.management.component"
  * interface=
  * "org.wso2.carbon.identity.application.mgt.ApplicationManagementService"
@@ -47,6 +56,7 @@ import org.wso2.carbon.stratos.common.listeners.TenantMgtListener;
 public class OAuth2ServiceComponent {
     private static Log log = LogFactory.getLog(OAuth2ServiceComponent.class);
     private static BundleContext bundleContext;
+    private HttpService httpService;
 
     protected void activate(ComponentContext context) {
         //Registering OAuth2Service as a OSGIService
@@ -90,6 +100,8 @@ public class OAuth2ServiceComponent {
         } else {
             log.error("OAuth - ApplicationMgtListener could not be registered.");
         }
+
+        registerOIDCServlets();
     }
 
     /**
@@ -124,5 +136,46 @@ public class OAuth2ServiceComponent {
     protected void setIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
         /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
+    }
+
+    protected void setHttpService(HttpService httpService) {
+
+        if (log.isDebugEnabled()) {
+            log.info("Setting the HTTP Service.");
+        }
+        this.httpService = httpService;
+    }
+
+    protected void unsetHttpService(HttpService httpService) {
+
+        if (log.isDebugEnabled()) {
+            log.info("Unsetting the HTTP Service.");
+        }
+    }
+
+    /**
+     * Registers servlets related to OIDC session management.
+     */
+    private void registerOIDCServlets() {
+
+        // Register Session IFrame Servlet
+        Servlet sessionIFrameServlet = new ContextPathServletAdaptor(new OIDCSessionIFrameServlet(), "/oidc/checksession");
+        try {
+            httpService.registerServlet("/oidc/checksession", sessionIFrameServlet, null, null);
+        } catch (Exception e) {
+            String msg = "Error when registering OIDC Session IFrame Servlet via the HttpService.";
+            log.error(msg, e);
+            throw new RuntimeException(msg, e);
+        }
+
+        // Register OIDC logout servlet.
+        Servlet logoutServlet = new ContextPathServletAdaptor(new OIDCLogoutServlet(), "/oidc/logout");
+        try {
+            httpService.registerServlet("/oidc/logout", logoutServlet, null, null);
+        } catch (Exception e) {
+            String msg = "Error when registering OIDC Logout Servlet via the HttpService.";
+            log.error(msg, e);
+            throw new RuntimeException(msg, e);
+        }
     }
 }

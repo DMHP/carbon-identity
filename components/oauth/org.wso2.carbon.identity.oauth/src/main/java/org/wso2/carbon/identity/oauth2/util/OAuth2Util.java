@@ -24,16 +24,20 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.oltu.oauth2.common.message.types.ResponseType;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.IdentityOAuthAdminException;
+import org.wso2.carbon.identity.oauth.cache.AppInfoCache;
 import org.wso2.carbon.identity.oauth.cache.CacheEntry;
 import org.wso2.carbon.identity.oauth.cache.OAuthCache;
 import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDAO;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth.dao.OAuthConsumerDAO;
 import org.wso2.carbon.identity.oauth.internal.OAuthComponentServiceHolder;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
@@ -44,6 +48,7 @@ import org.wso2.carbon.identity.oauth2.token.OAuthTokenReqMessageContext;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.sql.Timestamp;
@@ -655,6 +660,55 @@ public class OAuth2Util {
             issuer = OAuthURL.getOAuth2TokenEPUrl();
         }
         return issuer;
+    }
+
+    /**
+     * Checks whether the response type is implicit.
+     * @param responseType
+     * @return
+     */
+    public static boolean isImplicitResponseType(String responseType) {
+        if(StringUtils.isNotBlank(responseType) && (responseType.contains(ResponseType.TOKEN.toString()) ||
+                responseType.contains(OAuthConstants.ID_TOKEN))) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Get Oauth application information
+     *
+     * @param clientId
+     * @return Oauth app information
+     * @throws IdentityOAuth2Exception
+     * @throws InvalidOAuthClientException
+     */
+    public static OAuthAppDO getAppInformationByClientId(String clientId)
+            throws IdentityOAuth2Exception, InvalidOAuthClientException {
+
+        OAuthAppDO oAuthAppDO = AppInfoCache.getInstance().getValueFromCache(clientId);
+        if (oAuthAppDO != null) {
+            return oAuthAppDO;
+        } else {
+            oAuthAppDO = new OAuthAppDAO().getAppInformation(clientId);
+            AppInfoCache.getInstance().addToCache(clientId, oAuthAppDO);
+            return oAuthAppDO;
+        }
+    }
+
+    /**
+     * Get the tenant domain of an oauth application
+     *
+     * @param oAuthAppDO
+     * @return
+     */
+    public static String getTenantDomainOfOauthApp(OAuthAppDO oAuthAppDO) {
+        String tenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+        if (oAuthAppDO != null) {
+            AuthenticatedUser appDeveloper = oAuthAppDO.getUser();
+            tenantDomain = appDeveloper.getTenantDomain();
+        }
+        return tenantDomain;
     }
 
     public static class OAuthURL {

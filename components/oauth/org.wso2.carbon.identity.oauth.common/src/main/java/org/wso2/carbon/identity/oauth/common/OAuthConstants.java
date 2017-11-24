@@ -81,6 +81,9 @@ public final class OAuthConstants {
     public static final String ACCESS_TOKEN = "accessToken";
     public static final String ID_TOKEN = "id_token";
 
+    //Constants used for OAuth/OpenID Connect Configuration UI
+    public static final String CALLBACK_URL_REGEXP_PREFIX = "regexp=";
+
 
     public static class GrantTypes {
         public static final String IMPLICIT = "implicit";
