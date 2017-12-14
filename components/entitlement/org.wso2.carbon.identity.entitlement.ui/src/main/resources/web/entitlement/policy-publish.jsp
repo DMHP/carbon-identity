@@ -111,7 +111,7 @@
 %>
 
 <script type="text/javascript">
-    CARBON.showErrorDialog('<%=e.getMessage()%>', function () {
+    CARBON.showErrorDialog('<%=Encode.forJavaScript(Encode.forHtml(e.getMessage()))%>', function () {
         location.href = "policy-publish.jsp";
     });
 </script>
@@ -305,7 +305,7 @@
                                                 <nobr>
                                                     <fmt:message key="enter.subscriber.search"/>
                                                     <input type="text" name="subscriberSearchString"
-                                                           value="<%= subscriberSearchString != null? subscriberSearchString :""%>"/>&nbsp;
+                                                           value="<%= subscriberSearchString != null? Encode.forHtmlAttribute(subscriberSearchString) :""%>"/>&nbsp;
                                                 </nobr>
                                             </td>
                                             <td style="border:0; !important">

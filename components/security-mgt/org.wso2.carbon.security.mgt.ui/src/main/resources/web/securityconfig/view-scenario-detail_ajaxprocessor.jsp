@@ -29,6 +29,6 @@
 
 <div id="middle">
     <h2><fmt:message key="scenario"/> <%=Encode.forHtml(scenarioId)%> : <%=Encode.forHtml(scenarioSummary)%></h2>
-    <img src="images/<%=scenarioIdNumber%>.png" alt="security scenario description"/>
+    <img src="images/<%=Encode.forHtml(scenarioIdNumber)%>.png" alt="security scenario description"/>
 </div>
 </fmt:bundle>
