@@ -38,8 +38,10 @@ import org.wso2.carbon.registry.api.RegistryException;
 import org.wso2.carbon.registry.api.Resource;
 import org.wso2.carbon.registry.core.RegistryConstants;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.UserRealm;
+import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.user.mgt.UserMgtConstants;
 
@@ -105,10 +107,14 @@ public class ApplicationMgtUtil {
         try {
             if (log.isDebugEnabled()) {
                 log.debug("Checking whether user has role : " + applicationRoleName + " by retrieving role list of " +
-                          "user : " + username);
+                        "user : " + username);
             }
-            String[] userRoles = CarbonContext.getThreadLocalCarbonContext().getUserRealm()
-                    .getUserStoreManager().getRoleListOfUser(username);
+            UserStoreManager usrUserStoreManager = CarbonContext.getThreadLocalCarbonContext().getUserRealm()
+                    .getUserStoreManager();
+            if (usrUserStoreManager instanceof AbstractUserStoreManager) {
+                return ((AbstractUserStoreManager) usrUserStoreManager).isUserInRole(username, applicationRoleName);
+            }
+            String[] userRoles = usrUserStoreManager.getRoleListOfUser(username);
             for (String userRole : userRoles) {
                 if (applicationRoleName.equals(userRole)) {
                     return true;
