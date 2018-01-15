@@ -109,12 +109,12 @@ public class ApplicationMgtUtil {
                 log.debug("Checking whether user has role : " + applicationRoleName + " by retrieving role list of " +
                         "user : " + username);
             }
-            UserStoreManager usrUserStoreManager = CarbonContext.getThreadLocalCarbonContext().getUserRealm()
+            UserStoreManager userStoreManager = CarbonContext.getThreadLocalCarbonContext().getUserRealm()
                     .getUserStoreManager();
-            if (usrUserStoreManager instanceof AbstractUserStoreManager) {
-                return ((AbstractUserStoreManager) usrUserStoreManager).isUserInRole(username, applicationRoleName);
+            if (userStoreManager instanceof AbstractUserStoreManager) {
+                return ((AbstractUserStoreManager) userStoreManager).isUserInRole(username, applicationRoleName);
             }
-            String[] userRoles = usrUserStoreManager.getRoleListOfUser(username);
+            String[] userRoles = userStoreManager.getRoleListOfUser(username);
             for (String userRole : userRoles) {
                 if (applicationRoleName.equals(userRole)) {
                     return true;
