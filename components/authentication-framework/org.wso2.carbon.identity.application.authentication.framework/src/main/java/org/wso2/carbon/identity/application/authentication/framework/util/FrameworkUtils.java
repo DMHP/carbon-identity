@@ -86,9 +86,6 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -104,6 +101,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 public class FrameworkUtils {
 
@@ -872,10 +872,10 @@ public class FrameworkUtils {
     }
 
     public static Map<String, AuthenticatorConfig> getAuthenticatedStepIdPs(StepConfig stepConfig,
-            Map<String, AuthenticatedIdPData> authenticatedIdPs) {
+                                                                            Map<String, AuthenticatedIdPData> authenticatedIdPs) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Finding already authenticated IdPs of the Step");
+            log.debug(String.format("Finding already authenticated IdPs of the step {order:%d}", stepConfig.getOrder()));
         }
 
         Map<String, AuthenticatorConfig> idpAuthenticatorMap = new HashMap<String, AuthenticatorConfig>();
@@ -884,18 +884,65 @@ public class FrameworkUtils {
         if (authenticatedIdPs != null && !authenticatedIdPs.isEmpty()) {
 
             for (AuthenticatorConfig authenticatorConfig : authenticatorConfigs) {
+
+                if (log.isDebugEnabled()) {
+                    log.debug(String.format("Considering the authenticator '%s'", authenticatorConfig.getName()));
+                }
+
+                String authenticatorName = authenticatorConfig.getName();
                 List<String> authenticatorIdps = authenticatorConfig.getIdpNames();
+                if (log.isDebugEnabled()) {
+                    log.debug(String.format("%d IdP(s) found in the step.", authenticatedIdPs.size()));
+                }
 
                 for (String authenticatorIdp : authenticatorIdps) {
-                    AuthenticatedIdPData authenticatedIdPData = authenticatedIdPs
-                            .get(authenticatorIdp);
 
-                    if (authenticatedIdPData != null
-                            && authenticatedIdPData.getIdpName().equals(authenticatorIdp)) {
-                        idpAuthenticatorMap.put(authenticatorIdp, authenticatorConfig);
-                        break;
+                    if (log.isDebugEnabled()) {
+                        log.debug(String.format("Considering the IDP : '%s'", authenticatorIdp));
+                    }
+
+                    AuthenticatedIdPData authenticatedIdPData = authenticatedIdPs.get(authenticatorIdp);
+
+                    if (authenticatedIdPData != null && authenticatedIdPData.getIdpName() != null &&
+                            authenticatedIdPData.getIdpName().equals(authenticatorIdp)) {
+
+                        if (FrameworkConstants.LOCAL.equals(authenticatedIdPData.getIdpName())) {
+                            if (authenticatedIdPData.isAlreadyAuthenticatedUsing(authenticatorName)) {
+                                idpAuthenticatorMap.put(authenticatorIdp, authenticatorConfig);
+
+                                if (log.isDebugEnabled()) {
+                                    log.debug(String.format("('%s', '%s') is an already authenticated " +
+                                                    "IDP - authenticator combination.",
+                                            authenticatorConfig.getName(), authenticatorIdp));
+                                }
+
+                                break;
+                            } else {
+                                if (log.isDebugEnabled()) {
+                                    log.debug(String.format("('%s', '%s') is not an already authenticated " +
+                                                    "IDP - authenticator combination.",
+                                            authenticatorConfig.getName(), authenticatorIdp));
+                                }
+                            }
+                        } else {
+
+                            if (log.isDebugEnabled()) {
+                                log.debug(String.format("'%s' is an already authenticated IDP.", authenticatorIdp));
+                            }
+
+                            idpAuthenticatorMap.put(authenticatorIdp, authenticatorConfig);
+                            break;
+                        }
+                    } else {
+                        if (log.isDebugEnabled()) {
+                            log.debug(String.format("'%s' is NOT an already authenticated IDP.", authenticatorIdp));
+                        }
                     }
                 }
+            }
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("No authenticators found.");
             }
         }
 
