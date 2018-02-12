@@ -19,6 +19,7 @@ package org.wso2.carbon.identity.oauth.endpoint.util;
 
 import org.apache.axiom.util.base64.Base64Utils;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
@@ -302,7 +303,9 @@ public class EndpointUtil {
                 }
             } else {
                 sessionDataCache.addToCache(new SessionDataCacheKey(sessionDataKeyConsent),entry);
-                queryString = URLEncoder.encode(entry.getQueryString(), "UTF-8");
+                if (StringUtils.isNotEmpty(entry.getQueryString())) {
+                    queryString = URLEncoder.encode(entry.getQueryString(),"UTF-8");
+                }
             }
 
 
