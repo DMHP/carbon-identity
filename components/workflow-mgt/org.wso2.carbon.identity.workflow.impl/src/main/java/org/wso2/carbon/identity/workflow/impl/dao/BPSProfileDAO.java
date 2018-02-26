@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.identity.workflow.impl.dao;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.core.util.CryptoUtil;
 import org.wso2.carbon.identity.core.util.IdentityDatabaseUtil;
@@ -35,6 +37,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BPSProfileDAO {
+
+    private static final String CIPHER_TRANSFORMATION_SYSTEM_PROPERTY = "org.wso2.CipherTransformation";
+    private static Log log = LogFactory.getLog(BPSProfileDAO.class);
 
     /**
      * Add a new BPS profile
@@ -137,6 +142,7 @@ public class BPSProfileDAO {
         ResultSet rs;
         String query = SQLConstants.GET_BPS_PROFILE_FOR_TENANT_QUERY;
         String decryptedPassword;
+        boolean migrationRequired = false;
 
         try {
             prepStmt = connection.prepareStatement(query);
@@ -166,6 +172,14 @@ public class BPSProfileDAO {
                                 + profileName, e);
                     }
                     bpsProfileDTO.setPassword(decryptedPassword.toCharArray());
+                    try {
+                        if (isMigrationRequired(password)) {
+                            migrationRequired = true;
+                        }
+                    } catch (CryptoException e) {
+                        throw new WorkflowImplException("Error while validating migration requirement of the password "
+                                + "for BPEL Profile " + profileName, e);
+                    }
                 }
 
             }
@@ -174,6 +188,46 @@ public class BPSProfileDAO {
         } finally {
             IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
         }
+
+        if (migrationRequired) {
+            log.info("Migrating password encryption of BPS profile : " + bpsProfileDTO.getProfileName());
+            //Update the profile, this will re-encrypt the password as self-contained ciphertext
+            updateProfile(bpsProfileDTO, tenantId);
+
+            // Retrieve the profile from the DB again, this is done to avoid infinite loop may cause by recalling
+            // org.wso2.carbon.identity.workflow.impl.dao.BPSProfileDAO.getBPSProfile function
+            connection = IdentityDatabaseUtil.getDBConnection();
+            try {
+                prepStmt = connection.prepareStatement(query);
+                prepStmt.setString(1, profileName);
+                prepStmt.setInt(2, tenantId);
+                rs = prepStmt.executeQuery();
+
+                if (rs.next()) {
+                    String managerHostName = rs.getString(SQLConstants.HOST_URL_MANAGER_COLUMN);
+                    String workerHostName = rs.getString(SQLConstants.HOST_URL_WORKER_COLUMN);
+                    String user = rs.getString(SQLConstants.USERNAME_COLUMN);
+                    bpsProfileDTO = new BPSProfile();
+                    bpsProfileDTO.setProfileName(profileName);
+                    bpsProfileDTO.setManagerHostURL(managerHostName);
+                    bpsProfileDTO.setWorkerHostURL(workerHostName);
+                    bpsProfileDTO.setUsername(user);
+
+                    String password = rs.getString(SQLConstants.PASSWORD_COLUMN);
+                    try {
+                        bpsProfileDTO.setPassword(decryptPassword(password).toCharArray());
+                    } catch (CryptoException | UnsupportedEncodingException e) {
+                        throw new WorkflowImplException(
+                                "Error while decrypting the password for BPEL Profile " + profileName, e);
+                    }
+                }
+            } catch (SQLException e) {
+                throw new WorkflowImplException("Error when executing the sql " + query, e);
+            } finally {
+                IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            }
+        }
+
         return bpsProfileDTO;
     }
 
@@ -194,6 +248,9 @@ public class BPSProfileDAO {
         String query = SQLConstants.LIST_BPS_PROFILES_QUERY;
         String decryptPassword;
         CryptoUtil cryptoUtil = CryptoUtil.getDefaultCryptoUtil();
+
+        // List of BPS profiles that required for for encryption migration.
+        List<BPSProfile> encryptionMigrationProfiles = null;
         try {
             Object classCheckResult = null;
             //Checks if IS has BPS features installed with it
@@ -228,12 +285,35 @@ public class BPSProfileDAO {
                 profileBean.setProfileName(name);
                 profileBean.setUsername(user);
                 profileBean.setPassword(decryptPassword.toCharArray());
-                profiles.add(profileBean);
+                try {
+                    // Encrypted data migration for OAEP Fix : If custom transformation used, and current encrypted
+                    // password is not self-contained cipher, so migrate password encryption to self-contained ciphertext.
+                    if (isMigrationRequired(password)) {
+                        if (encryptionMigrationProfiles == null) {
+                            encryptionMigrationProfiles = new ArrayList<>();
+                        }
+                        // Add the profile to a different list since it's required to migrate.
+                        encryptionMigrationProfiles.add(profileBean);
+                    } else {
+                        profiles.add(profileBean);
+                    }
+                } catch (CryptoException e) {
+                    throw new WorkflowImplException("Error while migrating encryption of the password for BPEL Profile "
+                            + name, e);
+                }
             }
         } catch (SQLException e) {
             throw new WorkflowImplException("Error when executing the sql.", e);
         } finally {
             IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+        }
+
+        // Encrypted data migration for OAEP Fix.
+        if (encryptionMigrationProfiles != null) {
+            for (BPSProfile encryptionMigrationProfile : encryptionMigrationProfiles) {
+                //Add the profile back to return list after migration
+                profiles.add(performEncryptionMigration(encryptionMigrationProfile, tenantId));
+            }
         }
         return profiles;
     }
@@ -274,6 +354,27 @@ public class BPSProfileDAO {
         byte[] decryptedPasswordBytes = cryptoUtil.base64DecodeAndDecrypt(passwordValue);
         return new String(decryptedPasswordBytes, "UTF-8");
 
+    }
+
+
+    /**
+     * Encrypted data migration for OAEP Fix : If custom transformation used, and current encrypted password is not
+     * self-contained cipher, so migrate password encryption to self-contained ciphertext. This function validates
+     * whether it is required to migrate or not
+     *
+     * @param ciphertext cipher text
+     * @return true if required to migrate, false otherwise
+     * @throws CryptoException
+     */
+    private boolean isMigrationRequired(String ciphertext) throws CryptoException {
+
+        return System.getProperty(CIPHER_TRANSFORMATION_SYSTEM_PROPERTY) != null &&
+                !(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndIsSelfContainedCipherText(ciphertext));
+    }
+
+
+    private BPSProfile performEncryptionMigration(BPSProfile bpsProfile, int tenantId) throws WorkflowImplException {
+        return getBPSProfile(bpsProfile.getProfileName(), tenantId, true);
     }
 
 }
