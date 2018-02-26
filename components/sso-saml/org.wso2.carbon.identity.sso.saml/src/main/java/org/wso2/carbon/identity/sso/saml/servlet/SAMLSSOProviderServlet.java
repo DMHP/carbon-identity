@@ -372,9 +372,11 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                                 SAMLSSOUtil.splitAppendedTenantDomain(issuer));
                         //if acs is not found in the request, priority should be given to SLO response URL over
                         // default ACS if specified in config.
-                        acsUrl = serviceProviderDO.getSloResponseURL();
-                        if (StringUtils.isBlank(acsUrl)) {
-                            acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                        if (serviceProviderDO != null) {
+                            acsUrl = serviceProviderDO.getSloResponseURL();
+                            if (StringUtils.isBlank(acsUrl)) {
+                                acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                            }
                         }
                     }
                 }
@@ -411,17 +413,19 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                                     SAMLSSOUtil.splitAppendedTenantDomain(issuer));
                             //for IDP init SLO, priority should be given to SLO response URL over default ACS if ACS
                             // is not available in the request.
-                            acsUrl = serviceProviderDO.getSloResponseURL();
-                            if (StringUtils.isBlank(acsUrl)) {
-                                acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
-                            }
+                            if (serviceProviderDO != null) {
+                                acsUrl = serviceProviderDO.getSloResponseURL();
+                                if (StringUtils.isBlank(acsUrl)) {
+                                    acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                                }
 
-                            //check whether ReturnToUrl query param is included in the configured Urls.
-                            if (StringUtils.isNotBlank(returnToUrl)) {
-                                List<String> returnToUrls = serviceProviderDO.getIdpInitSLOReturnToURLList();
-                                if (returnToUrls.contains(returnToUrl)) {
-                                    acsUrl += "&returnTo=" +
-                                            URLEncoder.encode(returnToUrl, SAMLSSOConstants.ENCODING_FORMAT);
+                                //check whether ReturnToUrl query param is included in the configured Urls.
+                                if (StringUtils.isNotBlank(returnToUrl)) {
+                                    List<String> returnToUrls = serviceProviderDO.getIdpInitSLOReturnToURLList();
+                                    if (returnToUrls.contains(returnToUrl)) {
+                                        acsUrl += "&returnTo=" +
+                                                URLEncoder.encode(returnToUrl, SAMLSSOConstants.ENCODING_FORMAT);
+                                    }
                                 }
                             }
                         }
@@ -779,7 +783,9 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                         SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
                                         .getTenantDomainFromThreadLocal(),
                                 sessionDTO.getIssuer());
-                        acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                        if (serviceProviderDO != null) {
+                            acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                        }
                     }
                     sendNotification(errorResp, SAMLSSOConstants.Notification.EXCEPTION_STATUS,
                             SAMLSSOConstants.Notification.EXCEPTION_MESSAGE,
@@ -802,7 +808,9 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                     if (StringUtils.isBlank(acsUrl) && sessionDTO.getIssuer() != null) {
                         SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
                                 .getTenantDomainFromThreadLocal(), sessionDTO.getIssuer());
-                        acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                        if (serviceProviderDO != null) {
+                            acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                        }
                     }
                     sendNotification(errorResp, SAMLSSOConstants.Notification.EXCEPTION_STATUS,
                             SAMLSSOConstants.Notification.EXCEPTION_MESSAGE,
@@ -846,7 +854,9 @@ public class SAMLSSOProviderServlet extends HttpServlet {
                 if (StringUtils.isEmpty(acsUrl) && sessionDTO.getIssuer() != null) {
                     SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil
                             .getTenantDomainFromThreadLocal(), sessionDTO.getIssuer());
-                    acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                    if (serviceProviderDO != null) {
+                        acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                    }
                 }
                 String errorResp = authRespDTO.getRespString();
                 sendNotification(errorResp, SAMLSSOConstants.Notification.EXCEPTION_STATUS,
@@ -888,9 +898,11 @@ public class SAMLSSOProviderServlet extends HttpServlet {
             if (StringUtils.isBlank(acsUrl) && sessionDTO.getIssuer() != null) {
                 SAMLSSOServiceProviderDO serviceProviderDO = getSPConfig(SAMLSSOUtil.getTenantDomainFromThreadLocal
                         (), sessionDTO.getIssuer());
-                acsUrl = serviceProviderDO.getSloResponseURL();
-                if (StringUtils.isBlank(acsUrl)) {
-                    acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                if (serviceProviderDO != null) {
+                    acsUrl = serviceProviderDO.getSloResponseURL();
+                    if (StringUtils.isBlank(acsUrl)) {
+                        acsUrl = serviceProviderDO.getDefaultAssertionConsumerUrl();
+                    }
                 }
             }
             String errorResp = SAMLSSOUtil.buildErrorResponse(
