@@ -238,7 +238,12 @@ public class PolicyPublisher {
                 Resource resource = registry.get(PDPConstants.ENTITLEMENT_POLICY_PUBLISHER +
                         RegistryConstants.PATH_SEPARATOR + id);
 
-                return new PublisherDataHolder(resource, returnSecrets);
+                PublisherDataHolder dataHolder = new PublisherDataHolder(resource, returnSecrets);
+                // OAEP fix data migration
+                if (dataHolder.isMigrationRequired()) {
+                    performSubscriberDataMigration(id, returnSecrets, resource, dataHolder);
+                }
+                return dataHolder;
             }
         } catch (RegistryException e) {
             log.error("Error while retrieving subscriber detail of id : " + id, e);
@@ -332,5 +337,18 @@ public class PolicyPublisher {
 
     public PublisherVerificationModule getVerificationModule() {
         return verificationModule;
+    }
+
+    private void performSubscriberDataMigration(String id, boolean returnSecrets, Resource resource,
+            PublisherDataHolder dataHolder) throws EntitlementException {
+
+        log.info("Start encrypted data migration for policy subscriber: " + id);
+        if (returnSecrets) {
+            persistSubscriber(dataHolder, true);
+        } else {
+            // If data not decrypted, decrypt secured property values
+            persistSubscriber(new PublisherDataHolder(resource, true), true);
+        }
+        log.info("Encrypted data migration completed for policy subscriber: " + id);
     }
 }
