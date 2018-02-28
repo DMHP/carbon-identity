@@ -114,6 +114,10 @@ public class SecurityConstants {
     public static final String PROPERTY_LABEL = "property";
     public static final String NAME_LABEL = "name";
 
+    public static final String POLICY_ENCRYPTED_PASSWORD_XPATH =
+            "//sec:CarbonSecConfig/sec:Kerberos/sec:property[@name=\'service.principal.password\' and @encrypted=\'true\']";
+    public static final String POLICY_ENCRYPTED_PASSWORD_XPATH_NS_PREFIX = "sec";
+
     private SecurityConstants(){}
 
 }
