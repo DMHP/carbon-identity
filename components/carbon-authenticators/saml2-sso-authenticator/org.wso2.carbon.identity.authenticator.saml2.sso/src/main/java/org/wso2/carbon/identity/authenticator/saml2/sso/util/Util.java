@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.authenticator.saml2.sso.util;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.impl.Constants;
@@ -43,6 +44,10 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
@@ -70,18 +75,12 @@ public class Util {
         XMLObject response;
         try {
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-            documentBuilderFactory.setNamespaceAware(true);
-
-            documentBuilderFactory.setExpandEntityReferences(false);
-            documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-            SecurityManager securityManager = new SecurityManager();
-            securityManager.setEntityExpansionLimit(ENTITY_EXPANSION_LIMIT);
-            documentBuilderFactory.setAttribute(SECURITY_MANAGER_PROPERTY, securityManager);
-
-            DocumentBuilder docBuilder = documentBuilderFactory.newDocumentBuilder();
-            docBuilder.setEntityResolver(new CarbonEntityResolver());
-            Document document = docBuilder.parse(new ByteArrayInputStream(authReqStr.trim()
-                    .getBytes()));
+            documentBuilderFactory.setIgnoringComments(true);
+            Document document = getDocument(documentBuilderFactory, authReqStr);
+            if (isSignedWithComments(document)) {
+                documentBuilderFactory.setIgnoringComments(false);
+                document = getDocument(documentBuilderFactory, authReqStr);
+            }
             Element element = document.getDocumentElement();
             UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
             Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(element);
@@ -122,6 +121,59 @@ public class Util {
 
     }
 
+    /**
+     * Return whether SAML Assertion has the canonicalization method
+     * set to 'http://www.w3.org/2001/10/xml-exc-c14n#WithComments'.
+     *
+     * @param document
+     * @return true if canonicalization method equals to 'http://www.w3.org/2001/10/xml-exc-c14n#WithComments'
+     */
+    private static boolean isSignedWithComments(Document document) {
+
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        try {
+            String assertionId = (String) xPath.compile("//*[local-name()='Assertion']/@ID")
+                    .evaluate(document, XPathConstants.STRING);
+
+            if (StringUtils.isBlank(assertionId)) {
+                return false;
+            }
+
+            NodeList nodeList = ((NodeList) xPath.compile(
+                    "//*[local-name()='Assertion']" +
+                            "/*[local-name()='Signature']" +
+                            "/*[local-name()='SignedInfo']" +
+                            "/*[local-name()='Reference'][@URI='#" + assertionId + "']" +
+                            "/*[local-name()='Transforms']" +
+                            "/*[local-name()='Transform']" +
+                            "[@Algorithm='http://www.w3.org/2001/10/xml-exc-c14n#WithComments']")
+                    .evaluate(document, XPathConstants.NODESET));
+            return nodeList != null && nodeList.getLength() > 0;
+        } catch (XPathExpressionException e) {
+            String message = "Failed to find the canonicalization algorithm of the assertion. Defaulting to: " +
+                    "http://www.w3.org/2001/10/xml-exc-c14n#";
+            log.warn(message);
+            if (log.isDebugEnabled()) {
+                log.debug(message, e);
+            }
+            return false;
+        }
+    }
+
+    private static Document getDocument(DocumentBuilderFactory documentBuilderFactory, String samlString)
+            throws IOException, SAXException, ParserConfigurationException {
+
+        documentBuilderFactory.setNamespaceAware(true);
+        documentBuilderFactory.setExpandEntityReferences(false);
+        documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        SecurityManager securityManager = new SecurityManager();
+        securityManager.setEntityExpansionLimit(ENTITY_EXPANSION_LIMIT);
+        documentBuilderFactory.setAttribute(SECURITY_MANAGER_PROPERTY, securityManager);
+
+        DocumentBuilder docBuilder = documentBuilderFactory.newDocumentBuilder();
+        docBuilder.setEntityResolver(new CarbonEntityResolver());
+        return docBuilder.parse(new ByteArrayInputStream(samlString.trim().getBytes()));
+    }
 
     /**
      * Get the X509CredentialImpl object for a particular tenant
