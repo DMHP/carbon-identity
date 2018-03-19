@@ -116,6 +116,7 @@ public class OAuthServerConfiguration {
     private boolean assertionsUserNameEnabled = false;
     private boolean accessTokenPartitioningEnabled = false;
     private String accessTokenPartitioningDomains = null;
+    private String hashAlgorithm = "SHA-256";
     private TokenPersistenceProcessor persistenceProcessor = null;
     private Set<OAuthCallbackHandlerMetaData> callbackHandlerMetaData = new HashSet<>();
     private Map<String, String> supportedGrantTypeClassNames = new HashMap<>();
@@ -211,6 +212,9 @@ public class OAuthServerConfiguration {
 
         // read refresh token renewal config
         parseRefreshTokenRenewalConfiguration(oauthElem);
+
+        // read hash algorithm type config
+        parseHashAlgorithm(oauthElem);
 
         // read token persistence processor config
         parseTokenPersistenceProcessorConfig(oauthElem);
@@ -377,6 +381,10 @@ public class OAuthServerConfiguration {
 
     public boolean isRefreshTokenRenewalEnabled() {
         return isRefreshTokenRenewalEnabled;
+    }
+
+    public String getHashAlgorithm() {
+        return hashAlgorithm;
     }
 
     public Map<String, AuthorizationGrantHandler> getSupportedGrantTypes() {
@@ -1062,6 +1070,18 @@ public class OAuthServerConfiguration {
         }
     }
 
+    private void parseHashAlgorithm(OMElement oauthConfigElem) {
+
+        OMElement hashingAlgorithmElement = oauthConfigElem
+                .getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.HASH_ALGORITHM));
+        if (hashingAlgorithmElement != null) {
+            hashAlgorithm = hashingAlgorithmElement.getText();
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Hash algorithm was set to : " + hashAlgorithm);
+        }
+    }
+
     private void parseAccessTokenPartitioningConfig(OMElement oauthConfigElem) {
         OMElement enableAccessTokenPartitioningElem =
                 oauthConfigElem.getFirstChildWithName(getQNameWithIdentityNS(ConfigElements.ENABLE_ACCESS_TOKEN_PARTITIONING));
@@ -1558,6 +1578,7 @@ public class OAuthServerConfiguration {
         private static final String RENEW_REFRESH_TOKEN_FOR_REFRESH_GRANT = "RenewRefreshTokenForRefreshGrant";
         // TokenPersistenceProcessor
         private static final String TOKEN_PERSISTENCE_PROCESSOR = "TokenPersistenceProcessor";
+        private static final String HASH_ALGORITHM = "HashAlgorithm";
         // Token issuer generator.
         private static final String OAUTH_TOKEN_GENERATOR = "OAuthTokenGenerator";
         private static final String IDENTITY_OAUTH_TOKEN_GENERATOR = "IdentityOAuthTokenGenerator";

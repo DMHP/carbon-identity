@@ -29,8 +29,10 @@ import org.wso2.carbon.identity.application.mgt.ApplicationManagementService;
 import org.wso2.carbon.identity.application.mgt.listener.ApplicationMgtListener;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
+import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2Service;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
+import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.openidconnect.session.servlet.OIDCLogoutServlet;
 import org.wso2.carbon.identity.openidconnect.session.servlet.OIDCSessionIFrameServlet;
 import org.wso2.carbon.identity.user.store.configuration.listener.UserStoreConfigListener;
@@ -59,49 +61,61 @@ public class OAuth2ServiceComponent {
     private HttpService httpService;
 
     protected void activate(ComponentContext context) {
-        //Registering OAuth2Service as a OSGIService
-        bundleContext = context.getBundleContext();
-        bundleContext.registerService(OAuth2Service.class.getName(), new OAuth2Service(), null);
-        // exposing server configuration as a service 
-        OAuthServerConfiguration oauthServerConfig = OAuthServerConfiguration.getInstance();
-        bundleContext.registerService(OAuthServerConfiguration.class.getName(), oauthServerConfig, null);
-        OAuth2TokenValidationService tokenValidationService = new OAuth2TokenValidationService();
-        bundleContext.registerService(OAuth2TokenValidationService.class.getName(), tokenValidationService, null);
-        if (log.isDebugEnabled()) {
-            log.debug("Identity OAuth bundle is activated");
-        }
-
-        ServiceRegistration tenantMgtListenerSR = bundleContext.registerService(TenantMgtListener.class.getName(),
-                new OAuthTenantMgtListenerImpl(), null);
-        if (tenantMgtListenerSR != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("OAuth - TenantMgtListener registered.");
+        try {
+            if ((OAuth2Util.isEncryptionWithTransformationEnabled() && !OAuth2Util.isHashColumnsAvailable())) {
+                throw new IdentityOAuth2Exception("Error occurred while checking for RSA OAEP encryption. Please "
+                        + "check whether RSA+OAEP is enabled, EncryptionDecryptionPersistenceProcessor is enabled and "
+                        + "necessary hash columns are created.");
             }
-        } else {
-            log.error("OAuth - TenantMgtListener could not be registered.");
-        }
-
-        ServiceRegistration userStoreConfigEventSR = bundleContext.registerService(
-                UserStoreConfigListener.class.getName(), new OAuthUserStoreConfigListenerImpl(), null);
-        if (userStoreConfigEventSR != null) {
+            //Registering OAuth2Service as a OSGIService
+            bundleContext = context.getBundleContext();
+            bundleContext.registerService(OAuth2Service.class.getName(), new OAuth2Service(), null);
+            // exposing server configuration as a service
+            OAuthServerConfiguration oauthServerConfig = OAuthServerConfiguration.getInstance();
+            bundleContext.registerService(OAuthServerConfiguration.class.getName(), oauthServerConfig, null);
+            OAuth2TokenValidationService tokenValidationService = new OAuth2TokenValidationService();
+            bundleContext.registerService(OAuth2TokenValidationService.class.getName(), tokenValidationService, null);
             if (log.isDebugEnabled()) {
-                log.debug("OAuth - UserStoreConfigListener registered.");
+                log.debug("Identity OAuth bundle is activated");
             }
-        } else {
-            log.error("OAuth - UserStoreConfigListener could not be registered.");
+
+            ServiceRegistration tenantMgtListenerSR = bundleContext
+                    .registerService(TenantMgtListener.class.getName(), new OAuthTenantMgtListenerImpl(), null);
+            if (tenantMgtListenerSR != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("OAuth - TenantMgtListener registered.");
+                }
+            } else {
+                log.error("OAuth - TenantMgtListener could not be registered.");
+            }
+
+            ServiceRegistration userStoreConfigEventSR = bundleContext
+                    .registerService(UserStoreConfigListener.class.getName(), new OAuthUserStoreConfigListenerImpl(),
+                            null);
+            if (userStoreConfigEventSR != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("OAuth - UserStoreConfigListener registered.");
+                }
+            } else {
+                log.error("OAuth - UserStoreConfigListener could not be registered.");
+            }
+
+            ServiceRegistration oauthApplicationMgtListenerSR = bundleContext
+                    .registerService(ApplicationMgtListener.class.getName(), new OAuthApplicationMgtListener(), null);
+            if (oauthApplicationMgtListenerSR != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("OAuth - ApplicationMgtListener registered.");
+                }
+            } else {
+                log.error("OAuth - ApplicationMgtListener could not be registered.");
+            }
+            registerOIDCServlets();
+
+        } catch (IdentityOAuth2Exception e) {
+            String errorMessage = "Error occurred while checking for RSA OAEP encryption";
+            log.error(errorMessage, e);
         }
 
-        ServiceRegistration oauthApplicationMgtListenerSR = bundleContext.registerService(ApplicationMgtListener.class.getName(),
-                new OAuthApplicationMgtListener(), null);
-        if (oauthApplicationMgtListenerSR != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("OAuth - ApplicationMgtListener registered.");
-            }
-        } else {
-            log.error("OAuth - ApplicationMgtListener could not be registered.");
-        }
-
-        registerOIDCServlets();
     }
 
     /**
