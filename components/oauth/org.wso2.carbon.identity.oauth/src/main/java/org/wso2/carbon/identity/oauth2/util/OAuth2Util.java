@@ -546,7 +546,7 @@ public class OAuth2Util {
         long accessTokenValidity = issuedTime + validityPeriodMillis - (currentTime + timestampSkew);
         long refreshTokenValidity = (refreshTokenIssuedTime + refreshTokenValidityPeriodMillis)
                                     - (currentTime + timestampSkew);
-        if(accessTokenValidity > 1000 && refreshTokenValidity > 1000){
+        if (accessTokenValidity > 1000 && refreshTokenValidity > 1000) {
             return accessTokenValidity;
         }
         return 0;
