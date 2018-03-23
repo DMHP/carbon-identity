@@ -1104,7 +1104,7 @@ public class TokenMgtDAO {
                             validationDataDO.setScope(OAuth2Util.buildScopeArray(resultSet1.getString(5)));
                             validationDataDO.setRefreshTokenState(resultSet1.getString(6));
                             validationDataDO.setIssuedTime(
-                                    resultSet1.getTimestamp(7, Calendar.getInstance(TimeZone.getTimeZone(UTC))));
+                                    resultSet1.getTimestamp(7, Calendar.getInstance(TimeZone.getTimeZone("UTC"))));
                             validationDataDO.setValidityPeriodInMillis(resultSet1.getLong(8));
                             validationDataDO.setTokenId(resultSet1.getString(9));
                             validationDataDO.setGrantType(resultSet1.getString(10));
@@ -1261,9 +1261,10 @@ public class TokenMgtDAO {
                             String tenantDomain = OAuth2Util.getTenantDomain(tenantId);
                             String userDomain = resultSet1.getString(4);
                             String[] scope = OAuth2Util.buildScopeArray(resultSet1.getString(5));
-                            Timestamp issuedTime = resultSet1.getTimestamp(6, Calendar.getInstance(TimeZone.getTimeZone(UTC)));
+                            Timestamp issuedTime = resultSet1.getTimestamp(6, Calendar.getInstance(TimeZone
+                                    .getTimeZone("UTC")));
                             Timestamp refreshTokenIssuedTime = resultSet1.getTimestamp(7,
-                                    Calendar.getInstance(TimeZone.getTimeZone(UTC)));
+                                    Calendar.getInstance(TimeZone.getTimeZone("UTC")));
                             long validityPeriodInMillis = resultSet1.getLong(8);
                             long refreshTokenValidityPeriodMillis = resultSet1.getLong(9);
                             String tokenType = resultSet1.getString(10);
