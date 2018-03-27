@@ -44,7 +44,6 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-import static org.wso2.carbon.core.util.CryptoUtil.CIPHER_TRANSFORMATION_SYSTEM_PROPERTY;
 
 /**
  * Utility class to perform utility functions when deployer get triggered
@@ -53,6 +52,8 @@ import static org.wso2.carbon.core.util.CryptoUtil.CIPHER_TRANSFORMATION_SYSTEM_
 public class UserStoreUtil {
 
     private static Log log = LogFactory.getLog(UserStoreUtil.class);
+    private static final String CIPHER_TRANSFORMATION_SYSTEM_PROPERTY = "org.wso2.CipherTransformation";
+
 
     public static Cipher getCipherOfSuperTenant() throws UserStoreException {
         Cipher cipher;
