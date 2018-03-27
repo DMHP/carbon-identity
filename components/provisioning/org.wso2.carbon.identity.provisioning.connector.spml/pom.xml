@@ -34,7 +34,7 @@
             <id>grouper.internet2.edu</id>
             <name>Internet2</name>
             <layout>default</layout>
-            <url>http://www.internet2.edu/grouper/downloads/maven2</url>
+            <url>http://software.internet2.edu/grouper/downloads/maven2</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
