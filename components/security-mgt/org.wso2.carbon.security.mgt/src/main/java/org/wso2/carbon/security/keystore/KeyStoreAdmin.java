@@ -106,6 +106,9 @@ public class KeyStoreAdmin {
                     }
 
                     Resource store = registry.get(ks[i]);
+                    // OAEP Fix: Data migration check, unfortunately this will cause minor performance hit.
+                    KeyStoreUtil.migrateKeystoreRegEntry(registry, store);
+
                     int lastIndex = fullname.lastIndexOf("/");
                     String name = fullname.substring(lastIndex + 1);
                     String type = store.getProperty(SecurityConstants.PROP_TYPE);

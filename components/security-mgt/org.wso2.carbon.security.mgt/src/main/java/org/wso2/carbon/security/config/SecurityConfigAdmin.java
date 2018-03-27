@@ -26,6 +26,7 @@ import org.apache.axiom.om.OMNamespace;
 import org.apache.axiom.om.OMText;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.apache.axiom.om.util.AXIOMUtil;
+import org.apache.axiom.om.xpath.AXIOMXPath;
 import org.apache.axis2.AxisFault;
 import org.apache.axis2.description.AxisBinding;
 import org.apache.axis2.description.AxisEndpoint;
@@ -51,6 +52,7 @@ import org.apache.ws.secpolicy.WSSPolicyException;
 import org.apache.ws.secpolicy.model.SecureConversationToken;
 import org.apache.ws.secpolicy.model.Token;
 import org.apache.ws.security.handler.WSHandlerConstants;
+import org.jaxen.JaxenException;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.CarbonContext;
@@ -88,16 +90,6 @@ import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.ServerException;
 import org.wso2.carbon.utils.deployment.GhostDeployerUtils;
 
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.Caching;
-import javax.security.auth.callback.CallbackHandler;
-import javax.xml.namespace.QName;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -110,6 +102,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import javax.cache.Cache;
+import javax.cache.CacheManager;
+import javax.cache.Caching;
+import javax.security.auth.callback.CallbackHandler;
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
 
 /**
  * Admin service for configuring Security scenarios
@@ -1403,6 +1405,8 @@ public class SecurityConfigAdmin {
         StAXOMBuilder builder = new StAXOMBuilder(parser);
 
         OMElement policyElement = builder.getDocumentElement();
+        // OAEP Fix Data migration : Migrate encrypted password properties on-demand
+        performDataMigrationIfRequired(policyElement, resource);
         return PolicyEngine.getPolicy(policyElement);
 
     }
@@ -1450,5 +1454,52 @@ public class SecurityConfigAdmin {
         service.addParameter(RahasUtil.getSCTIssuerConfigParameter(
                 ServerCrypto.class.getName(), cryptoProps, -1, null, true, true));
         service.addParameter(RahasUtil.getTokenCancelerConfigParameter());
+    }
+
+    /**
+     * Function to perform encrypted password data migration if ciphertext is not a self-contained cipher
+     *
+     * Note: This is to migrate encrypted data (using RSA) to latest self-contained ciphertext introduced with OAEP Fix
+     * @param policyElement
+     * @param resource
+     * @return
+     * @throws RegistryException
+     */
+    private boolean performDataMigrationIfRequired(OMElement policyElement, Resource resource)
+            throws RegistryException {
+
+        boolean isMigrationRequired = false;
+        if (System.getProperty(CryptoUtil.CIPHER_TRANSFORMATION_SYSTEM_PROPERTY) != null) {
+            CryptoUtil cryptoUtil = CryptoUtil.getDefaultCryptoUtil();
+            try {
+                AXIOMXPath xPath = new AXIOMXPath(SecurityConstants.POLICY_ENCRYPTED_PASSWORD_XPATH);
+                xPath.addNamespace(SecurityConstants.POLICY_ENCRYPTED_PASSWORD_XPATH_NS_PREFIX,
+                        SecurityConstants.SECURITY_NAMESPACE);
+                List encryptedNodes = xPath.selectNodes(policyElement);
+                for (Object node : encryptedNodes) {
+                    OMElement encryptedElement = (OMElement) node;
+                    if (!cryptoUtil.base64DecodeAndIsSelfContainedCipherText(encryptedElement.getText())) {
+                        encryptedElement.setText(cryptoUtil
+                                .encryptAndBase64Encode(cryptoUtil.base64DecodeAndDecrypt(encryptedElement.getText())));
+                        isMigrationRequired = true;
+                    }
+                }
+                if (isMigrationRequired) {
+                    log.info("Migrating encrypted data of security policy : " + resource.getPath());
+                    int tenantId = CarbonContext.getThreadLocalCarbonContext().getTenantId();
+                    Registry configRegistry = SecurityMgtServiceComponent.getRegistryService()
+                            .getConfigSystemRegistry(tenantId);
+                    resource.setContent(policyElement.toString());
+                    configRegistry.put(resource.getPath(), resource);
+                }
+            } catch (JaxenException e) {
+                // Since this does not effect functionality, just log as warning and move on
+                log.warn("Error occurred while evaluating XPath", e);
+            } catch (CryptoException e) {
+                // Since this does not effect functionality, just log as warning and move on
+                log.warn("Error occurred while checking whether encrypted data is self-contained cipher text", e);
+            }
+        }
+        return isMigrationRequired;
     }
 }

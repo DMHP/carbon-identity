@@ -40,6 +40,9 @@ public class PublisherDataHolder {
     private String moduleName;
     private PublisherPropertyDTO[] propertyDTOs = new PublisherPropertyDTO[0];
 
+    // OAPE Fix data migration : used to mark whether migration required
+    private boolean isMigrationRequired = false;
+
     public PublisherDataHolder() {
     }
 
@@ -74,6 +77,16 @@ public class PublisherDataHolder {
                         }
 
                         if (dto.isSecret()) {
+                            try {
+                                if (System.getProperty(CryptoUtil.CIPHER_TRANSFORMATION_SYSTEM_PROPERTY) != null
+                                        && !(CryptoUtil.getDefaultCryptoUtil()
+                                        .base64DecodeAndIsSelfContainedCipherText(dto.getValue()))) {
+                                    isMigrationRequired = true;
+                                }
+                            } catch (CryptoException e) {
+                                // Since this does not have fatal impact, just log warning and move on
+                                log.warn("Error occurred while checking for encrypted data migration requirement", e);
+                            }
                             if (returnSecrets) {
                                 String password = dto.getValue();
                                 try {
@@ -123,5 +136,13 @@ public class PublisherDataHolder {
             }
         }
         return null;
+    }
+
+    /**
+     * Function to return whether encrypted data within properties required to migrate
+     * @return
+     */
+    public boolean isMigrationRequired() {
+        return isMigrationRequired;
     }
 }
