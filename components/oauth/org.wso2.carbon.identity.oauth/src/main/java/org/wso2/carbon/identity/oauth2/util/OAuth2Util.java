@@ -976,7 +976,7 @@ public class OAuth2Util {
             } catch (SQLException e) {
                 throw new IdentityOAuth2Exception(
                         "Error occurred while checking for columns: " + ACCESS_TOKEN_HASH + " and " + REFRESH_TOKEN_HASH
-                                + "." + " Required column " + ACCESS_TOKEN_HASH + " and " + REFRESH_TOKEN_HASH
+                                 + ". Required column " + ACCESS_TOKEN_HASH + " and " + REFRESH_TOKEN_HASH
                                 + " missing.", e);
             } finally {
                 IdentityDatabaseUtil.closeAllConnections(connection, resultSet, preparedStatement);

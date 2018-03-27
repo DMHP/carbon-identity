@@ -76,8 +76,6 @@ public class OAuthAppDAO {
                 //prepStmt = connection.prepareStatement(SQLQueries.OAuthAppDAOSQLQueries.ADD_OAUTH_APP);
                 prepStmt = getAddAppPreparedStatementWithoutPKCE(connection, consumerAppDO);
                 prepStmt.setString(1, persistenceProcessor.getProcessedClientId(consumerAppDO.getOauthConsumerKey()));
-               // prepStmt.setString(2, persistenceProcessor.getProcessedClientSecret(consumerAppDO
-                       // .getOauthConsumerSecret()));
                 prepStmt.setString(3, consumerAppDO.getUser().getUserName());
                 prepStmt.setInt(4, IdentityTenantUtil.getTenantId(consumerAppDO.getUser().getTenantDomain()));
                 prepStmt.setString(5, consumerAppDO.getUser().getUserStoreDomain());
@@ -362,8 +360,6 @@ public class OAuthAppDAO {
             prepStmt.setString(2, oauthAppDO.getCallbackUrl());
             prepStmt.setString(3, oauthAppDO.getGrantTypes());
             prepStmt.setString(4, persistenceProcessor.getProcessedClientId(oauthAppDO.getOauthConsumerKey()));
-            //prepStmt.setString(5, persistenceProcessor.getProcessedClientSecret(oauthAppDO.getOauthConsumerSecret
-            // ()));
 
             int count = prepStmt.executeUpdate();
             if (log.isDebugEnabled()) {
