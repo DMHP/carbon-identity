@@ -31,6 +31,10 @@ public class SQLQueries {
         public static final String ADD_OAUTH_APP = "INSERT INTO IDN_OAUTH_CONSUMER_APPS " +
                 "(CONSUMER_KEY, CONSUMER_SECRET, USERNAME, TENANT_ID, USER_DOMAIN, APP_NAME, OAUTH_VERSION, CALLBACK_URL, GRANT_TYPES) VALUES (?,?,?,?,?,?,?,?,?) ";
 
+        public static final String ADD_OAUTH_APP_WITH_HASH = "INSERT INTO IDN_OAUTH_CONSUMER_APPS " +
+                "(CONSUMER_KEY, CONSUMER_SECRET, USERNAME, TENANT_ID, USER_DOMAIN, APP_NAME, OAUTH_VERSION, "
+                + "CALLBACK_URL, GRANT_TYPES, CONSUMER_SECRET_HASH) VALUES (?,?,?,?,?,?,?,?,?,?) ";
+
         public static final String ADD_OAUTH_CONSUMER = "INSERT INTO IDN_OAUTH_CONSUMER_APPS " +
                 "(CONSUMER_KEY, CONSUMER_SECRET, USERNAME, TENANT_ID, USER_DOMAIN, OAUTH_VERSION) VALUES (?,?,?,?,?,?) ";
 
@@ -53,11 +57,21 @@ public class SQLQueries {
         public static final String UPDATE_CONSUMER_APP = "UPDATE IDN_OAUTH_CONSUMER_APPS SET APP_NAME=?, CALLBACK_URL=?, GRANT_TYPES=? " +
                 "WHERE CONSUMER_KEY=? AND CONSUMER_SECRET=?";
 
+        public static final String UPDATE_CONSUMER_APP_WITH_HASH = "UPDATE IDN_OAUTH_CONSUMER_APPS SET APP_NAME=?, "
+                + "CALLBACK_URL=?, GRANT_TYPES=? " +
+                "WHERE CONSUMER_KEY=? AND CONSUMER_SECRET_HASH=?";
+
         public static final String CHECK_EXISTING_APPLICATION = "SELECT * FROM IDN_OAUTH_CONSUMER_APPS " +
                 "WHERE USERNAME=? AND TENANT_ID=? AND USER_DOMAIN=? AND APP_NAME=?";
 
         public static final String CHECK_EXISTING_CONSUMER = "SELECT * FROM IDN_OAUTH_CONSUMER_APPS " +
                 "WHERE CONSUMER_KEY=?";
+
+        public static final String CHECK_CONSUMER_SECRET = "SELECT CONSUMER_SECRET FROM " +
+                "IDN_OAUTH_CONSUMER_APPS WHERE CONSUMER_SECRET=?";
+
+        public static final String UPDATE_CONSUMER_SECRET ="UPDATE IDN_OAUTH_CONSUMER_APPS " +
+                "SET CONSUMER_SECRET=?, CONSUMER_SECRET_HASH=? WHERE CONSUMER_SECRET=?";
 
         public static final String GET_APP_NAME = "SELECT APP_NAME FROM IDN_OAUTH_CONSUMER_APPS WHERE CONSUMER_KEY=?";
 
@@ -72,6 +86,9 @@ public class SQLQueries {
     }
 
     public static class OAuthConsumerDAOSQLQueries {
+
+        public static final String UPDATE_CONSUMER_SECRET ="UPDATE IDN_OAUTH_CONSUMER_APPS " +
+                "SET CONSUMER_SECRET=?, CONSUMER_SECRET_HASH=? WHERE CONSUMER_SECRET=?";
         public static final String GET_CONSUMER_SECRET = "SELECT CONSUMER_SECRET FROM IDN_OAUTH_CONSUMER_APPS " +
                 "WHERE CONSUMER_KEY=?";
 
