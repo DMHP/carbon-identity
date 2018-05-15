@@ -431,7 +431,7 @@
             <%
                 if (description != null && description.trim().length() > 0) {
             %>
-            <td><textarea name="description" id="description" class="text-box-big"><%=description%>
+            <td><textarea name="description" id="description" class="text-box-big"><%=Encode.forHtmlContent(description)%>
             </textarea>
             </td>
             <%
@@ -566,7 +566,7 @@
                             %>
                         </td>
                         <td class="sectionHelp" width="50%" style="text-align:left; !important">
-                            <%=description%>
+                            <%=Encode.forHtmlContent(description)%>
                         </td>
 
                     </tr>
