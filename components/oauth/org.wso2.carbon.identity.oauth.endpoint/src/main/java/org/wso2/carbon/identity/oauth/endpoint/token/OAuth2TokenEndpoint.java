@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.oauth.endpoint.token;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.oltu.oauth2.as.response.OAuthASResponse;
@@ -51,6 +52,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import java.util.Enumeration;
+import java.util.Map;
 
 @Path("/token")
 public class OAuth2TokenEndpoint {
@@ -154,6 +156,19 @@ public class OAuth2TokenEndpoint {
                         oAuthRespBuilder.setParam(OAuthConstants.ID_TOKEN,
                                 oauth2AccessTokenResp.getIDToken());
                     }
+
+                    // Set custom parameters in token response if supported
+                    try {
+                        if (MapUtils.isNotEmpty(oauth2AccessTokenResp.getParameters())) {
+                            for (Map.Entry<String, String> entry: oauth2AccessTokenResp.getParameters().entrySet()) {
+                                oAuthRespBuilder.setParam(entry.getKey(), entry.getValue());
+                            }
+                        }
+                    } catch (NoSuchMethodError e) {
+                        // The 'OAuth2AccessTokenRespDTO' with API additions to support for custom parameters is not
+                        // available. Ignore the error and proceed.
+                    }
+
                     OAuthResponse response = oAuthRespBuilder.buildJSONMessage();
                     ResponseHeader[] headers = oauth2AccessTokenResp.getResponseHeaders();
                     ResponseBuilder respBuilder = Response
