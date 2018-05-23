@@ -38,6 +38,8 @@ import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,6 +51,7 @@ import java.util.Set;
 public class IdentityOathEventListener extends AbstractIdentityUserOperationEventListener {
     private static final Log log = LogFactory.getLog(IdentityOathEventListener.class);
     private static final String USER_ACCOUNT_STATE = "UserAccountState";
+    private static final int TOKEN_COUNT = 2;
 
     /**
      * Bundle execution order id.
@@ -168,12 +171,15 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
                         OAuth2Util.buildScopeString(accessTokenDO.getScope()));
                 OAuthUtil.clearOAuthCache(accessTokenDO.getConsumerKey(), accessTokenDO.getAuthzUser());
                 OAuthUtil.clearOAuthCache(accessTokenDO.getAccessToken());
-                AccessTokenDO scopedToken = null;
+                List<AccessTokenDO> scopedTokens = null;
                 try {
-                    // retrieve latest access token for particular client, user and scope combination if its ACTIVE or EXPIRED
-                    scopedToken = tokenMgtDAO.retrieveLatestAccessToken(
+                    // retrieve latest access token(s) for particular client, user and scope combination if its ACTIVE
+                    // or EXPIRED
+                    // For an app owner two active tokens can be there for same scope
+                    scopedTokens = tokenMgtDAO.retrieveLatestValidAccessTokens(
                             clientId, authenticatedUser, userStoreDomain,
-                            OAuth2Util.buildScopeString(accessTokenDO.getScope()), true);
+                            OAuth2Util.buildScopeString(accessTokenDO.getScope()), true, TOKEN_COUNT);
+
                 } catch (IdentityOAuth2Exception e) {
                     String errorMsg = "Error occurred while retrieving latest " +
                             "access token issued for Client ID : " +
@@ -182,13 +188,18 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
                     log.error(errorMsg, e);
                     return true;
                 }
-                if (scopedToken != null) {
+                if (scopedTokens != null && scopedTokens.size() >= 1) {
+                    List<String> tokensToRevoke = new ArrayList<String>();
+
+                    for (AccessTokenDO scopedToken : scopedTokens) {
+                        tokensToRevoke.add(scopedToken.getAccessToken());
+                    }
                     try {
-                        //Revoking token from database
-                        tokenMgtDAO.revokeTokens(new String[]{scopedToken.getAccessToken()});
+                        //Revoking token(s) from database
+                        tokenMgtDAO.revokeTokens(tokensToRevoke.toArray(new String[tokensToRevoke.size()]));
                     } catch (IdentityOAuth2Exception e) {
                         String errorMsg = "Error occurred while revoking " +
-                                "Access Token : " + scopedToken.getAccessToken();
+                                "Access Token : " + tokensToRevoke.size() + " of user :" + username;
                         log.error(errorMsg, e);
                         return true;
                     }

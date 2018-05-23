@@ -26,6 +26,7 @@ import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.cache.OAuthCache;
 import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
+import org.wso2.carbon.identity.oauth.common.OAuthConstants;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.registry.core.utils.UUIDGenerator;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
@@ -95,6 +96,9 @@ public final class OAuthUtil {
             authorizedUser = authorizedUser.toLowerCase();
         }
         clearOAuthCache(consumerKey + ":" + authorizedUser + ":" + scope);
+        clearOAuthCache(consumerKey + ":" + authorizedUser + ":" + scope + ":" + OAuthConstants.UserType.APPLICATION);
+        clearOAuthCache(consumerKey + ":" + authorizedUser + ":" + scope + ":" + OAuthConstants.UserType
+                .APPLICATION_USER);
     }
 
     public static void clearOAuthCache(String oauthCacheKey) {

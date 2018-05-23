@@ -566,7 +566,10 @@ public class TokenMgtDAO {
             }
 
             if (!includeExpiredTokens) {
-                sql = sql.replace("TOKEN_SCOPE_HASH=?", "TOKEN_SCOPE_HASH=? AND TOKEN_STATE='ACTIVE'");
+                sql = sql.replace("TOKEN_SCOPE_HASH=?", "TOKEN_SCOPE_HASH=? AND TOKEN_STATE='ACTIVE' AND " +
+                        "USER_TYPE='APPLICATION_USER'");
+            } else {
+                sql = sql.replace("TOKEN_SCOPE_HASH=?", "TOKEN_SCOPE_HASH=? AND USER_TYPE='APPLICATION_USER'");
             }
 
             if(!sqlAltered){
@@ -652,6 +655,148 @@ public class TokenMgtDAO {
                     return accessTokenDOs;
                 }
                 iterationCount++;
+            }
+            connection.commit();
+            //migrate the list of access tokens and refresh tokens that was encrypted with plain RSA to
+            // RSA+OAEP encrypted algorithm.
+            migrateListOfAccessTokens(accessTokensList);
+            migrateListOfRefreshTokens(refreshTokensList);
+            return accessTokenDOs;
+        } catch (SQLException e) {
+            String errorMsg = "Error occurred while trying to retrieve latest 'ACTIVE' " + "access token for Client " +
+                    "ID : " + consumerKey + ", User ID : " + authzUser + " and  Scope : " + scope;
+            if (includeExpiredTokens) {
+                errorMsg = errorMsg.replace("ACTIVE", "ACTIVE or EXPIRED");
+            }
+            throw new IdentityOAuth2Exception(errorMsg, e);
+        } finally {
+            IdentityDatabaseUtil.closeAllConnections(connection, resultSet, prepStmt);
+        }
+    }
+
+    /*
+    This method is introduced to fix
+     https://github.com/wso2/product-is/issues/3205
+     */
+    public List<AccessTokenDO> retrieveLatestValidAccessTokens(String consumerKey, AuthenticatedUser authzUser,
+                                                               String userStoreDomain, String scope,
+                                                               boolean includeExpiredTokens, int limit)
+            throws IdentityOAuth2Exception {
+
+        boolean isUsernameCaseSensitive = IdentityUtil.isUserStoreInUsernameCaseSensitive(authzUser.toString());
+        String tenantDomain = authzUser.getTenantDomain();
+        int tenantId = OAuth2Util.getTenantId(tenantDomain);
+        String tenantAwareUsernameWithNoUserDomain = authzUser.getUserName();
+        String userDomain = getSanitizedUserStoreDomain(authzUser.getUserStoreDomain());
+        userStoreDomain = getSanitizedUserStoreDomain(userStoreDomain);
+
+        PreparedStatement prepStmt = null;
+        ResultSet resultSet = null;
+        boolean sqlAltered = false;
+        List<TokenMgtDAOAccessToken> accessTokensList = new ArrayList<>();
+        List<TokenMgtDAORefreshToken> refreshTokensList = new ArrayList<>();
+        Connection connection = null;
+        try {
+            String sql;
+            connection = IdentityDatabaseUtil.getDBConnection();
+            if (connection.getMetaData().getDriverName().contains("MySQL")
+                    || connection.getMetaData().getDriverName().contains("H2")) {
+                sql = SQLQueries.RETRIEVE_LATEST_ACCESS_TOKEN_BY_CLIENT_ID_USER_SCOPE_MYSQL;
+            } else if (connection.getMetaData().getDatabaseProductName().contains("DB2")) {
+                sql = SQLQueries.RETRIEVE_LATEST_ACCESS_TOKEN_BY_CLIENT_ID_USER_SCOPE_DB2SQL;
+            } else if (connection.getMetaData().getDriverName().contains("MS SQL")) {
+                sql = SQLQueries.RETRIEVE_LATEST_ACCESS_TOKEN_BY_CLIENT_ID_USER_SCOPE_MSSQL;
+            } else if (connection.getMetaData().getDriverName().contains("Microsoft")) {
+                sql = SQLQueries.RETRIEVE_LATEST_ACCESS_TOKEN_BY_CLIENT_ID_USER_SCOPE_MSSQL;
+            } else if (connection.getMetaData().getDriverName().contains("PostgreSQL")) {
+                sql = SQLQueries.RETRIEVE_LATEST_ACCESS_TOKEN_BY_CLIENT_ID_USER_SCOPE_POSTGRESQL;
+            } else if (connection.getMetaData().getDriverName().contains("Informix")) {
+                // Driver name = "IBM Informix JDBC Driver for IBM Informix Dynamic Server"
+                sql = SQLQueries.RETRIEVE_LATEST_ACCESS_TOKEN_BY_CLIENT_ID_USER_SCOPE_INFORMIX;
+
+            } else {
+                sql = SQLQueries.RETRIEVE_LATEST_ACCESS_TOKEN_BY_CLIENT_ID_USER_SCOPE_ORACLE;
+                sql = sql.replace("ROWNUM < 2", "ROWNUM < " + Integer.toString(limit + 1));
+                sqlAltered = true;
+            }
+
+            if (!includeExpiredTokens) {
+                sql = sql.replace("TOKEN_SCOPE_HASH=?", "TOKEN_SCOPE_HASH=? AND TOKEN_STATE='ACTIVE'");
+            }
+
+            if (!sqlAltered) {
+                sql = sql.replace("1", Integer.toString(limit));
+            }
+
+            if (StringUtils.isNotEmpty(userStoreDomain) &&
+                    !IdentityUtil.getPrimaryDomainName().equalsIgnoreCase(userStoreDomain)) {
+                //logic to store access token into different tables when multiple user stores are configured.
+                sql = sql.replace(IDN_OAUTH2_ACCESS_TOKEN, IDN_OAUTH2_ACCESS_TOKEN + "_" + userStoreDomain);
+            }
+            if (!isUsernameCaseSensitive) {
+                sql = sql.replace(AUTHZ_USER, LOWER_AUTHZ_USER);
+            }
+
+            String hashedScope = OAuth2Util.hashScopes(scope);
+            if (hashedScope == null) {
+                sql = sql.replace("TOKEN_SCOPE_HASH=?", "TOKEN_SCOPE_HASH IS NULL");
+            }
+
+            prepStmt = connection.prepareStatement(sql);
+            prepStmt.setString(1, persistenceProcessor.getProcessedClientId(consumerKey));
+            if (isUsernameCaseSensitive) {
+                prepStmt.setString(2, tenantAwareUsernameWithNoUserDomain);
+            } else {
+                prepStmt.setString(2, tenantAwareUsernameWithNoUserDomain.toLowerCase());
+            }
+            prepStmt.setInt(3, tenantId);
+            prepStmt.setString(4, userDomain);
+
+            if (hashedScope != null) {
+                prepStmt.setString(5, hashedScope);
+            }
+
+            resultSet = prepStmt.executeQuery();
+            List<AccessTokenDO> accessTokenDOs = new ArrayList<>();
+            while (resultSet.next()) {
+                long issuedTime = resultSet.getTimestamp(3, Calendar.getInstance(TimeZone.getTimeZone("UTC")))
+                        .getTime();
+
+                String tokenState = resultSet.getString(7);
+                String accessToken = persistenceProcessor.getPreprocessedAccessTokenIdentifier(
+                        resultSet.getString(1));
+                //if the the token is not in correct encryption format add it to a list to be migrated
+                // later.
+                addAccessTokenToBeMigrated(accessToken, resultSet.getString(1), accessTokensList);
+                String refreshToken = null;
+                if (resultSet.getString(2) != null) {
+                    refreshToken = persistenceProcessor.getPreprocessedRefreshToken(resultSet.getString(2));
+                    //if the the refresh token is not in correct encryption format add it to a list to be
+                    // migrated later.
+                    addRefreshTokenToBeMigrated(refreshToken, resultSet.getString(2), refreshTokensList);
+                }
+                long refreshTokenIssuedTime = resultSet.getTimestamp(4, Calendar.getInstance(TimeZone.getTimeZone
+                        ("UTC"))).getTime();
+                long validityPeriodInMillis = resultSet.getLong(5);
+                long refreshTokenValidityPeriodInMillis = resultSet.getLong(6);
+
+                String userType = resultSet.getString(8);
+                String tokenId = resultSet.getString(9);
+                String subjectIdentifier = resultSet.getString(10);
+                // data loss at dividing the validity period but can be neglected
+                AuthenticatedUser user = new AuthenticatedUser();
+                user.setUserName(tenantAwareUsernameWithNoUserDomain);
+                user.setTenantDomain(tenantDomain);
+                user.setUserStoreDomain(userDomain);
+                user.setAuthenticatedSubjectIdentifier(subjectIdentifier);
+                AccessTokenDO accessTokenDO = new AccessTokenDO(consumerKey, user, OAuth2Util.buildScopeArray
+                        (scope), new Timestamp(issuedTime), new Timestamp(refreshTokenIssuedTime)
+                        , validityPeriodInMillis, refreshTokenValidityPeriodInMillis, userType);
+                accessTokenDO.setAccessToken(accessToken);
+                accessTokenDO.setRefreshToken(refreshToken);
+                accessTokenDO.setTokenState(tokenState);
+                accessTokenDO.setTokenId(tokenId);
+                accessTokenDOs.add(accessTokenDO);
             }
             connection.commit();
             //migrate the list of access tokens and refresh tokens that was encrypted with plain RSA to
