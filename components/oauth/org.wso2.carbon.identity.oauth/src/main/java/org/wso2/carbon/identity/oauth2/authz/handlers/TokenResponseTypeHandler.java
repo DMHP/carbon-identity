@@ -45,12 +45,14 @@ import org.wso2.carbon.identity.openidconnect.IDTokenBuilder;
 
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
 
     private static Log log = LogFactory.getLog(TokenResponseTypeHandler.class);
+    private static final int TOKEN_COUNT = 2;
 
     @Override
     public OAuth2AuthorizeRespDTO issue(OAuthAuthzReqMessageContext oauthAuthzMsgCtx)
@@ -74,9 +76,11 @@ public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
 
         boolean isUsernameCaseSensitive = IdentityUtil.isUserStoreInUsernameCaseSensitive(authorizedUser);
         if (isUsernameCaseSensitive) {
-            oAuthCacheKeyString = consumerKey + ":" + authorizedUser + ":" + scope;
+            oAuthCacheKeyString = consumerKey + ":" + authorizedUser + ":" + scope + ":" + OAuthConstants.UserType
+                    .APPLICATION_USER;
         } else {
-            oAuthCacheKeyString = consumerKey + ":" + authorizedUser.toLowerCase() + ":" + scope;
+            oAuthCacheKeyString = consumerKey + ":" + authorizedUser.toLowerCase() + ":" + scope + ":" +
+                    OAuthConstants.UserType.APPLICATION_USER;
         }
 
         OAuthCacheKey cacheKey = new OAuthCacheKey(oAuthCacheKeyString);
@@ -151,10 +155,19 @@ public class TokenResponseTypeHandler extends AbstractResponseTypeHandler {
                 }
             }
 
-            // check if the last issued access token is still active and valid in the database
-            AccessTokenDO existingAccessTokenDO = tokenMgtDAO.retrieveLatestAccessToken(
-                    consumerKey, authorizationReqDTO.getUser(), userStoreDomain, scope, false);
-
+            AccessTokenDO existingAccessTokenDO = null;
+            //Check if the last issued access token for grant type is still active and valid in database
+            //For app owner, there can be two active tokens for the same scope
+            List<AccessTokenDO> accessTokenDOs = tokenMgtDAO.retrieveLatestValidAccessTokens(
+                    consumerKey, authorizationReqDTO.getUser(), userStoreDomain, scope, false, TOKEN_COUNT);
+            if (accessTokenDOs != null && accessTokenDOs.size() >= 1) {
+                for (AccessTokenDO token : accessTokenDOs) {
+                    if (OAuthConstants.UserType.APPLICATION_USER.equals(token.getTokenType())) {
+                        existingAccessTokenDO = token;
+                        break;
+                    }
+                }
+            }
             if (existingAccessTokenDO != null) {
 
                 if (log.isDebugEnabled()) {

@@ -289,9 +289,11 @@ public class RefreshGrantHandler extends AbstractAuthorizationGrantHandler {
             boolean isUsernameCaseSensitive = IdentityUtil.isUserStoreInUsernameCaseSensitive(authorizedUser);
             String cacheKeyString;
             if (isUsernameCaseSensitive){
-                cacheKeyString = clientId + ":" + authorizedUser + ":" + scope;
-            }else {
-                cacheKeyString = clientId + ":" + authorizedUser.toLowerCase() + ":" + scope;
+                cacheKeyString = clientId + ":" + authorizedUser + ":" + scope + ":" + OAuthConstants.UserType
+                        .APPLICATION_USER;
+            } else {
+                cacheKeyString = clientId + ":" + authorizedUser.toLowerCase() + ":" + scope + ":" + OAuthConstants
+                        .UserType.APPLICATION_USER;
             }
 
             OAuthCacheKey oauthCacheKey = new OAuthCacheKey(cacheKeyString);
@@ -364,9 +366,11 @@ public class RefreshGrantHandler extends AbstractAuthorizationGrantHandler {
         boolean isUsernameCaseSensitive = IdentityUtil.isUserStoreInUsernameCaseSensitive(authorizedUser);
         String cacheKeyString;
         if (isUsernameCaseSensitive) {
-            cacheKeyString = clientId + ":" + authorizedUser + ":" + OAuth2Util.buildScopeString(scopes);
+            cacheKeyString = clientId + ":" + authorizedUser + ":" + OAuth2Util.buildScopeString(scopes) + ":" +
+                    OAuthConstants.UserType.APPLICATION_USER;
         } else {
-            cacheKeyString = clientId + ":" + authorizedUser.toLowerCase() + ":" + OAuth2Util.buildScopeString(scopes);
+            cacheKeyString = clientId + ":" + authorizedUser.toLowerCase() + ":" + OAuth2Util.buildScopeString
+                    (scopes) + OAuthConstants.UserType.APPLICATION_USER;
         }
 
         // Remove the old access token from the OAuthCache
