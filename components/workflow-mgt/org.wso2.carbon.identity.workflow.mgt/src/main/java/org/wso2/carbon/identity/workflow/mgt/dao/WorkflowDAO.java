@@ -107,7 +107,7 @@ public class WorkflowDAO {
         } catch (SQLException e) {
             throw new InternalWorkflowException(errorMessage, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
         return workflow;
     }
@@ -199,7 +199,7 @@ public class WorkflowDAO {
         } catch (SQLException e) {
             throw new InternalWorkflowException(errorMessage, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
         return workflowList;
     }
@@ -294,7 +294,7 @@ public class WorkflowDAO {
         } catch (SQLException e) {
             throw new InternalWorkflowException(errorMessage, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
         return parameterList;
     }

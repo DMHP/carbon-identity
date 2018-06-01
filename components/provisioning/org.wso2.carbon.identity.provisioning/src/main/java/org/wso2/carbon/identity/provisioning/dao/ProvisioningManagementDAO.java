@@ -60,10 +60,8 @@ public class ProvisioningManagementDAO {
             throws IdentityApplicationManagementException {
 
         Connection dbConnection = IdentityDatabaseUtil.getDBConnection();
+        PreparedStatement prepStmt = null;
         try {
-
-            PreparedStatement prepStmt = null;
-
             // id of the identity provider
             int idpId = getIdentityProviderIdentifier(dbConnection, identityProviderName, tenantId);
 
@@ -93,7 +91,7 @@ public class ProvisioningManagementDAO {
             String msg = "Error occurred while adding Provisioning entity for tenant " + tenantId;
             throw new IdentityApplicationManagementException(msg, e);
         } finally {
-            IdentityApplicationManagementUtil.closeConnection(dbConnection);
+            IdentityDatabaseUtil.closeAllConnections(dbConnection, null, prepStmt);
         }
     }
 
@@ -109,10 +107,8 @@ public class ProvisioningManagementDAO {
             throws IdentityApplicationManagementException {
 
         Connection dbConnection = IdentityDatabaseUtil.getDBConnection();
+        PreparedStatement prepStmt = null;
         try {
-
-            PreparedStatement prepStmt = null;
-
             // id of the identity provider
             int idpId = getIdentityProviderIdentifier(dbConnection, identityProviderName, tenantId);
 
@@ -138,7 +134,7 @@ public class ProvisioningManagementDAO {
             String msg = "Error occurred while deleting Provisioning entity for tenant " + tenantId;
             throw new IdentityApplicationManagementException(msg, e);
         } finally {
-            IdentityApplicationManagementUtil.closeConnection(dbConnection);
+            IdentityDatabaseUtil.closeAllConnections(dbConnection, null, prepStmt);
         }
     }
 
@@ -154,10 +150,9 @@ public class ProvisioningManagementDAO {
             throws IdentityApplicationManagementException {
 
         Connection dbConnection = IdentityDatabaseUtil.getDBConnection();
+        PreparedStatement prepStmt = null;
+        ResultSet rs = null;
         try {
-
-            PreparedStatement prepStmt = null;
-
             // id of the identity provider
             int idpId = getIdentityProviderIdentifier(dbConnection, identityProviderName, tenantId);
 
@@ -178,7 +173,7 @@ public class ProvisioningManagementDAO {
             prepStmt.setInt(5, tenantId);
 
 
-            ResultSet rs = prepStmt.executeQuery();
+            rs = prepStmt.executeQuery();
             dbConnection.commit();
             if (rs.next()) {
                 String entityId = rs.getString(1);
@@ -194,7 +189,7 @@ public class ProvisioningManagementDAO {
             String msg = "Error occurred while adding Provisioning entity for tenant " + tenantId;
             throw new IdentityApplicationManagementException(msg, e);
         } finally {
-            IdentityApplicationManagementUtil.closeConnection(dbConnection);
+            IdentityDatabaseUtil.closeAllConnections(dbConnection, rs, prepStmt);
         }
     }
 
@@ -209,6 +204,7 @@ public class ProvisioningManagementDAO {
             throws IdentityApplicationManagementException {
 
         Connection dbConnection = IdentityDatabaseUtil.getDBConnection();
+        PreparedStatement prepStmt = null;
 
         try {
 
@@ -223,8 +219,6 @@ public class ProvisioningManagementDAO {
                                 tenantId;
                 throw new IdentityApplicationManagementException(msg);
             }
-
-            PreparedStatement prepStmt = null;
 
             // SP_IDP_NAME=?, SP_IDP_PRIMARY=?,SP_IDP_HOME_REALM_ID=?,
             // SP_IDP_THUMBPRINT=?,
@@ -301,7 +295,7 @@ public class ProvisioningManagementDAO {
             String msg = "Error occurred while updating Identity Provider information  for tenant " + tenantId;
             throw new IdentityApplicationManagementException(msg, e);
         } finally {
-            IdentityApplicationManagementUtil.closeConnection(dbConnection);
+            IdentityDatabaseUtil.closeAllConnections(dbConnection, null, prepStmt);
         }
     }
 
@@ -367,8 +361,7 @@ public class ProvisioningManagementDAO {
                 return rs.getInt(1);
             }
         } finally {
-            IdentityApplicationManagementUtil.closeStatement(prepStmt);
-            IdentityApplicationManagementUtil.closeResultSet(rs);
+            IdentityDatabaseUtil.closeAllConnections(null, rs, prepStmt);
             if (dbConnInitialized) {
                 IdentityApplicationManagementUtil.closeConnection(dbConnection);
             }
@@ -470,13 +463,7 @@ public class ProvisioningManagementDAO {
             String msg = "Error occurred while retrieving SP names of provisioning connectors by IDP name";
             throw new IdentityApplicationManagementException(msg, e);
         } finally {
-            if (prepStmt != null) {
-                IdentityApplicationManagementUtil.closeStatement(prepStmt);
-            }
-            if (rs != null) {
-                IdentityApplicationManagementUtil.closeResultSet(rs);
-            }
-            IdentityApplicationManagementUtil.closeConnection(dbConnection);
+            IdentityDatabaseUtil.closeAllConnections(dbConnection, rs, prepStmt);
         }
         return spNames;
     }

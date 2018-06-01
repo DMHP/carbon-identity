@@ -98,7 +98,7 @@ public class JDBCIdentityDataStore extends InMemoryIdentityDataStore {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet results;
+        ResultSet results = null;
         boolean isUsernameCaseSensitive = IdentityUtil.isUserStoreInUsernameCaseSensitive(userName, tenantId);
         try {
             String query;
@@ -118,6 +118,7 @@ public class JDBCIdentityDataStore extends InMemoryIdentityDataStore {
             connection.commit();
         } finally {
             IdentityDatabaseUtil.closeStatement(prepStmt);
+            IdentityDatabaseUtil.closeResultSet(results);
             IdentityDatabaseUtil.closeConnection(connection);
         }
         return false;
