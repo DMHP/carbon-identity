@@ -29,12 +29,13 @@ import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO.OAuth2AccessToken;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 
 public class OAuthRequestPathAuthenticator extends AbstractApplicationAuthenticator implements RequestPathApplicationAuthenticator {
@@ -119,7 +120,13 @@ public class OAuthRequestPathAuthenticator extends AbstractApplicationAuthentica
                 log.debug("Authenticated user " + user);
             }
 
-            context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(user));
+            AuthenticatedUser authenticatedUser = new AuthenticatedUser();
+            authenticatedUser.setAuthenticatedSubjectIdentifier(user);
+            authenticatedUser.setUserName(UserCoreUtil.removeDomainFromName(user));
+            authenticatedUser.setUserStoreDomain(UserCoreUtil.extractDomainFromName(user));
+            authenticatedUser.setTenantDomain(tenantDomain);
+
+            context.setSubject(authenticatedUser);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new AuthenticationFailedException(e.getMessage(), e);
