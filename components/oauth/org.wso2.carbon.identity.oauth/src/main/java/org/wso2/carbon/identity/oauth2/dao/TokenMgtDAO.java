@@ -1704,7 +1704,7 @@ public class TokenMgtDAO {
                     authenticatedUser.getUserName() + " tenant ID : " + OAuth2Util.getTenantId(authenticatedUser
                     .getTenantDomain()), e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, ps);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, ps);
         }
         return accessTokens;
     }
@@ -1755,7 +1755,7 @@ public class TokenMgtDAO {
                     authenticatedUser.getUserName() + " tenant ID : " + OAuth2Util.getTenantId(authenticatedUser
                     .getTenantDomain()), e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, ps);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, ps);
         }
         return authorizationCodes;
     }
@@ -1787,7 +1787,7 @@ public class TokenMgtDAO {
             throw new IdentityOAuth2Exception("Error occurred while getting access tokens from acces token table for " +
                     "the application with consumer key : " + consumerKey, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, ps);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, ps);
         }
         return accessTokens;
     }
@@ -1817,7 +1817,7 @@ public class TokenMgtDAO {
             throw new IdentityOAuth2Exception("Error occurred while getting authorization codes from authorization " +
                     "code table for the application with consumer key : " + consumerKey, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, ps);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, ps);
         }
         return authorizationCodes;
     }

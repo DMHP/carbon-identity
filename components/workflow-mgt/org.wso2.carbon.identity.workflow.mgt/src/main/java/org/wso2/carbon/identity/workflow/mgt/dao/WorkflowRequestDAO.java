@@ -120,7 +120,7 @@ public class WorkflowRequestDAO {
         } catch (ClassNotFoundException | IOException e) {
             throw new InternalWorkflowException("Error when deserializing the workflow request. uuid = " + uuid, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
         return null;
     }

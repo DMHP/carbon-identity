@@ -111,7 +111,7 @@ public class AssociationDAO {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet rs;
+        ResultSet rs = null;
         List<Association> associations = new ArrayList<>();
         String query = SQLConstants.GET_ALL_ASSOCIATIONS_QUERY;
         try {
@@ -141,7 +141,7 @@ public class AssociationDAO {
         } catch (SQLException e) {
             throw new InternalWorkflowException(errorMessage, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
         return associations;
     }
@@ -157,7 +157,7 @@ public class AssociationDAO {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet rs;
+        ResultSet rs = null;
         Association associationDTO = null ;
         String query = SQLConstants.GET_ASSOCIATION_FOR_ASSOC_ID_QUERY;
         try {
@@ -192,7 +192,7 @@ public class AssociationDAO {
         } catch (SQLException e) {
             throw new InternalWorkflowException(errorMessage, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
         return associationDTO;
     }
@@ -231,7 +231,7 @@ public class AssociationDAO {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet rs;
+        ResultSet rs = null;
         List<Association> associations = new ArrayList<>();
         String query = SQLConstants.GET_ASSOCIATIONS_FOR_WORKFLOW_QUERY;
         try {
@@ -255,7 +255,7 @@ public class AssociationDAO {
         } catch (SQLException e) {
             throw new InternalWorkflowException(errorMessage, e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
         return associations;
     }

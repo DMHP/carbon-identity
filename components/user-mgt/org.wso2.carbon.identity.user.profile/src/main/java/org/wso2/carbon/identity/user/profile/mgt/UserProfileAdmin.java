@@ -599,7 +599,7 @@ public class UserProfileAdmin extends AbstractAdmin {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet resultSet;
+        ResultSet resultSet = null;
         String sql = null;
         String username = "";
         int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
@@ -630,7 +630,7 @@ public class UserProfileAdmin extends AbstractAdmin {
             log.error("Error occurred while getting associated name", e);
             throw new UserProfileException("Error occurred while getting associated name", e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, resultSet, prepStmt);
         }
         return null;
     }
@@ -638,7 +638,7 @@ public class UserProfileAdmin extends AbstractAdmin {
     public AssociatedAccountDTO[] getAssociatedIDs() throws UserProfileException {
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet resultSet;
+        ResultSet resultSet = null;
         String sql = null;
         String tenantAwareUsername = CarbonContext.getThreadLocalCarbonContext().getUsername();
         String domainName = getDomainName(tenantAwareUsername);
@@ -668,7 +668,7 @@ public class UserProfileAdmin extends AbstractAdmin {
             log.error("Error occurred while getting associated IDs", e);
             throw new UserProfileException("Error occurred while getting associated IDs", e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, resultSet, prepStmt);
         }
     }
 

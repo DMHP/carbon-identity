@@ -139,7 +139,7 @@ public class BPSProfileDAO {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet rs;
+        ResultSet rs = null;
         String query = SQLConstants.GET_BPS_PROFILE_FOR_TENANT_QUERY;
         String decryptedPassword;
         boolean migrationRequired = false;
@@ -186,7 +186,7 @@ public class BPSProfileDAO {
         } catch (SQLException e) {
             throw new WorkflowImplException("Error when executing the sql.", e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
 
         if (migrationRequired) {
@@ -224,7 +224,7 @@ public class BPSProfileDAO {
             } catch (SQLException e) {
                 throw new WorkflowImplException("Error when executing the sql " + query, e);
             } finally {
-                IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+                IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
             }
         }
 
@@ -243,7 +243,7 @@ public class BPSProfileDAO {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection();
         PreparedStatement prepStmt = null;
-        ResultSet rs;
+        ResultSet rs = null;
         List<BPSProfile> profiles = new ArrayList<>();
         String query = SQLConstants.LIST_BPS_PROFILES_QUERY;
         String decryptPassword;
@@ -305,7 +305,7 @@ public class BPSProfileDAO {
         } catch (SQLException e) {
             throw new WorkflowImplException("Error when executing the sql.", e);
         } finally {
-            IdentityDatabaseUtil.closeAllConnections(connection, null, prepStmt);
+            IdentityDatabaseUtil.closeAllConnections(connection, rs, prepStmt);
         }
 
         // Encrypted data migration for OAEP Fix.
