@@ -61,6 +61,7 @@ public class FacebookAuthenticator extends AbstractApplicationAuthenticator impl
     private String tokenEndpoint;
     private String oAuthEndpoint;
     private String userInfoEndpoint;
+    private String callbackURL;
 
 
     /**
@@ -93,6 +94,15 @@ public class FacebookAuthenticator extends AbstractApplicationAuthenticator impl
                 .FB_USER_INFO_URL);
         if (StringUtils.isBlank(this.userInfoEndpoint)) {
             this.userInfoEndpoint = IdentityApplicationConstants.FB_USER_INFO_URL;
+        }
+    }
+
+    private void initCallbackURL() {
+
+        callbackURL = getAuthenticatorConfig().getParameterMap().get(FacebookAuthenticatorConstants
+                .CALLBACK_URL);
+        if (StringUtils.isBlank(callbackURL)) {
+            callbackURL = IdentityUtil.getServerURL(FrameworkConstants.COMMONAUTH, true, true);
         }
     }
 
@@ -129,6 +139,14 @@ public class FacebookAuthenticator extends AbstractApplicationAuthenticator impl
         return this.userInfoEndpoint;
     }
 
+    private String getCallbackURL() {
+
+        if (StringUtils.isBlank(callbackURL)) {
+            initCallbackURL();
+        }
+        return callbackURL;
+    }
+
     @Override
     public boolean canHandle(HttpServletRequest request) {
 
@@ -158,7 +176,7 @@ public class FacebookAuthenticator extends AbstractApplicationAuthenticator impl
                 scope = FacebookAuthenticatorConstants.EMAIL;
             }
 
-            String callbackUrl = IdentityUtil.getServerURL(FrameworkConstants.COMMONAUTH, true, true);
+            String callbackUrl = getCallbackURL();
 
             String state = context.getContextIdentifier() + "," + FacebookAuthenticatorConstants.FACEBOOK_LOGIN_TYPE;
 
@@ -198,7 +216,7 @@ public class FacebookAuthenticator extends AbstractApplicationAuthenticator impl
             String tokenEndPoint = getTokenEndpoint();
             String fbauthUserInfoUrl = getUserInfoEndpoint();
 
-            String callbackUrl = IdentityUtil.getServerURL(FrameworkConstants.COMMONAUTH, true, true);
+            String callbackUrl = getCallbackURL();
 
             String code = getAuthorizationCode(request);
             String token = getToken(tokenEndPoint, clientId, clientSecret, callbackUrl, code);
