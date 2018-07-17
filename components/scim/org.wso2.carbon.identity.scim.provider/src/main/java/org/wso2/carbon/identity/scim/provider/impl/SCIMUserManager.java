@@ -309,7 +309,7 @@ public class SCIMUserManager implements UserManager {
                         continue;
                     }
 
-                    scimUser = getSCIMUser(userName, claimURIList);
+                    scimUser = this.getSCIMUser(userName, claimURIList);
                     //if SCIM-ID is not present in the attributes, skip
                     if (scimUser.getId() == null) {
                         continue;
