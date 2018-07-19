@@ -91,4 +91,24 @@ public class SCIMAuthConfigReader {
         }
         return Collections.emptyList();
     }
+
+    /**
+     * Get the configuration value from identity.xml file.
+     *
+     * @return true or false
+     */
+    public boolean isGetAllDetailsEnabled() {
+
+        IdentityConfigParser identityConfig = IdentityConfigParser.getInstance();
+        OMElement scimElem = identityConfig.getConfigElement(SCIMProviderConstants.ELEMENT_NAME_SCIM);
+        if (scimElem != null) {
+            //get the value from <ShowAllDetails> in identity.xml
+            OMElement showDetailElement = scimElem.getFirstChildWithName(new QName(IdentityCoreConstants
+                    .IDENTITY_DEFAULT_NAMESPACE, SCIMProviderConstants.ELEMENT_NAME_SHOW_ALL_DETAILS));
+            String value = showDetailElement.getText();
+            return Boolean.parseBoolean(value);
+        }
+
+        return false;
+    }
 }
