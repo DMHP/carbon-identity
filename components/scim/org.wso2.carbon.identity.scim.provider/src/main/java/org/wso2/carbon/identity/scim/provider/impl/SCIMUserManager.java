@@ -33,7 +33,6 @@ import org.wso2.carbon.identity.application.common.util.IdentityApplicationManag
 import org.wso2.carbon.identity.application.mgt.ApplicationConstants;
 import org.wso2.carbon.identity.application.mgt.ApplicationManagementService;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.provisioning.IdentityProvisioningException;
 import org.wso2.carbon.identity.provisioning.OutboundProvisioningManager;
 import org.wso2.carbon.identity.provisioning.ProvisioningEntity;
@@ -44,7 +43,7 @@ import org.wso2.carbon.identity.scim.common.utils.AttributeMapper;
 import org.wso2.carbon.identity.scim.common.utils.IdentitySCIMException;
 import org.wso2.carbon.identity.scim.common.utils.SCIMCommonConstants;
 import org.wso2.carbon.identity.scim.common.utils.SCIMCommonUtils;
-import org.wso2.carbon.identity.scim.provider.util.SCIMProviderConstants;
+import org.wso2.carbon.identity.scim.provider.auth.SCIMAuthConfigReader;
 import org.wso2.carbon.user.api.ClaimMapping;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.UserCoreConstants;
@@ -84,6 +83,7 @@ public class SCIMUserManager implements UserManager {
     private ClaimManager carbonClaimManager = null;
     private String consumerName;
     private boolean isBulkUserAdd = false;
+    private SCIMAuthConfigReader scimAuthConfigReader;
 
     public SCIMUserManager(UserStoreManager carbonUserStoreManager, String userName,
                            ClaimManager claimManager) {
@@ -309,7 +309,13 @@ public class SCIMUserManager implements UserManager {
                         continue;
                     }
 
-                    scimUser = this.getSCIMUser(userName, claimURIList);
+                    // read from the identity.xml config whether the user need full details or not.
+                    scimAuthConfigReader = new SCIMAuthConfigReader();
+                    if (scimAuthConfigReader.isGetAllDetailsEnabled()) {
+                        scimUser = this.getSCIMUser(userName, claimURIList);
+                    } else {
+                        scimUser = this.getSCIMMetaUser(userName);
+                    }
                     //if SCIM-ID is not present in the attributes, skip
                     if (scimUser.getId() == null) {
                         continue;
