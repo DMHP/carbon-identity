@@ -146,7 +146,7 @@
                                         <input type="hidden" id="hasApprovedAlways" name="hasApprovedAlways"
                                                value="false"/>
                                         <input class="btn" type="reset" value="<fmt:message key='cancel'/>"
-                                               onclick="javascript:document.location.href='<%=openidreturnto%>'"/>
+                                               onclick="javascript:document.location.href='<%=Encode.forJavaScript(openidreturnto)%>'"/>
                                     </div>
                                 </form>
 
