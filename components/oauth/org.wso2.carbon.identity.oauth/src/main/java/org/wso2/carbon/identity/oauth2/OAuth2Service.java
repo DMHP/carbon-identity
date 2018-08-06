@@ -331,6 +331,7 @@ public class OAuth2Service extends AbstractAdmin {
                             refreshTokenDO.getAuthorizedUser().toString());
 
                 } else if (accessTokenDO != null) {
+                    if (revokeRequestDTO.getConsumerKey().equals(accessTokenDO.getConsumerKey())) {
                         org.wso2.carbon.identity.oauth.OAuthUtil
                                 .clearOAuthCache(revokeRequestDTO.getConsumerKey(), accessTokenDO.getAuthzUser(),
                                         OAuth2Util.buildScopeString(accessTokenDO.getScope()));
@@ -339,13 +340,21 @@ public class OAuth2Service extends AbstractAdmin {
                         org.wso2.carbon.identity.oauth.OAuthUtil.clearOAuthCache(revokeRequestDTO.getToken());
                         String scope = OAuth2Util.buildScopeString(accessTokenDO.getScope());
                         String authorizedUser = accessTokenDO.getAuthzUser().toString();
-                    synchronized ((revokeRequestDTO.getConsumerKey() + ":" + authorizedUser + ":" + scope).intern()) {
-                        tokenMgtDAO.revokeTokens(new String[]{revokeRequestDTO.getToken()});
-                    }
+                        synchronized ((revokeRequestDTO.getConsumerKey() + ":" + authorizedUser + ":" + scope).intern()) {
+                            tokenMgtDAO.revokeTokens(new String[]{revokeRequestDTO.getToken()});
+                        }
                         addRevokeResponseHeaders(revokeResponseDTO,
                                 revokeRequestDTO.getToken(),
                                 accessTokenDO.getRefreshToken(),
                                 accessTokenDO.getAuthzUser().toString());
+                    } else {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Consumer key present in revocation request: '" + revokeRequestDTO.getConsumerKey
+                                    () + "' does not match with the consumer key of the access token : '" + accessTokenDO
+                                    .getConsumerKey() + "'");
+                        }
+                        throw new InvalidOAuthClientException("Unauthorized Client");
+                    }
                 }
 
                 return revokeResponseDTO;
