@@ -73,7 +73,8 @@ public class UserIdentityManagementUtil {
     private static final String LOGGED_IN_USER = "LoggedInUser";
     private static final String ADMIN_USER = "AdminUser";
     private static final String INVALID_USER_NAME = "InvalidUserName";
-    private static final String PASSWORD_POLICY_VIOLATION = "Password at least should have";;
+    private static final String PASSWORD_POLICY_VIOLATION = "Password at least should have";
+    public static final String USE_CASE_SENSITIVE_USERNAME_FOR_CACHE_KEYS = "UseCaseSensitiveUsernameForCacheKeys";
 
     private static VerificationBean vBean = new VerificationBean();
     private static ChallengeQuestionIdsDTO idsDTO = new ChallengeQuestionIdsDTO();
@@ -701,6 +702,32 @@ public class UserIdentityManagementUtil {
                     IdentityMgtConstants.ErrorHandling.EXTERNAL_CODE + ": " + userName, e);
             return userChallengesDTO;
         }
+    }
+
+    /**
+     * This returns whether case sensitive user name can be used as the cache key
+     *
+     * @param userStoreManager user-store manager
+     * @return
+     */
+    public static boolean isUseCaseSensitiveUsernameForCacheKeys(
+            org.wso2.carbon.user.core.UserStoreManager userStoreManager) {
+
+        if (userStoreManager == null) {
+            //this is done to handle federated scenarios. For federated scenarios, there is no user store manager for
+            // the user
+            return true;
+        }
+        String useCaseSensitiveUsernameForCacheKeys = userStoreManager.getRealmConfiguration()
+                .getUserStoreProperty(USE_CASE_SENSITIVE_USERNAME_FOR_CACHE_KEYS);
+        if (StringUtils.isBlank(useCaseSensitiveUsernameForCacheKeys)) {
+            if (log.isDebugEnabled()) {
+                log.debug("Failed to read user store property UseCaseSensitiveUsernameForCacheKeys. Considering as "
+                        + "case sensitive.");
+            }
+            return true;
+        }
+        return Boolean.parseBoolean(useCaseSensitiveUsernameForCacheKeys);
     }
 
     private static UserChallengesDTO handleChallengesError(String error, Exception e) {
