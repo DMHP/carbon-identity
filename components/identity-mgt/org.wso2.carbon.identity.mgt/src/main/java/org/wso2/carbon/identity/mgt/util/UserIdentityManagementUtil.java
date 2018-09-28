@@ -49,7 +49,9 @@ import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This is the Utility class used by the admin service to read and write
@@ -123,23 +125,17 @@ public class UserIdentityManagementUtil {
 
         try {
             if (!userStoreManager.isExistingUser(userName)) {
-                log.error("User " + userName + " does not exist in tenant "+userStoreManager.getTenantId());
+                log.error("User " + userName + " does not exist in tenant " + userStoreManager.getTenantId());
                 throw IdentityException.error("No user account found for user " + userName);
             }
+
+            Map<String, String> claims = new HashMap<>();
+            claims.put(UserIdentityDataStore.ACCOUNT_LOCK, "true");
+            claims.put(UserIdentityDataStore.UNLOCKING_TIME, "0");
+            userStoreManager.setUserClaimValues(userName, claims, null);
         } catch (UserStoreException e) {
-            log.error("Error while reading user identity data", e);
+            log.error("Error while reading/storing user identity data", e);
             throw IdentityException.error("Error while lock user account : " + userName);
-
-        }
-
-        UserIdentityDataStore store = IdentityMgtConfig.getInstance().getIdentityDataStore();
-        UserIdentityClaimsDO userIdentityDO = store.load(UserCoreUtil.removeDomainFromName(userName), userStoreManager);
-        if (userIdentityDO != null) {
-            userIdentityDO.setAccountLock(true);
-            userIdentityDO.setUnlockTime(0);
-            store.store(userIdentityDO, userStoreManager);
-        } else {
-            throw IdentityException.error("No user account found for user " + userName);
         }
     }
 
@@ -184,25 +180,19 @@ public class UserIdentityManagementUtil {
 
         try {
             if (!userStoreManager.isExistingUser(userName)) {
-                log.error("User " + userName + " does not exist in tenant "+userStoreManager.getTenantId());
+                log.error("User " + userName + " does not exist in tenant " + userStoreManager.getTenantId());
                 throw IdentityException.error("No user account found for user " + userName);
             }
+
+            Map<String, String> claims = new HashMap<>();
+            claims.put(UserIdentityDataStore.ACCOUNT_LOCK, "false");
+            claims.put(UserIdentityDataStore.UNLOCKING_TIME, "0");
+            userStoreManager.setUserClaimValues(userName, claims, null);
         } catch (UserStoreException e) {
-            log.error("Error while reading user identity data", e);
+            log.error("Error while reading/storing user identity data", e);
             throw IdentityException.error("Error while unlock user account " + userName);
 
         }
-
-        UserIdentityDataStore store = IdentityMgtConfig.getInstance().getIdentityDataStore();
-        UserIdentityClaimsDO userIdentityDO = store.load(UserCoreUtil.removeDomainFromName(userName), userStoreManager);
-        if (userIdentityDO != null) {
-            userIdentityDO.setAccountLock(false);
-            userIdentityDO.setUnlockTime(0);
-            store.store(userIdentityDO, userStoreManager);
-        } else {
-            throw IdentityException.error("No user account found for user " + userName);
-        }
-
     }
 
     /**
