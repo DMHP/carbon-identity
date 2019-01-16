@@ -51,11 +51,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class ApplicationMgtUtil {
 
     public static final String APPLICATION_ROOT_PERMISSION = "applications";
     public static final String PATH_CONSTANT = RegistryConstants.PATH_SEPARATOR;
+    public static String APP_NAME_VALIDATING_REGEX = "^[a-zA-Z0-9 ._-]*$";
     private static final List<String> paths = new ArrayList<String>();
     private static String applicationNode;
 
@@ -341,6 +343,18 @@ public class ApplicationMgtUtil {
             throw new IdentityApplicationManagementException("Error while storing permissions", e);
         }
 
+    }
+
+    /**
+     * Validate application name according to the regex
+     *
+     * @return validated or not
+     */
+    public static boolean isRegexValidated(String applicationName) {
+
+        String spValidatorRegex = APP_NAME_VALIDATING_REGEX;
+        Pattern regexPattern = Pattern.compile(spValidatorRegex);
+        return regexPattern.matcher(applicationName).matches();
     }
 
     private static void addPermission(ApplicationPermission[] permissions, Registry tenantGovReg) throws

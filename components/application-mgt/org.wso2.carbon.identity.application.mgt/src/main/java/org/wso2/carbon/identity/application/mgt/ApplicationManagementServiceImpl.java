@@ -72,6 +72,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static org.wso2.carbon.identity.application.mgt.ApplicationMgtUtil.isRegexValidated;
+
 /**
  * Application management service implementation
  */
@@ -275,6 +277,12 @@ public class ApplicationManagementServiceImpl extends ApplicationManagementServi
                         " does not have access to the application " +
                         serviceProvider.getApplicationName());
                 throw new IdentityApplicationManagementException("User not authorized");
+            }
+
+            if (!isRegexValidated(serviceProvider.getApplicationName())) {
+                throw new IdentityApplicationManagementException("The Application name " +
+                        serviceProvider.getApplicationName() + " is not valid! It is not adhering " +
+                        "to the regex " + ApplicationMgtUtil.APP_NAME_VALIDATING_REGEX);
             }
 
             ApplicationDAO appDAO = ApplicationMgtSystemConfig.getInstance().getApplicationDAO();
