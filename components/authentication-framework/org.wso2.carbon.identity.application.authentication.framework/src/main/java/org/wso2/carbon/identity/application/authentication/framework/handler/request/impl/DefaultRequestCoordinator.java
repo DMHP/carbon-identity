@@ -94,7 +94,8 @@ public class DefaultRequestCoordinator implements RequestCoordinator {
                 if (sessionDataKey != null) {
 
                     if (log.isDebugEnabled()) {
-                        log.debug("Retrieving authentication request from cache..");
+                        log.debug("Retrieving AuthenticationRequest from cache for SessionDataKey : "
+                                + sessionDataKey);
                     }
 
                     authRequest = getAuthenticationRequest(request, sessionDataKey);
@@ -102,16 +103,15 @@ public class DefaultRequestCoordinator implements RequestCoordinator {
                     if (authRequest == null) {
                         // authRequest cannot be retrieved from cache.
                         if (log.isDebugEnabled()) {
-                            log.debug("No authentication request found in the cache for session data key : "
-                                    + sessionDataKey);
+                            log.debug("No AuthenticationRequest found in the cache");
                         }
 
                         if (isCommonAuthLogoutRequest(request)) {
                             if (log.isDebugEnabled()) {
-                                log.debug("Ignoring invalid authentication request in the CommonAuthLogout request.");
+                                log.debug("Ignoring invalid CommonAuthLogout request");
                             }
                         } else {
-                            throw new FrameworkException("Invalid authentication request. Session data key : "
+                            throw new FrameworkException("Invalid authentication request. SessionDataKey : "
                                     + sessionDataKey);
                         }
                     }
