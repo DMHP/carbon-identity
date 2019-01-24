@@ -124,9 +124,11 @@ public class ApplicationManagementServiceImpl extends ApplicationManagementServi
         }
 
         if (!isRegexValidated(serviceProvider.getApplicationName())) {
-            throw new IdentityApplicationManagementException("The Application name " +
+            String errorMsg = "The application name " +
                     serviceProvider.getApplicationName() + " is not valid! It is not adhering " +
-                    "to the regex " + ApplicationMgtUtil.APP_NAME_VALIDATING_REGEX);
+                    "to the regex " + ApplicationMgtUtil.APP_NAME_VALIDATING_REGEX;
+            log.error(errorMsg);
+            throw new IdentityApplicationManagementException(errorMsg);
         }
 
         startTenantFlow(tenantDomain, username);
@@ -286,9 +288,11 @@ public class ApplicationManagementServiceImpl extends ApplicationManagementServi
             }
 
             if (!isRegexValidated(serviceProvider.getApplicationName())) {
-                throw new IdentityApplicationManagementException("The Application name " +
+                String errorMsg = "The updated application name " +
                         serviceProvider.getApplicationName() + " is not valid! It is not adhering " +
-                        "to the regex " + ApplicationMgtUtil.APP_NAME_VALIDATING_REGEX);
+                        "to the regex " + ApplicationMgtUtil.APP_NAME_VALIDATING_REGEX;
+                log.error(errorMsg);
+                throw new IdentityApplicationManagementException(errorMsg);
             }
 
             ApplicationDAO appDAO = ApplicationMgtSystemConfig.getInstance().getApplicationDAO();
