@@ -123,6 +123,12 @@ public class ApplicationManagementServiceImpl extends ApplicationManagementServi
                     "Application with the same name loaded from the file system.");
         }
 
+        if (!isRegexValidated(serviceProvider.getApplicationName())) {
+            throw new IdentityApplicationManagementException("The Application name " +
+                    serviceProvider.getApplicationName() + " is not valid! It is not adhering " +
+                    "to the regex " + ApplicationMgtUtil.APP_NAME_VALIDATING_REGEX);
+        }
+
         startTenantFlow(tenantDomain, username);
 
         // first we need to create a role with the application name.
