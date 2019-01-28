@@ -500,7 +500,7 @@ public class OpenIDHandler {
                 append("?").
                                   append(FrameworkConstants.SESSION_DATA_KEY).
                                   append("=").
-                                  append(sessionDataKey).
+                                  append(URLEncoder.encode(sessionDataKey, FrameworkUtils.UTF_8)).
                                   append("&").
                                   append(FrameworkConstants.RequestParams.TYPE).
                                   append("=").
