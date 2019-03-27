@@ -18,12 +18,11 @@
 
 package org.wso2.carbon.identity.oauth2.token.handlers.grant;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.base.IdentityException;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.oauth.OAuthUtil;
 import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
@@ -63,7 +62,7 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         AuthzCodeDO authzCodeDO = null;
         // if cache is enabled, check in the cache first.
         if (cacheEnabled) {
-            OAuthCacheKey cacheKey = getAuthzCodeCacheKey(authorizationCode, clientId);
+            OAuthCacheKey cacheKey = getAuthorizationCodeCacheKey(authorizationCode, clientId);
             authzCodeDO = (AuthzCodeDO) oauthCache.getValueFromCache(cacheKey);
         }
 
@@ -83,23 +82,23 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         }
 
         if (authzCodeDO != null && OAuthConstants.AuthorizationCodeState.INACTIVE.equals(authzCodeDO.getState())){
-
-            if (cacheEnabled) {
-                OAuthCacheKey cacheKey =
-                        new OAuthCacheKey(OAuth2Util.buildCacheKeyStringForAuthzCode(clientId, authorizationCode));
-                oauthCache.clearCacheEntry(cacheKey);
-            }
-
             if (log.isDebugEnabled()) {
-                log.debug("Invalid access token request with inactive authorization code:%s for client_id:" + clientId
-                        + ", therefore revoking all tokens previously issued for re-used authorization code according " +
-                        "to RFC 6749 Section 4.1.2");
+                String msg = "Invalid access token request with an inactive authorization code:%s for " +
+                        "client_id:%s, user:%s, scope:%s" + ", revoking all tokens previously issued for the " +
+                        "authorization code according to RFC 6749 Section 4.1.2";
+                String authzUser = authzCodeDO.getAuthorizedUser().toString();
+                String scope = OAuth2Util.buildScopeString(authzCodeDO.getScope());
+                log.debug(String.format(msg, authorizationCode, clientId, authzUser, scope));
             }
 
             String tokenIdToRevoke = authzCodeDO.getOauthTokenId();
-            String accessTokenToRevoke = tokenMgtDAO.getTokenByTokenId(tokenIdToRevoke);
-            revokeExistingToken(accessTokenToRevoke, tokReqMsgCtx);
-            // revoke the access token
+            if (StringUtils.isNotBlank(tokenIdToRevoke)) {
+                // This means we have a token issued for the re-used authorization code. So we'll revoke it.
+                String accessTokenToRevoke = tokenMgtDAO.getTokenByTokenId(tokenIdToRevoke);
+                if (StringUtils.isNotBlank(accessTokenToRevoke)) {
+                    revokeAccessToken(accessTokenToRevoke, tokReqMsgCtx);
+                }
+            }
             return false;
         }
 
@@ -157,7 +156,7 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
             }
 
             // remove the authorization code from the cache
-            oauthCache.clearCacheEntry(getAuthzCodeCacheKey(authorizationCode, clientId));
+            clearAuthorizationCodeFromCache(authorizationCode, clientId);
 
             if (log.isDebugEnabled()) {
                 log.debug("Expired Authorization code" +
@@ -181,39 +180,6 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         // calculating it again when issuing the access token.
         tokReqMsgCtx.addProperty(AUTHZ_CODE, authorizationCode);
         return true;
-    }
-
-    private OAuthCacheKey getAuthzCodeCacheKey(String authorizationCode, String clientId) {
-        return new OAuthCacheKey(OAuth2Util.buildCacheKeyStringForAuthzCode(
-                clientId, authorizationCode));
-    }
-
-    private void revokeExistingToken(String accessToken,
-                                     OAuthTokenReqMessageContext tokenReqMessageContext) throws IdentityOAuth2Exception {
-
-
-        String clientId = tokenReqMessageContext.getOauth2AccessTokenReqDTO().getClientId();
-        String clientSecret = tokenReqMessageContext.getOauth2AccessTokenReqDTO().getClientSecret();
-
-        OAuthRevocationRequestDTO revocationRequestDTO = new OAuthRevocationRequestDTO();
-        revocationRequestDTO.setConsumerKey(clientId);
-        revocationRequestDTO.setConsumerSecret(clientSecret);
-        revocationRequestDTO.setToken(accessToken);
-
-        OAuthRevocationResponseDTO revocationResponseDTO =
-                getOauth2Service().revokeTokenByOAuthClient(revocationRequestDTO);
-
-        if (revocationResponseDTO.isError()) {
-            String msg = "Error while revoking tokens for clientId:" + clientId + " due to authorization code reuse, " +
-                    "Error Message:" + revocationResponseDTO.getErrorMsg();
-            throw new IdentityOAuth2Exception(msg);
-        }
-    }
-
-    private OAuth2Service getOauth2Service() {
-
-        return (OAuth2Service) PrivilegedCarbonContext
-                .getThreadLocalCarbonContext().getOSGiService(OAuth2Service.class, null);
     }
 
     @Override
@@ -245,7 +211,7 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         // Clear the cache entry
         if (cacheEnabled) {
             String clientId = tokReqMsgCtx.getOauth2AccessTokenReqDTO().getClientId();
-            OAuthCacheKey cacheKey = getAuthzCodeCacheKey(authzCode, clientId);
+            OAuthCacheKey cacheKey = getAuthorizationCodeCacheKey(authzCode, clientId);
             oauthCache.clearCacheEntry(cacheKey);
 
             if (log.isDebugEnabled()) {
@@ -278,4 +244,46 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         }
     }
 
+    private void clearAuthorizationCodeFromCache(String authorizationCode, String clientId) {
+
+        if (cacheEnabled) {
+            OAuthCacheKey cacheKey = getAuthorizationCodeCacheKey(authorizationCode, clientId);
+            oauthCache.clearCacheEntry(cacheKey);
+        }
+    }
+
+    private OAuthCacheKey getAuthorizationCodeCacheKey(String authorizationCode, String clientId) {
+
+        return new OAuthCacheKey(OAuth2Util.buildCacheKeyStringForAuthzCode(clientId, authorizationCode));
+    }
+
+    private void revokeAccessToken(String accessToken,
+                                   OAuthTokenReqMessageContext tokenReqMessageContext) throws IdentityOAuth2Exception {
+
+        String clientId = tokenReqMessageContext.getOauth2AccessTokenReqDTO().getClientId();
+        String clientSecret = tokenReqMessageContext.getOauth2AccessTokenReqDTO().getClientSecret();
+
+        OAuthRevocationRequestDTO revocationRequestDTO = new OAuthRevocationRequestDTO();
+        revocationRequestDTO.setConsumerKey(clientId);
+        revocationRequestDTO.setConsumerSecret(clientSecret);
+        revocationRequestDTO.setToken(accessToken);
+
+        OAuthRevocationResponseDTO revocationResponseDTO =
+                getOauth2Service().revokeTokenByOAuthClient(revocationRequestDTO);
+
+        if (revocationResponseDTO.isError()) {
+            String msg = "Error while revoking token issued for for client_id:%s, user:%s, scope:%s. " +
+                    "Error Code:%s, Error Message:%s";
+            String user = tokenReqMessageContext.getAuthorizedUser().toString();
+            String scope = OAuth2Util.buildScopeString(tokenReqMessageContext.getScope());
+            throw new IdentityOAuth2Exception(String.format(msg, clientId, user, scope,
+                    revocationResponseDTO.getErrorCode(), revocationResponseDTO.getErrorMsg()));
+        }
+    }
+
+    private OAuth2Service getOauth2Service() {
+
+        return (OAuth2Service) PrivilegedCarbonContext
+                .getThreadLocalCarbonContext().getOSGiService(OAuth2Service.class, null);
+    }
 }
