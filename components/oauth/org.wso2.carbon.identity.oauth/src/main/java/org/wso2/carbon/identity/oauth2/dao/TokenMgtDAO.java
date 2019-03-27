@@ -930,6 +930,7 @@ public class TokenMgtDAO {
         String scopeString = null;
         String callbackUrl = null;
         String tenantDomain = null;
+        String tokenId = null;
         String codeId = null;
         String subjectIdentifier = null;
         String pkceCodeChallenge = null;
@@ -970,8 +971,8 @@ public class TokenMgtDAO {
 
                 if (!OAuthConstants.AuthorizationCodeState.ACTIVE.equals(codeState)) {
                     //revoking access token issued for authorization code as per RFC 6749 Section 4.1.2
-                    String tokenId = resultSet.getString(9);
-                    revokeToken(tokenId, authorizedUser);
+                    tokenId = resultSet.getString(9);
+//                    revokeToken(tokenId, authorizedUser);
                 }
             } else if (OAuth2Util.isEncryptionWithTransformationEnabled() && isRsaEncryptedAuthorizationCodeAvailable(
                     connection, authorizationKey)) {
@@ -1007,8 +1008,8 @@ public class TokenMgtDAO {
 
                     if (!OAuthConstants.AuthorizationCodeState.ACTIVE.equals(codeState)) {
                         //revoking access token issued for authorization code as per RFC 6749 Section 4.1.2
-                        String tokenId = resultSet.getString(9);
-                        revokeToken(tokenId, authorizedUser);
+                        tokenId = resultSet.getString(9);
+//                        revokeToken(tokenId, authorizedUser);
                     }
                 } else {
                     // this means we were not able to find the authorization code in the database table.
@@ -1025,9 +1026,12 @@ public class TokenMgtDAO {
             connection.commit();
 
             migrateListOfAuthzCodes(authzCodeList);
-            return new AuthzCodeDO(user, OAuth2Util.buildScopeArray(scopeString), issuedTime, validityPeriod,
-                    callbackUrl, consumerKey, authorizationKey, codeId, codeState);
 
+            AuthzCodeDO authzCodeDO =
+                    new AuthzCodeDO(user, OAuth2Util.buildScopeArray(scopeString), issuedTime, validityPeriod,
+                    callbackUrl, consumerKey, authorizationKey, codeId, codeState);
+            authzCodeDO.setOauthTokenId(tokenId);
+            return authzCodeDO;
 
         } catch (SQLException e) {
             throw new IdentityOAuth2Exception("Error when validating an authorization code", e);
