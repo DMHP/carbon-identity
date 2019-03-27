@@ -63,8 +63,7 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         AuthzCodeDO authzCodeDO = null;
         // if cache is enabled, check in the cache first.
         if (cacheEnabled) {
-            OAuthCacheKey cacheKey = new OAuthCacheKey(OAuth2Util.buildCacheKeyStringForAuthzCode(
-                    clientId, authorizationCode));
+            OAuthCacheKey cacheKey = getAuthzCodeCacheKey(authorizationCode, clientId);
             authzCodeDO = (AuthzCodeDO) oauthCache.getValueFromCache(cacheKey);
         }
 
@@ -158,9 +157,7 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
             }
 
             // remove the authorization code from the cache
-            oauthCache.clearCacheEntry(new OAuthCacheKey(
-                    OAuth2Util.buildCacheKeyStringForAuthzCode(clientId,
-                            authorizationCode)));
+            oauthCache.clearCacheEntry(getAuthzCodeCacheKey(authorizationCode, clientId));
 
             if (log.isDebugEnabled()) {
                 log.debug("Expired Authorization code" +
@@ -184,6 +181,11 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         // calculating it again when issuing the access token.
         tokReqMsgCtx.addProperty(AUTHZ_CODE, authorizationCode);
         return true;
+    }
+
+    private OAuthCacheKey getAuthzCodeCacheKey(String authorizationCode, String clientId) {
+        return new OAuthCacheKey(OAuth2Util.buildCacheKeyStringForAuthzCode(
+                clientId, authorizationCode));
     }
 
     private void revokeExistingToken(String accessToken,
@@ -243,8 +245,7 @@ public class AuthorizationCodeGrantHandler extends AbstractAuthorizationGrantHan
         // Clear the cache entry
         if (cacheEnabled) {
             String clientId = tokReqMsgCtx.getOauth2AccessTokenReqDTO().getClientId();
-            OAuthCacheKey cacheKey = new OAuthCacheKey(OAuth2Util.buildCacheKeyStringForAuthzCode(
-                    clientId, authzCode));
+            OAuthCacheKey cacheKey = getAuthzCodeCacheKey(authzCode, clientId);
             oauthCache.clearCacheEntry(cacheKey);
 
             if (log.isDebugEnabled()) {
