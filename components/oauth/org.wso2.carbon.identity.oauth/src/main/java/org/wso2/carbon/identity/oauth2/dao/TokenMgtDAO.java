@@ -930,6 +930,7 @@ public class TokenMgtDAO {
         String scopeString = null;
         String callbackUrl = null;
         String tenantDomain = null;
+        String tokenId = null;
         String codeId = null;
         String subjectIdentifier = null;
         String pkceCodeChallenge = null;
@@ -969,9 +970,9 @@ public class TokenMgtDAO {
                 authorizedUser = UserCoreUtil.addTenantDomainToEntry(authorizedUser, tenantDomain);
 
                 if (!OAuthConstants.AuthorizationCodeState.ACTIVE.equals(codeState)) {
-                    //revoking access token issued for authorization code as per RFC 6749 Section 4.1.2
-                    String tokenId = resultSet.getString(9);
-                    revokeToken(tokenId, authorizedUser);
+                    // Return access token issued against inactive authorization code to proceed with token revocation
+                    // as per RFC 6749 Section 4.1.2 during authorization code reuse.
+                    tokenId = resultSet.getString(9);
                 }
             } else if (OAuth2Util.isEncryptionWithTransformationEnabled() && isRsaEncryptedAuthorizationCodeAvailable(
                     connection, authorizationKey)) {
@@ -1006,9 +1007,9 @@ public class TokenMgtDAO {
                     authorizedUser = UserCoreUtil.addTenantDomainToEntry(authorizedUser, tenantDomain);
 
                     if (!OAuthConstants.AuthorizationCodeState.ACTIVE.equals(codeState)) {
-                        //revoking access token issued for authorization code as per RFC 6749 Section 4.1.2
-                        String tokenId = resultSet.getString(9);
-                        revokeToken(tokenId, authorizedUser);
+                        // Return access token issued against inactive authorization code to proceed with token revocation
+                        // as per RFC 6749 Section 4.1.2 during authorization code reuse.
+                        tokenId = resultSet.getString(9);
                     }
                 } else {
                     // this means we were not able to find the authorization code in the database table.
@@ -1025,9 +1026,12 @@ public class TokenMgtDAO {
             connection.commit();
 
             migrateListOfAuthzCodes(authzCodeList);
-            return new AuthzCodeDO(user, OAuth2Util.buildScopeArray(scopeString), issuedTime, validityPeriod,
-                    callbackUrl, consumerKey, authorizationKey, codeId, codeState);
 
+            AuthzCodeDO authzCodeDO =
+                    new AuthzCodeDO(user, OAuth2Util.buildScopeArray(scopeString), issuedTime, validityPeriod,
+                    callbackUrl, consumerKey, authorizationKey, codeId, codeState);
+            authzCodeDO.setOauthTokenId(tokenId);
+            return authzCodeDO;
 
         } catch (SQLException e) {
             throw new IdentityOAuth2Exception("Error when validating an authorization code", e);
@@ -2437,6 +2441,7 @@ public class TokenMgtDAO {
 
         PreparedStatement prepStmt = null;
         ResultSet resultSet = null;
+        String accessToken = null;
         try {
             String sql = SQLQueries.RETRIEVE_TOKEN_BY_TOKEN_ID;
 
@@ -2445,11 +2450,11 @@ public class TokenMgtDAO {
             resultSet = prepStmt.executeQuery();
 
             if (resultSet.next()) {
-                return resultSet.getString("ACCESS_TOKEN");
+                accessToken =
+                        persistenceProcessor.getPreprocessedAccessTokenIdentifier(resultSet.getString("ACCESS_TOKEN"));
             }
             connection.commit();
-            return null;
-
+            return accessToken;
         } catch (SQLException e) {
             String errorMsg = "Error occurred while retrieving 'Access Token' for " +
                     "token id : " + tokenId;
@@ -2457,7 +2462,6 @@ public class TokenMgtDAO {
         } finally {
             IdentityDatabaseUtil.closeAllConnections(connection, resultSet, prepStmt);
         }
-
     }
 
 
