@@ -4404,7 +4404,7 @@ function doValidation() {
         <tr>
             <td class="leftCol-med labelField"><fmt:message key='query.param'/>:</td>
             <td>
-                <input id="oidcQueryParam" name="oidcQueryParam" type="text" value=<%=Encode.forHtmlAttribute(oidcQueryParam)%>>
+                <input id="oidcQueryParam" name="oidcQueryParam" type="text" value="<%=Encode.forHtmlAttribute(oidcQueryParam)%>">
 
                 <div class="sectionHelp">
                     <fmt:message key='query.param.help'/>
