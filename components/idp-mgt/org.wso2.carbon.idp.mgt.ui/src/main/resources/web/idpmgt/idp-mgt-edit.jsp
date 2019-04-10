@@ -3779,7 +3779,7 @@ function doValidation() {
             <td class="leftCol-med labelField"><fmt:message key='query.param'/>:</td>
             <td>
                 <%if (openidQueryParam != null) { %>
-                <input id="openidQueryParam" name="openidQueryParam" type="text" value=<%=Encode.forHtmlAttribute(openidQueryParam)%>>
+                <input id="openidQueryParam" name="openidQueryParam" type="text" value="<%=Encode.forHtmlAttribute(openidQueryParam)%>">
                 <% } else { %>
                 <input id="openidQueryParam" name="openidQueryParam" type="text"/>
                 <% } %>
@@ -4274,7 +4274,7 @@ function doValidation() {
                     }
                 %>
 
-                <input id="samlQueryParam" name="samlQueryParam" type="text" value=<%=Encode.forHtmlAttribute(samlQueryParam)%>>
+                <input id="samlQueryParam" name="samlQueryParam" type="text" value="<%=Encode.forHtmlAttribute(samlQueryParam)%>">
 
                 <div class="sectionHelp">
                     <fmt:message key='query.param.help'/>
@@ -4501,7 +4501,7 @@ function doValidation() {
             <td class="leftCol-med labelField"><fmt:message key='query.param'/>:</td>
             <td>
                 <input id="passiveSTSQueryParam" name="passiveSTSQueryParam" type="text"
-                       value=<%=Encode.forHtmlAttribute(passiveSTSQueryParam)%>>
+                       value="<%=Encode.forHtmlAttribute(passiveSTSQueryParam)%>">
 
                 <div class="sectionHelp">
                     <fmt:message key='query.param.help'/>
