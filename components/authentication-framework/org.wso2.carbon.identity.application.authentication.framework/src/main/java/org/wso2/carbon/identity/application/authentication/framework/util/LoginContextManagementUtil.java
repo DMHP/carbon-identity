@@ -117,11 +117,15 @@ public class LoginContextManagementUtil {
                     }
                 }
             }
-        } catch (RegistryException e) {
-            log.error("Error while getting data from the registry.", e);
-        } catch (IdentityException e) {
+        } catch (RegistryException | IdentityException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error occurred while while obtaining configuration. " +
+                        "Relying party : " + relyingParty + " Tenant ID : " + tenantDomain);
+            }
+
             log.error("Error while getting the tenant domain from tenant id : " + tenantId, e);
         }
+
         return null;
     }
 }
