@@ -1362,13 +1362,13 @@ var claimURIDropdownPopulator = function () {
     $idpClaimsList2.empty();
 
 
-    if ('<%=userIdClaimURI%>' == '') {
+    if ('<%=Encode.forJavaScriptBlock(userIdClaimURI)%>' == '') {
         $user_id_claim_dropdown.append('<option value = "">--- Select Claim URI ---</option>');
     } else {
         $user_id_claim_dropdown.append('<option selected="selected" value = "">--- Select Claim URI ---</option>');
     }
 
-    if ('<%=roleClaimURI%>' == '') {
+    if ('<%=Encode.forJavaScriptBlock(roleClaimURI)%>' == '') {
         $role_claim_dropdown.append('<option value = "">--- Select Claim URI ---</option>');
     } else {
         $role_claim_dropdown.append('<option selected="selected" value = "">--- Select Claim URI ---</option>');
@@ -1398,12 +1398,12 @@ var claimURIDropdownPopulator = function () {
     jQuery('#claimAddTable .claimrow').each(function () {
         if ($(this).val().trim() != "") {
             var val = $(this).val();
-            if (val == '<%=userIdClaimURI%>') {
+            if (val == '<%=Encode.forJavaScriptBlock(userIdClaimURI)%>') {
                 $user_id_claim_dropdown.append('<option selected="selected">' + val + '</option>');
             } else {
                 $user_id_claim_dropdown.append('<option>' + val + '</option>');
             }
-            if (val == '<%=roleClaimURI%>') {
+            if (val == '<%=Encode.forJavaScriptBlock(roleClaimURI)%>') {
                 $role_claim_dropdown.append('<option selected="selected">' + val + '</option>');
             } else {
                 $role_claim_dropdown.append('<option>' + val + '</option>');
