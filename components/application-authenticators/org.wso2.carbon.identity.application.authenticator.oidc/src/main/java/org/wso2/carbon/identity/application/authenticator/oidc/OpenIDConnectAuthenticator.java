@@ -379,6 +379,7 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
             }
 
             context.setProperty(OIDCAuthenticatorConstants.ACCESS_TOKEN, accessToken);
+            context.setProperty(OIDCAuthenticatorConstants.ID_TOKEN, idToken);
 
             AuthenticatedUser authenticatedUserObj;
             Map<ClaimMapping, String> claims = new HashMap<>();
@@ -484,7 +485,6 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
 
     private Map<String, Object> getIdTokenClaims(AuthenticationContext context, String idToken) {
 
-        context.setProperty(OIDCAuthenticatorConstants.ID_TOKEN, idToken);
         String base64Body = idToken.split("\\.")[1];
         byte[] decoded = Base64.decodeBase64(base64Body.getBytes());
         Set<Map.Entry<String, Object>> jwtAttributeSet = new HashSet<>();
@@ -492,7 +492,8 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
         try {
             jwtAttributeSet = JSONObjectUtils.parseJSONObject(new String(decoded)).entrySet();
         } catch (ParseException e) {
-            log.error("Error occurred while parsing JWT provided by federated IDP: ", e);
+            log.error("Error occurred while parsing JWT provided by federated IDP: " +
+                    context.getExternalIdP().getIdPName() , e);
         }
 
         Map<String, Object> jwtAttributeMap = new HashMap();
