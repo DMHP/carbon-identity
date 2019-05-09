@@ -17,6 +17,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.oidc;
 
+import com.nimbusds.jose.util.JSONObjectUtils;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONValue;
 import org.apache.commons.codec.binary.Base64;
@@ -57,9 +58,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator implements
         FederatedApplicationAuthenticator {
@@ -382,13 +386,7 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
 
             if (StringUtils.isNotBlank(idToken)) {
 
-                context.setProperty(OIDCAuthenticatorConstants.ID_TOKEN, idToken);
-
-                String base64Body = idToken.split("\\.")[1];
-                byte[] decoded = Base64.decodeBase64(base64Body.getBytes());
-                String json = new String(decoded);
-
-                jsonObject = JSONUtils.parseJSON(json);
+                jsonObject = getIdTokenClaims(context, idToken);
 
                 if (jsonObject == null) {
 
@@ -482,6 +480,27 @@ public class OpenIDConnectAuthenticator extends AbstractApplicationAuthenticator
         } catch (OAuthProblemException e) {
             throw new AuthenticationFailedException("Authentication process failed", e);
         }
+    }
+
+    private Map<String, Object> getIdTokenClaims(AuthenticationContext context, String idToken) {
+
+        context.setProperty(OIDCAuthenticatorConstants.ID_TOKEN, idToken);
+        String base64Body = idToken.split("\\.")[1];
+        byte[] decoded = Base64.decodeBase64(base64Body.getBytes());
+        Set<Map.Entry<String, Object>> jwtAttributeSet = new HashSet<>();
+
+        try {
+            jwtAttributeSet = JSONObjectUtils.parseJSONObject(new String(decoded)).entrySet();
+        } catch (ParseException e) {
+            log.error("Error occurred while parsing JWT provided by federated IDP: ", e);
+        }
+
+        Map<String, Object> jwtAttributeMap = new HashMap();
+        for (Map.Entry<String, Object> entry : jwtAttributeSet) {
+            jwtAttributeMap.put(entry.getKey(), entry.getValue());
+        }
+
+        return jwtAttributeMap;
     }
 
     protected void buildClaimMappings(Map<ClaimMapping, String> claims, Map.Entry<String, Object> entry, String
