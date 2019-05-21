@@ -26,7 +26,6 @@ import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.osgi.service.component.ComponentContext;
-import org.wso2.carbon.base.ServerConfigurationException;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.entitlement.EntitlementUtil;
@@ -45,6 +44,7 @@ import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.user.core.listener.UserOperationEventListener;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.CarbonUtils;
+import org.wso2.carbon.utils.ConfigurationContextService;
 import org.wso2.carbon.utils.NetworkUtils;
 
 import java.io.File;
@@ -63,6 +63,11 @@ import java.util.concurrent.Executors;
  * @scr.reference name="user.realmservice.default"
  * interface="org.wso2.carbon.user.core.service.RealmService" cardinality="1..1"
  * policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
+ * @scr.reference name="config.context.service"
+ * interface="org.wso2.carbon.utils.ConfigurationContextService"
+ * cardinality="1..1" policy="dynamic"
+ * bind="setConfigurationContextService"
+ * unbind="unsetConfigurationContextService"
  * @scr.reference name="identityCoreInitializedEventService"
  * interface="org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent" cardinality="1..1"
  * policy="dynamic" bind="setIdentityCoreInitializedEventService" unbind="unsetIdentityCoreInitializedEventService"
@@ -80,7 +85,6 @@ public class EntitlementServiceComponent {
 
     private static final Log log = LogFactory.getLog(EntitlementServiceComponent.class);
     private static RegistryService registryService = null;
-    private static EntitlementConfigHolder entitlementConfig = null;
     private static RealmService realmservice;
     private static NotificationSender notificationSender;
     private ThriftAuthenticatorService thriftAuthenticationService;
@@ -96,7 +100,7 @@ public class EntitlementServiceComponent {
      * @return
      */
     public static EntitlementConfigHolder getEntitlementConfig() {
-        return entitlementConfig;
+        return EntitlementConfigHolder.getInstance();
     }
 
     /**
@@ -179,27 +183,25 @@ public class EntitlementServiceComponent {
 
         try {
             // build configuration file
-            entitlementConfig = new EntitlementConfigHolder();
             EntitlementExtensionBuilder builder = new EntitlementExtensionBuilder();
             builder.setBundleContext(ctxt.getBundleContext());
-            builder.buildEntitlementConfig(entitlementConfig);
-
+            builder.buildEntitlementConfig(EntitlementConfigHolder.getInstance());
             // Start loading schema.
-            new Thread(new SchemaBuilder(entitlementConfig)).start();
+            new Thread(new SchemaBuilder(EntitlementConfigHolder.getInstance())).start();
 
             // Read XACML policy files from a pre-defined location in the
             // filesystem and load to registry at the server startup
             PAPPolicyStore papPolicyStore = new PAPPolicyStore(
                     registryService.getGovernanceSystemRegistry());
 
-            String startUpPolicyAdding = entitlementConfig.getEngineProperties().getProperty(
+            String startUpPolicyAdding = EntitlementConfigHolder.getInstance().getEngineProperties().getProperty(
                     PDPConstants.START_UP_POLICY_ADDING);
 
             if (startUpPolicyAdding != null && Boolean.parseBoolean(startUpPolicyAdding)) {
                 if (papPolicyStore.getAllPolicyIds() == null
                         || papPolicyStore.getAllPolicyIds().length == 0) {
                     File policyFolder = null;
-                    String policyPathFromConfig = entitlementConfig.getEngineProperties().getProperty(
+                    String policyPathFromConfig = EntitlementConfigHolder.getInstance().getEngineProperties().getProperty(
                             PDPConstants.FILESYSTEM_POLICY_PATH);
 
                     if (policyPathFromConfig != null && policyPathFromConfig.trim().length() > 0) {
@@ -490,6 +492,20 @@ public class EntitlementServiceComponent {
     protected void setIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
         /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
+    }
+
+    protected void setConfigurationContextService(ConfigurationContextService configCtxtService) {
+        if (log.isDebugEnabled()) {
+            log.debug("ConfigurationContextService set in EntitlementServiceComponent bundle.");
+        }
+        EntitlementConfigHolder.getInstance().setConfigurationContextService(configCtxtService);
+    }
+
+    protected void unsetConfigurationContextService(ConfigurationContextService configCtxtService) {
+        if (log.isDebugEnabled()) {
+            log.debug("ConfigurationContextService unset in EntitlementServiceComponent bundle.");
+        }
+        EntitlementConfigHolder.getInstance().setConfigurationContextService(null);
     }
 
     /**
