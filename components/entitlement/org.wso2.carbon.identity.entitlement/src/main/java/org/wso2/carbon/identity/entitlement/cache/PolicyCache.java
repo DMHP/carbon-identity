@@ -119,9 +119,9 @@ public class PolicyCache extends EntitlementBaseCache<IdentityCacheKey, PolicySt
         }
 
         IdentityCacheKey cacheKey = new IdentityCacheKey(tenantId, "");
-        // update local cache map of this node.
+        // Update local cache map of this node.
         updateLocalPolicyCacheMap(cacheKey, new PolicyStatus());
-        // send out a cluster message to notify other nodes
+        // Send out a cluster message to notify other nodes
         if (isClusteringEnabled()) {
             sendClusterMessage(new PolicyStatusClusterMessage(cacheKey, new PolicyStatus()), true);
         } else {
@@ -188,10 +188,10 @@ public class PolicyCache extends EntitlementBaseCache<IdentityCacheKey, PolicySt
             policyStatus.setStatusCount(policyStatus.getStatusCount() + 1);
             policyStatus.setPolicyAction(action);
         }
-        // update local cache map of this node.
+        // Update local cache map of this node.
         updateLocalPolicyCacheMap(cacheKey, policyStatus);
 
-        // send out a cluster message to notify other nodes.
+        // Send out a cluster message to notify other nodes.
         if (isClusteringEnabled()) {
             sendClusterMessage(new PolicyStatusClusterMessage(cacheKey, policyStatus), true);
         } else {

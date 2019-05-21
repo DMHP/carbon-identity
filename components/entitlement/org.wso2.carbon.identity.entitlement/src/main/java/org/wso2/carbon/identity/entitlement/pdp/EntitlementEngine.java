@@ -442,6 +442,7 @@ public class EntitlementEngine {
                     log.debug("Policy Cache is invalidated. Clearing the decision cache.");
                 }
                 decisionCache.clear();
+                simpleDecisionCache.clear();
                 return null;
             }
 

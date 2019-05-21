@@ -63,7 +63,7 @@ public class PolicyStatusClusterMessage extends ClusteringMessage {
         if (log.isDebugEnabled()) {
             log.debug("Received PolicyStatusClusterMessage.");
         }
-        // we need to update our local policy status map based on the received cluster message from other node
+        // We need to update our local policy status map based on the received cluster message from other node
         PolicyCache.updateLocalPolicyCacheMap(key, status);
         if (log.isDebugEnabled()) {
             log.debug("Updated Local Policy Status Map.");
