@@ -436,6 +436,15 @@ public class EntitlementEngine {
                 simpleDecisionCache.clearCache();
             }*/
 
+            // Check whether the policy cache is invalidated, if so clear the decision cache.
+            if (EntitlementEngine.getInstance().getPolicyCache().isInvalidate()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Policy Cache is invalidated. Clearing the decision cache.");
+                }
+                decisionCache.clear();
+                return null;
+            }
+
             if (simpleCache) {
                 decision = simpleDecisionCache.getFromCache(tenantRequest);
             } else {
