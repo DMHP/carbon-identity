@@ -175,4 +175,16 @@ public abstract class AbstractApplicationAuthenticator implements ApplicationAut
         }
         return userName;
     }
+
+    /**
+     * Get the claim dialect URI if this authenticator receives claims in a standard dialect
+     * and needs to be mapped to the Carbon dialect http://wso2.org/claims.
+     *
+     * @param context Authentication context.
+     * @return Claim dialect.
+     */
+    public String getClaimDialectURI(AuthenticationContext context) {
+
+        return getClaimDialectURI();
+    }
 }

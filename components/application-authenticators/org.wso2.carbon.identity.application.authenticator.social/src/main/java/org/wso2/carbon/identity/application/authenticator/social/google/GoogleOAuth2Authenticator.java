@@ -193,6 +193,15 @@ public class GoogleOAuth2Authenticator extends OpenIDConnectAuthenticator {
         scope.setDisplayOrder(4);
         configProperties.add(scope);
 
+        Property claimDialect = new Property();
+        claimDialect.setDisplayName("Use OIDC claim dialect");
+        claimDialect.setName(IdentityApplicationConstants.Authenticator.OIDC.USE_OIDC_CLAIM_DIALECT);
+        claimDialect.setValue("true");
+        claimDialect.setDescription("Specifies if the OIDC claim dialect should be used for defined claim mappings.");
+        claimDialect.setDisplayOrder(5);
+        claimDialect.setType("checkbox");
+        configProperties.add(claimDialect);
+
         return configProperties;
     }
 
