@@ -1150,7 +1150,7 @@ public class IdPManagementUIUtil {
             fedIdp.setDefaultAuthenticatorConfig(oidcAuthnConfig);
         }
 
-        Property[] properties = new Property[7];
+        Property[] properties = new Property[8];
         Property property = new Property();
         property.setName(IdentityApplicationConstants.Authenticator.Facebook.CLIENT_ID);
         property.setValue(paramMap.get("clientId"));
@@ -1195,6 +1195,13 @@ public class IdPManagementUIUtil {
         property.setName(IdentityApplicationConstants.Authenticator.OIDC.CALLBACK_URL);
         property.setValue(paramMap.get("callbackUrl"));
         properties[6] = property;
+
+        property = new Property();
+        property.setName(IdentityApplicationConstants.Authenticator.OIDC.USE_OIDC_CLAIM_DIALECT);
+        if (paramMap.get(IdentityApplicationConstants.Authenticator.OIDC.USE_OIDC_CLAIM_DIALECT) != null) {
+            property.setValue(paramMap.get(IdentityApplicationConstants.Authenticator.OIDC.USE_OIDC_CLAIM_DIALECT));
+        }
+        properties[7] = property;
 
         oidcAuthnConfig.setProperties(properties);
         FederatedAuthenticatorConfig[] authenticators = fedIdp.getFederatedAuthenticatorConfigs();
