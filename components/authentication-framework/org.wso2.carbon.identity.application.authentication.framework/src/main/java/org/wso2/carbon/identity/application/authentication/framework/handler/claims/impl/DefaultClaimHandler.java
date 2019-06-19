@@ -25,7 +25,6 @@ import org.wso2.carbon.CarbonException;
 import org.wso2.carbon.claim.mgt.ClaimManagementException;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.core.util.AnonymousSessionUtil;
-import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.ApplicationConfig;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
@@ -138,12 +137,8 @@ public class DefaultClaimHandler implements ClaimHandler {
 
         ApplicationAuthenticator authenticator = stepConfig.
                 getAuthenticatedAutenticator().getApplicationAuthenticator();
-        String idPStandardDialect;
-        if (authenticator instanceof AbstractApplicationAuthenticator) {
-            idPStandardDialect = ((AbstractApplicationAuthenticator) authenticator).getClaimDialectURI(context);
-        } else {
-            idPStandardDialect = authenticator.getClaimDialectURI();
-        }
+        String idPStandardDialect = authenticator.getClaimDialectURI();
+
         boolean useDefaultIdpDialect = context.getExternalIdP().useDefaultLocalIdpDialect();
 
         // set unfiltered remote claims as a property
