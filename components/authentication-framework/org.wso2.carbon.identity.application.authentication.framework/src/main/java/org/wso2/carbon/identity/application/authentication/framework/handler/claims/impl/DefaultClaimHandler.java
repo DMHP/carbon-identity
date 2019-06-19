@@ -26,6 +26,7 @@ import org.wso2.carbon.claim.mgt.ClaimManagementException;
 import org.wso2.carbon.claim.mgt.ClaimManagerHandler;
 import org.wso2.carbon.core.util.AnonymousSessionUtil;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
+import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.ApplicationConfig;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
@@ -137,9 +138,14 @@ public class DefaultClaimHandler implements ClaimHandler {
 
         ApplicationAuthenticator authenticator = stepConfig.
                 getAuthenticatedAutenticator().getApplicationAuthenticator();
-        String idPStandardDialect = authenticator.getClaimDialectURI();
 
         boolean useDefaultIdpDialect = context.getExternalIdP().useDefaultLocalIdpDialect();
+
+        // When null the local claim dialect will be used.
+        String idPStandardDialect = null;
+        if (useDefaultIdpDialect || !useLocalClaimDialectForClaimMappings()) {
+            idPStandardDialect = authenticator.getClaimDialectURI();
+        }
 
         // set unfiltered remote claims as a property
         context.setProperty(FrameworkConstants.UNFILTERED_IDP_CLAIM_VALUES, remoteClaims);
@@ -844,5 +850,17 @@ public class DefaultClaimHandler implements ClaimHandler {
         }
         log.debug(FrameworkConstants.UNFILTERED_SP_CLAIM_VALUES +
                   " map property set to " + sb.toString());
+    }
+
+    /**
+     * Checks if a configuration is available indicating to use the local claim
+     * dialect instead of the federated authenticator's dialect when a custom dialect
+     * claim mapping is used.
+     *
+     * @return True if local claim dialect should be used.
+     */
+    private boolean useLocalClaimDialectForClaimMappings() {
+
+        return FileBasedConfigurationBuilder.getInstance().isCustomClaimMappingsForAuthenticatorsAllowed();
     }
 }

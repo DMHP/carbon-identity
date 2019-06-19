@@ -63,6 +63,7 @@ public class FileBasedConfigurationBuilder {
 
     private String authenticationEndpointURL;
     private String authenticationEndpointRetryURL;
+    private boolean allowCustomClaimMappingsForAuthenticators = false;
 
     /**
      * List of URLs that receive the tenant list
@@ -185,6 +186,8 @@ public class FileBasedConfigurationBuilder {
             //########### Read Sequence Configs ###########
             readSequenceConfigs(rootElement);
 
+            //########### Read Authenticator Claim Dialect Configs ###########
+            readAllowCustomClaimMappingsForAuthenticatorsValue(rootElement);
         } catch (FileNotFoundException e) {
             log.error(IdentityApplicationConstants.APPLICATION_AUTHENTICATION_CONGIG + " file is not available", e);
         } catch (XMLStreamException e) {
@@ -864,5 +867,27 @@ public class FileBasedConfigurationBuilder {
         }
 
         return false;
+    }
+
+    private void readAllowCustomClaimMappingsForAuthenticatorsValue(OMElement documentElement) {
+
+        OMElement element = documentElement.getFirstChildWithName(IdentityApplicationManagementUtil.
+                getQNameWithIdentityApplicationNS(
+                        FrameworkConstants.Config.QNAME_ALLOW_AUTHENTICATOR_CUSTOM_CLAIM_MAPPINGS));
+
+        if (element != null) {
+            allowCustomClaimMappingsForAuthenticators = Boolean.valueOf(element.getText());
+        }
+    }
+
+    /**
+     * Indicates whether a custom claim dialect can be used instead
+     * of the authenticator's claim dialect.
+     *
+     * @return True is a custom claim dialect can be used.
+     */
+    public boolean isCustomClaimMappingsForAuthenticatorsAllowed() {
+
+        return allowCustomClaimMappingsForAuthenticators;
     }
 } 
