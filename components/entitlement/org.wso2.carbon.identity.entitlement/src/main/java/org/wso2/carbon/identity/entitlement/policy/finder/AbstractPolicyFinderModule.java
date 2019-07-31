@@ -52,7 +52,7 @@ public abstract class AbstractPolicyFinderModule implements PolicyFinderModule {
         PAPPolicyStoreReader reader = new PAPPolicyStoreReader(policyStore);
 
         EntitlementEngine.getInstance().getPolicyCache().invalidateCache(policyId, action);
-
+        EntitlementEngine.getInstance().getPolicySearch().getPolicySearchCache().invalidateCache();
 
         EntitlementEngine.getInstance().clearDecisionCache();
 
@@ -61,6 +61,7 @@ public abstract class AbstractPolicyFinderModule implements PolicyFinderModule {
     public static void invalidateCache() {
         EntitlementEngine.getInstance().clearDecisionCache();
         EntitlementEngine.getInstance().getPolicyCache().invalidateCache();
+        EntitlementEngine.getInstance().getPolicySearch().getPolicySearchCache().invalidateCache();
     }
 
     @Override
