@@ -377,6 +377,11 @@ public class PolicySearch {
         return result;
     }
 
+    public PolicySearchCache getPolicySearchCache() {
+
+        return this.policySearchCache;
+    }
+
     /**
      * Helper method to get possible XACML requests with attributes
      *
