@@ -109,7 +109,5 @@ public class ProcessManagementServiceClient {
             log.error("retireProcess operation failed", e);
             throw e;
         }
-
     }
-
 }
