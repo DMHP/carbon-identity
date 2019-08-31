@@ -67,6 +67,9 @@ public class AuthenticationContext extends MessageContext implements Serializabl
     private Map<String, AuthenticatedIdPData> previousAuthenticatedIdPs = new HashMap<String, AuthenticatedIdPData>();
     private Map<String, AuthenticatedIdPData> currentAuthenticatedIdPs = new HashMap<String, AuthenticatedIdPData>();
 
+    // Authentication context thread status flag.
+    private volatile boolean activeInAThread;
+
     //flow controller flags
     private boolean requestAuthenticated = true;
     private boolean returning;
@@ -351,5 +354,22 @@ public class AuthenticationContext extends MessageContext implements Serializabl
 
     public void setAuthenticationRequest(AuthenticationRequest authenticationRequest) {
         this.authenticationRequest = authenticationRequest;
+    }
+
+    /**
+     * Checks whether this context is in use in a active flow.
+     * @return True if this context is being used by an active thread.
+     */
+    public boolean isActiveInAThread() {
+        return activeInAThread;
+    }
+
+    /**
+     * This flag is used to mark when this authentication context is used by an active thread. This is to prevent same
+     * context is used by two different threads at the same time.
+     * @param activeInAThread True when this context started to being used by a thread.
+     */
+    public void setActiveInAThread(boolean activeInAThread) {
+        this.activeInAThread = activeInAThread;
     }
 }

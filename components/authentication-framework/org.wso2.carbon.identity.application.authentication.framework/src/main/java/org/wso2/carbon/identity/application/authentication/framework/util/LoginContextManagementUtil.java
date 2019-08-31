@@ -23,6 +23,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.base.MultitenantConstants;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.registry.core.Registry;
@@ -127,5 +128,21 @@ public class LoginContextManagementUtil {
         }
 
         return null;
+    }
+
+    /**
+     * Returns whether post authentication handler execution is ended or not.
+     *
+     * @param authenticationContext Authentication context.
+     * @return True if post authentication handlers have finished execution on this context. else false.
+     */
+    public static boolean isPostAuthenticationExtensionCompleted(AuthenticationContext authenticationContext) {
+
+        Object object = authenticationContext.getProperty(FrameworkConstants.POST_AUTHENTICATION_EXTENSION_COMPLETED);
+        if (object != null && object instanceof Boolean) {
+            return (Boolean) object;
+        } else {
+            return false;
+        }
     }
 }
