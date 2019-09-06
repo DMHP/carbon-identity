@@ -1747,6 +1747,9 @@ jQuery(document).ready(function () {
             return false;
         }
         advancedClaimMappinRowID++;
+        
+        // Encoding the selectedIDPClaimName to avoid possible xss vulnerabilities.
+        selectedIDPClaimName = htmlEncode(selectedIDPClaimName);
         $("#advanced_claim_id_count").val(advancedClaimMappinRowID + 1);
         jQuery('#advancedClaimMappingAddTable').append(jQuery('<tr>' +
                 '<td><input type="text" style="width: 99%;" value="' + selectedIDPClaimName + '" id="advancnedIdpClaim_' + advancedClaimMappinRowID + '" name="advancnedIdpClaim_' + advancedClaimMappinRowID + '" readonly="readonly" /></td>' +
