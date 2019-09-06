@@ -81,7 +81,7 @@
 
         <%if(request.getParameter("relyingParty").equals("wso2.my.dashboard")) { %>
         <a id="registerLink" href="create-account.jsp?sessionDataKey=<%=Encode.forHtmlAttribute
-            (request.getParameter("sessionDataKey"))%>" class="font-large">Create an
+            (request.getParameter(Encode.forJava("sessionDataKey")))%>" class="font-large">Create an
             account</a>
         <%} %>
     </div>
