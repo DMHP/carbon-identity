@@ -82,6 +82,8 @@ public class STSDeploymentInterceptor implements AxisObserver {
             "Security.TokenPersister.Properties.Property.Name";
     public static final String SECURITY_TOKEN_PERSISTER_PROPERTIES_PROPERTY_VALUE =
             "Security.TokenPersister.Properties.Property.Value";
+    public static final String STS_SIGNATURE_ALGORITHM = "Security.STSSignatureAlgorithm";
+    public static final String STS_DIGEST_ALGORITHM = "Security.STSDigestAlgorithm";
 
     /**
      * Updates STS service during deployment
@@ -170,6 +172,8 @@ public class STSDeploymentInterceptor implements AxisObserver {
                     new String[] { keyStoreName }, keyStoreName, privateKeyAlias);
 
             SAMLTokenIssuerConfig stsSamlConfig = new SAMLTokenIssuerConfig(issuerName, cryptoProvider, props);
+            String signatureAlgorithm = serverConfig.getFirstProperty(STS_SIGNATURE_ALGORITHM);
+            String digestAlgorithm = serverConfig.getFirstProperty(STS_DIGEST_ALGORITHM);
             stsSamlConfig.setIssuerName(issuerName);
             stsSamlConfig.setIssuerKeyAlias(privateKeyAlias);
             stsSamlConfig.setIssuerKeyPassword(keyPassword);
@@ -177,6 +181,9 @@ public class STSDeploymentInterceptor implements AxisObserver {
             stsSamlConfig.setAddRequestedUnattachedRef(true);
             stsSamlConfig.setKeyComputation(2);
             stsSamlConfig.setProofKeyType(TokenIssuerUtil.BINARY_SECRET);
+            stsSamlConfig.setSignatureAlgorithm(signatureAlgorithm);
+            stsSamlConfig.setDigestAlgorithm(digestAlgorithm);
+
             stsSamlConfig.setCallbackHandlerName(AttributeCallbackHandler.class.getName());
 
             String resourcePath = null;
