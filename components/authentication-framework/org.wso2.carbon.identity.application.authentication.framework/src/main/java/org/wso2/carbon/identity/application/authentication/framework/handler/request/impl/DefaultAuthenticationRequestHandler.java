@@ -122,8 +122,6 @@ public class DefaultAuthenticationRequestHandler implements AuthenticationReques
         // if flow completed, send response back
         if (context.getSequenceConfig().isCompleted()) {
             concludeFlow(request, response, context);
-        } else { // redirecting outside
-            FrameworkUtils.addAuthenticationContextToCache(context.getContextIdentifier(), context);
         }
     }
 
