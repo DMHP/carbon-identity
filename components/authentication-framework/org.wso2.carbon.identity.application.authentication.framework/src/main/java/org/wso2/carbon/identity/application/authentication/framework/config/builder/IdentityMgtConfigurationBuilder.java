@@ -76,6 +76,11 @@ public class IdentityMgtConfigurationBuilder {
         }
     }
 
+    /**
+     * Creates the IdentityMgtConfigurationBuilder which encapsulates identity management config data.
+     *
+     * @return IdentityMgtConfigurationBuilder instance.
+     */
     public static IdentityMgtConfigurationBuilder getInstance() {
 
         return identityMgtConfigurationBuilder;
