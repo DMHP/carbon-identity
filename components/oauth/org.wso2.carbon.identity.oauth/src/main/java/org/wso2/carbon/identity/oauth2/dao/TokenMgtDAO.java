@@ -43,7 +43,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.SQLTransactionRollbackException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,6 +84,7 @@ public class TokenMgtDAO {
 
     private static final String IDN_OAUTH2_ACCESS_TOKEN = "IDN_OAUTH2_ACCESS_TOKEN";
 
+    private static final String UTC = "UTC";
 
     static {
 
@@ -1718,7 +1718,9 @@ public class TokenMgtDAO {
      * @param authenticatedUser
      * @return
      * @throws IdentityOAuth2Exception
+     * @deprecated use {@link TokenMgtDAO#getAuthorizationCodesByUserForOpenidScope(AuthenticatedUser)} instead.
      */
+    @Deprecated
     public Set<String> getAuthorizationCodesForUser(AuthenticatedUser authenticatedUser)
             throws IdentityOAuth2Exception {
 
@@ -1794,6 +1796,106 @@ public class TokenMgtDAO {
             IdentityDatabaseUtil.closeAllConnections(connection, rs, ps);
         }
         return accessTokens;
+    }
+
+    /**
+     * Returns the set of Authorization codes issued for the user.
+     * <p>
+     * The returned set of Authorization codes is consumed by
+     * {@link org.wso2.carbon.identity.oauth.listener.IdentityOathEventListener} to clear user claims cached against the
+     * authz codes during a user attribute update.
+     * <p>
+     * Unless authz codes are issued for openid scope there is no point in returning since no claims are usually
+     * cached against authz codes otherwise.
+     * <p>
+     * Tokens with openid scope should not be expired eventhough in ACTIVE state, in order to clear from the cache.
+     *
+     * @param authenticatedUser
+     * @return authorizationCodes
+     * @throws IdentityOAuth2Exception
+     */
+    public List<AuthzCodeDO> getAuthorizationCodesByUserForOpenidScope(AuthenticatedUser authenticatedUser) throws
+            IdentityOAuth2Exception {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving authorization codes of user: " + authenticatedUser.toString());
+        }
+
+        Connection connection = IdentityDatabaseUtil.getDBConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<AuthzCodeDO> authorizationCodes = new ArrayList<>();
+        String authzUser = authenticatedUser.getUserName();
+        String tenantDomain = authenticatedUser.getTenantDomain();
+        String userStoreDomain = authenticatedUser.getUserStoreDomain();
+        boolean isUsernameCaseSensitive = IdentityUtil.isUserStoreInUsernameCaseSensitive(authenticatedUser.toString());
+        try {
+            String sqlQuery = SQLQueries.GET_AUTHORIZATION_CODE_DATA_BY_AUTHZUSER;
+            if (!isUsernameCaseSensitive) {
+                sqlQuery = sqlQuery.replace(AUTHZ_USER, LOWER_AUTHZ_USER);
+            }
+            ps = connection.prepareStatement(sqlQuery);
+            if (isUsernameCaseSensitive) {
+                ps.setString(1, authzUser);
+            } else {
+                ps.setString(1, authzUser.toLowerCase());
+            }
+            ps.setInt(2, OAuth2Util.getTenantId(tenantDomain));
+            ps.setString(3, userStoreDomain);
+            ps.setString(4, OAuthConstants.TokenStates.TOKEN_STATE_ACTIVE);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                long validityPeriodInMillis = rs.getLong(3);
+                Timestamp timeCreated = rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone(UTC)));
+                long issuedTimeInMillis = timeCreated.getTime();
+                String authorizationCode = rs.getString(1);
+                String authzCodeId = rs.getString(4);
+                String[] scope = OAuth2Util.buildScopeArray(rs.getString(5));
+                String callbackUrl = rs.getString(6);
+                String consumerKey = rs.getString(7);
+
+                AuthenticatedUser user = new AuthenticatedUser();
+                user.setUserStoreDomain(userStoreDomain);
+                user.setTenantDomain(tenantDomain);
+                user.setUserName(authzUser);
+
+                /*Authorization codes returned by this method will be used to clear claims cached against them. We
+                will only return authz codes that would contain such cached clams in order to improve performance.
+                Authorization codes issued for openid scope can contain cached claims against them.
+                 */
+                if (isAuthorizationCodeIssuedForOpenidScope(scope)) {
+                    // Authorization codes that are in ACTIVE state and not expired should be removed from the cache.
+                    if (OAuth2Util.getTimeToExpire(issuedTimeInMillis, validityPeriodInMillis) > 0) {
+                        authorizationCodes.add(new AuthzCodeDO(user, scope, timeCreated, validityPeriodInMillis, callbackUrl,
+                                consumerKey, authorizationCode, authzCodeId));
+                    }
+                }
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            IdentityDatabaseUtil.rollBack(connection);
+            throw new IdentityOAuth2Exception("Error occurred while revoking authorization code with username : " +
+                    authenticatedUser.getUserName() + " tenant ID : " + OAuth2Util.getTenantId(authenticatedUser
+                    .getTenantDomain()), e);
+        } finally {
+            IdentityDatabaseUtil.closeAllConnections(connection, null, ps);
+        }
+        return authorizationCodes;
+    }
+
+    /**
+     * Checks whether the issued token is for openid scope.
+     *
+     * @param scopes
+     * @return true if authorization code issued for openid scope. False if not.
+     */
+    private boolean isAuthorizationCodeIssuedForOpenidScope(String[] scopes) {
+
+        if (ArrayUtils.isNotEmpty(scopes)) {
+            return Arrays.asList(scopes).contains(OAuthConstants.Scope.OPENID);
+        }
+        return false;
     }
 
     public Set<String> getAuthorizationCodesForConsumerKey(String consumerKey) throws IdentityOAuth2Exception {
@@ -3416,5 +3518,113 @@ public class TokenMgtDAO {
 
     }
 
+    /**
+     * Returns the set of access tokens issued for the user which are having openid scope.
+     *
+     * The returned set of access tokens are consumed by
+     * {@link org.wso2.carbon.identity.oauth.listener.IdentityOathEventListener} to clear user claims cached against the
+     * tokens during a user attribute update.
+     *
+     * Unless access_tokens are issued for openid scope there is no point in returning tokens since no claims are
+     * usually cached against tokens otherwise.
+     *
+     * Tokens with openid scope should not be expired eventhough in ACTIVE state, in order to clear from the cache.
+     *
+     * @param authenticatedUser
+     * @return accessTokens
+     * @throws IdentityOAuth2Exception
+     */
+    public Set<AccessTokenDO> getAccessTokensByUserForOpenidScope(AuthenticatedUser authenticatedUser) throws IdentityOAuth2Exception {
 
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving access tokens of user: " + authenticatedUser.toString());
+        }
+
+        String accessTokenStoreTable = OAuthConstants.ACCESS_TOKEN_STORE_TABLE;
+        boolean isUsernameCaseSensitive = IdentityUtil.isUserStoreInUsernameCaseSensitive(authenticatedUser.toString());
+        Connection connection = IdentityDatabaseUtil.getDBConnection();
+        PreparedStatement ps = null;
+        ResultSet rs;
+        Map<String, AccessTokenDO> tokenMap = new HashMap<>();
+        Set<AccessTokenDO> accessTokens;
+        try {
+            if (OAuth2Util.checkAccessTokenPartitioningEnabled() &&
+                    OAuth2Util.checkUserNameAssertionEnabled()) {
+                accessTokenStoreTable = OAuth2Util.getAccessTokenStoreTableFromUserId(authenticatedUser.toString());
+            }
+            String sqlQuery = SQLQueries.GET_ACCESS_TOKEN_DATA_BY_AUTHZUSER.replace(IDN_OAUTH2_ACCESS_TOKEN,
+                    accessTokenStoreTable);
+            if (!isUsernameCaseSensitive) {
+                sqlQuery = sqlQuery.replace(AUTHZ_USER, LOWER_AUTHZ_USER);
+            }
+            ps = connection.prepareStatement(sqlQuery);
+            if (isUsernameCaseSensitive) {
+                ps.setString(1, authenticatedUser.getUserName());
+            } else {
+                ps.setString(1, authenticatedUser.getUserName().toLowerCase());
+            }
+            ps.setInt(2, OAuth2Util.getTenantId(authenticatedUser.getTenantDomain()));
+            ps.setString(3, OAuthConstants.TokenStates.TOKEN_STATE_ACTIVE);
+            ps.setString(4, authenticatedUser.getUserStoreDomain());
+            ps.setString(5, OAuthConstants.Scope.OPENID);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                String accessToken = persistenceProcessor.getPreprocessedAccessTokenIdentifier(
+                        rs.getString(1));
+                String refreshToken = persistenceProcessor.getPreprocessedAccessTokenIdentifier(
+                        rs.getString(2));
+                String tokenId = rs.getString(3);
+                Timestamp timeCreated = rs.getTimestamp(4, Calendar.getInstance(TimeZone.getTimeZone(UTC)));
+                long issuedTimeInMillis = timeCreated.getTime();
+                long validityPeriodInMillis = rs.getLong(5);
+                Timestamp refreshTokenTimeCreated = rs.getTimestamp(6, Calendar.getInstance(TimeZone.getTimeZone(UTC)));
+                long refreshTokenValidityPeriodInMillis = rs.getLong(7);
+                String consumerKey = rs.getString(8);
+                String grantType = rs.getString(9);
+
+                AccessTokenDO accessTokenDO = new AccessTokenDO();
+                accessTokenDO.setTenantID(OAuth2Util.getTenantId(authenticatedUser.getTenantDomain()));
+                accessTokenDO.setAccessToken(accessToken);
+                accessTokenDO.setRefreshToken(refreshToken);
+                accessTokenDO.setTokenId(tokenId);
+                accessTokenDO.setTokenState(OAuthConstants.TokenStates.TOKEN_STATE_ACTIVE);
+                accessTokenDO.setIssuedTime(timeCreated);
+                accessTokenDO.setValidityPeriodInMillis(validityPeriodInMillis);
+                accessTokenDO.setRefreshTokenIssuedTime(refreshTokenTimeCreated);
+                accessTokenDO.setRefreshTokenValidityPeriodInMillis(refreshTokenValidityPeriodInMillis);
+                accessTokenDO.setConsumerKey(consumerKey);
+                accessTokenDO.setGrantType(grantType);
+
+                /* Tokens returned by this method will be used to clear claims cached against the token. We will only
+                return tokens that would contain such cached clams in order to improve performance. Tokens issued for
+                openid scope can contain cached claims against them. Tokens that are in ACTIVE state and not expired
+                should be removed from the cache.*/
+                if (!isAccessTokenExpired(issuedTimeInMillis, validityPeriodInMillis)) {
+                    tokenMap.put(accessToken, accessTokenDO);
+                }
+            }
+            connection.commit();
+            accessTokens = new HashSet<>(tokenMap.values());
+        } catch (SQLException e) {
+            IdentityDatabaseUtil.rollBack(connection);
+            throw new IdentityOAuth2Exception("Error occurred while revoking access token with username : " +
+                    authenticatedUser.getUserName() + " tenant ID : " + OAuth2Util.getTenantId(authenticatedUser
+                    .getTenantDomain()), e);
+        } finally {
+            IdentityDatabaseUtil.closeAllConnections(connection, null, ps);
+        }
+        return accessTokens;
+    }
+
+    /**
+     * Checks whether the issued token is expired.
+     *
+     * @param issuedTimeInMillis
+     * @param validityPeriodMillis
+     * @return true if access token is expired. False if not.
+     */
+    private boolean isAccessTokenExpired(long issuedTimeInMillis, long validityPeriodMillis) {
+
+        return OAuth2Util.getTimeToExpire(issuedTimeInMillis, validityPeriodMillis) < 0;
+    }
 }

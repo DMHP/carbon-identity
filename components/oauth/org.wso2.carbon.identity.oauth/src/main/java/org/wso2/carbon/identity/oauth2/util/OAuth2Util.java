@@ -1102,4 +1102,16 @@ public class OAuth2Util {
 
         return isTokenHashColumnAvailable() && isAuthzCodeHashColumnAvailable() && isConsumerSecretHashColumnAvailable();
     }
+
+    /**
+     * Util method to calculate the validity period after applying skew corrections.
+     *
+     * @param issuedTimeInMillis
+     * @param validityPeriodMillis
+     * @return skew corrected validity period in milliseconds
+     */
+    public static long getTimeToExpire(long issuedTimeInMillis, long validityPeriodMillis) {
+
+        return issuedTimeInMillis + validityPeriodMillis - (System.currentTimeMillis() - timestampSkew);
+    }
 }

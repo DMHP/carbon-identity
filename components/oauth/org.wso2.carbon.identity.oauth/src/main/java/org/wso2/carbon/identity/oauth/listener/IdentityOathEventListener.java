@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.oauth.listener;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -27,11 +28,11 @@ import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.OAuthUtil;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCache;
-import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheEntry;
 import org.wso2.carbon.identity.oauth.cache.AuthorizationGrantCacheKey;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.dao.TokenMgtDAO;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
+import org.wso2.carbon.identity.oauth2.model.AuthzCodeDO;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.UserStoreException;
@@ -49,6 +50,7 @@ import java.util.Set;
  * for some of the core user management operations
  */
 public class IdentityOathEventListener extends AbstractIdentityUserOperationEventListener {
+
     private static final Log log = LogFactory.getLog(IdentityOathEventListener.class);
     private static final String USER_ACCOUNT_STATE = "UserAccountState";
     private static final int TOKEN_COUNT = 2;
@@ -58,6 +60,7 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
      */
     @Override
     public int getExecutionOrderId() {
+
         int orderId = getOrderId();
         if (orderId != IdentityCoreConstants.EVENT_LISTENER_ORDER_ID) {
             return orderId;
@@ -83,6 +86,10 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
     @Override
     public boolean doPreSetUserClaimValue(String userName, String claimURI, String claimValue, String profileName,
                                           UserStoreManager userStoreManager) throws UserStoreException {
+
+        if (!isEnable()) {
+            return true;
+        }
         removeTokensFromCache(userName, userStoreManager);
         return true;
     }
@@ -90,6 +97,10 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
     @Override
     public boolean doPreSetUserClaimValues(String userName, Map<String, String> claims, String profileName,
                                            UserStoreManager userStoreManager) throws UserStoreException {
+
+        if (!isEnable()) {
+            return true;
+        }
         removeTokensFromCache(userName, userStoreManager);
         return true;
     }
@@ -97,6 +108,7 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
     @Override
     public boolean doPostSetUserClaimValues(String userName, Map<String, String> claims, String profileName,
                                             UserStoreManager userStoreManager) throws UserStoreException {
+
         if (!isEnable()) {
             return true;
         }
@@ -124,7 +136,8 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
         return true;
     }
 
-    private boolean revokeTokens(String username, UserStoreManager userStoreManager){
+    private boolean revokeTokens(String username, UserStoreManager userStoreManager) {
+
         TokenMgtDAO tokenMgtDAO = new TokenMgtDAO();
 
         String userStoreDomain = UserCoreUtil.getDomainName(userStoreManager.getRealmConfiguration());
@@ -211,42 +224,49 @@ public class IdentityOathEventListener extends AbstractIdentityUserOperationEven
 
     private void removeTokensFromCache(String userName, UserStoreManager userStoreManager) throws
             UserStoreException {
+
         String userStoreDomain = UserCoreUtil.getDomainName(userStoreManager.getRealmConfiguration());
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         TokenMgtDAO tokenMgtDAO = new TokenMgtDAO();
-        Set<String> accessTokens;
-        Set<String> authorizationCodes;
+        Set<AccessTokenDO> accessTokenDOSet;
+        List<AuthzCodeDO> authorizationCodeDOSet;
         AuthenticatedUser authenticatedUser = new AuthenticatedUser();
         authenticatedUser.setUserStoreDomain(userStoreDomain);
         authenticatedUser.setTenantDomain(tenantDomain);
         authenticatedUser.setUserName(userName);
         try {
-            accessTokens = tokenMgtDAO.getAccessTokensForUser(authenticatedUser);
-            authorizationCodes = tokenMgtDAO.getAuthorizationCodesForUser(authenticatedUser);
-            if (accessTokens != null && accessTokens.size() > 0) {
-                for (String accessToken : accessTokens) {
-                    AuthorizationGrantCacheKey cacheKey = new AuthorizationGrantCacheKey(accessToken);
-                    AuthorizationGrantCacheEntry cacheEntry = (AuthorizationGrantCacheEntry) AuthorizationGrantCache
-                            .getInstance().getValueFromCacheByToken(cacheKey);
-                    if (cacheEntry != null) {
-                        AuthorizationGrantCache.getInstance().clearCacheEntryByToken(cacheKey);
-                    }
-                }
-            }
-            if (authorizationCodes != null && authorizationCodes.size() > 0) {
-                for (String accessToken : authorizationCodes) {
-                    AuthorizationGrantCacheKey cacheKey = new AuthorizationGrantCacheKey(accessToken);
-                    AuthorizationGrantCacheEntry cacheEntry = (AuthorizationGrantCacheEntry) AuthorizationGrantCache
-                            .getInstance().getValueFromCacheByToken(cacheKey);
-                    if (cacheEntry != null) {
-                        AuthorizationGrantCache.getInstance().clearCacheEntryByCode(cacheKey);
-                    }
-                }
-            }
+            accessTokenDOSet = tokenMgtDAO.getAccessTokensByUserForOpenidScope(authenticatedUser);
+            authorizationCodeDOSet = tokenMgtDAO.getAuthorizationCodesByUserForOpenidScope(authenticatedUser);
+            removeAccessTokensFromCache(accessTokenDOSet);
+            removeAuthzCodesFromCache(authorizationCodeDOSet);
         } catch (IdentityOAuth2Exception e) {
             String errorMsg = "Error occurred while retrieving access tokens issued for user : " + userName;
             log.error(errorMsg, e);
         }
 
+    }
+
+    private void removeAccessTokensFromCache(Set<AccessTokenDO> accessTokenDOSet) {
+
+        if (CollectionUtils.isNotEmpty(accessTokenDOSet)) {
+            for (AccessTokenDO accessTokenDO : accessTokenDOSet) {
+                String accessToken = accessTokenDO.getAccessToken();
+                String tokenId = accessTokenDO.getTokenId();
+                AuthorizationGrantCacheKey cacheKey = new AuthorizationGrantCacheKey(accessToken);
+                AuthorizationGrantCache.getInstance().clearCacheEntryByTokenId(cacheKey, tokenId);
+            }
+        }
+    }
+
+    private void removeAuthzCodesFromCache(List<AuthzCodeDO> authorizationCodeDOSet) {
+
+        if (CollectionUtils.isNotEmpty(authorizationCodeDOSet)) {
+            for (AuthzCodeDO authorizationCodeDO : authorizationCodeDOSet) {
+                String authorizationCode = authorizationCodeDO.getAuthorizationCode();
+                String authzCodeId = authorizationCodeDO.getAuthzCodeId();
+                AuthorizationGrantCacheKey cacheKey = new AuthorizationGrantCacheKey(authorizationCode);
+                AuthorizationGrantCache.getInstance().clearCacheEntryByCodeId(cacheKey, authzCodeId);
+            }
+        }
     }
 }

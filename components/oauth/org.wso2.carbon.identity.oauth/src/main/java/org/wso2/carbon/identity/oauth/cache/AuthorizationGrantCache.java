@@ -78,6 +78,17 @@ public class AuthorizationGrantCache extends BaseCache<AuthorizationGrantCacheKe
         clearFromSessionStore(replaceFromTokenId(key.getUserAttributesId()));
     }
 
+    /**
+     * Clears a cache entry by tokenId
+     *
+     * @param key Key to clear cache.
+     */
+    public void clearCacheEntryByTokenId(AuthorizationGrantCacheKey key, String tokenId) {
+
+        super.clearCacheEntry(key);
+        clearFromSessionStore(tokenId);
+    }
+
 
     public void addToCacheByCode(AuthorizationGrantCacheKey key, AuthorizationGrantCacheEntry entry) {
         super.addToCache(key, entry);
@@ -99,6 +110,17 @@ public class AuthorizationGrantCache extends BaseCache<AuthorizationGrantCacheKe
         clearFromSessionStore(replaceFromCodeId(key.getUserAttributesId()));
     }
 
+    /**
+     * Clears a cache entry by authorization code Id.
+     *
+     * @param key         Key to clear cache
+     * @param authzCodeId AuthorizationCodeId
+     */
+    public void clearCacheEntryByCodeId(AuthorizationGrantCacheKey key, String authzCodeId) {
+
+        super.clearCacheEntry(key);
+        clearFromSessionStore(authzCodeId);
+    }
 
     private String replaceFromCodeId(String authzCode) {
         TokenMgtDAO tokenMgtDAO = new TokenMgtDAO();
