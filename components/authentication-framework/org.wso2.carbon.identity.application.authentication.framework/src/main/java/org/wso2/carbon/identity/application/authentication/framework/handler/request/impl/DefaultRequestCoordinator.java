@@ -606,7 +606,7 @@ public class DefaultRequestCoordinator implements RequestCoordinator {
             return values.get(claimURI);
 
         } catch (UserStoreException e) {
-            throw new FrameworkException("Error occurred while retrieving claim: " + claimURI + "For user: " +
+            throw new FrameworkException("Error occurred while retrieving claim: " + claimURI + " For user: " +
                     username, e);
         }
     }
